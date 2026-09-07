@@ -103,6 +103,10 @@ td:first-child{text-align:left}
 .zone .taille{font-size:12px;color:var(--soft);font-weight:300;margin-top:8px}
 .deux{display:flex;gap:8px;margin-top:12px}
 .deux button{flex:1;padding:11px;border:1px solid var(--ink);border-radius:3px;font-size:14px;font-weight:600}
+.confirme{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.trois{display:flex;gap:7px;margin-top:9px}
+.trois button{flex:1;padding:10px 4px;border:1px solid var(--ink);border-radius:3px;font-size:13.5px;font-weight:600}
+.trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:300;margin-top:8px;text-align:center}
 
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);
@@ -164,7 +168,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
-  ajout:{repas:'midi',recents:[],photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  ajout:{repas:'midi',recents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
   pesee:{etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -485,8 +489,30 @@ function vueAjout(d){
          '</span><span>'+nb(al.kcal)+' kcal</span></li>';
     });
     h+='<li><span>Proteines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li>';
-    h+='</ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'. '+
-       (r.enregistre?'Enregistre dans ton journal.':'Non enregistre.')+'</p></div></section>';
+    h+='</ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
+
+    if(r.estimation){
+      h+='<p class="note">Estimation seule, rien n\'est enregistre.</p>';
+    } else if(A.confirm==='fait'){
+      h+='<p class="bien">'+esc(A.message)+'</p>';
+    } else if(A.confirm==='refus'){
+      h+='<p class="note">Non enregistre.</p>';
+    } else {
+      h+='<div class="confirme"><b>Enregistrer ce repas ?</b>'+
+         '<div class="trois">'+
+         '<button id="e-auj">Aujourd\'hui</button>'+
+         '<button id="e-autre">Autre jour</button>'+
+         '<button id="e-non">Non</button></div>';
+      if(A.confirm==='date'){
+        h+='<label for="e-date">Quel jour</label>'+
+           '<input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'">'+
+           '<button class="primaire" id="e-valide">Enregistrer a cette date</button>';
+      }
+      if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';
+      if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+      h+='</div>';
+    }
+    h+='</div></section>';
   }
   return h;
 }
@@ -726,11 +752,29 @@ function brancher(){
     A.etat='envoi';A.resultat=null;rendre();
     try{
       const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
-      A.etat=null;A.resultat=r;A.photo=null;A.apercu=null;A.taille=0;A.desc='';
-      if(r.enregistre)await rafraichir();
+      A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
+      A.photo=null;A.apercu=null;A.taille=0;A.desc='';
     }catch(e){A.etat='ko';A.message=e.message;}
     rendre();
   });
+
+  async function enregistrer(date){
+    const A=S.ajout,l=A.resultat&&A.resultat.ligne;
+    if(!l)return;
+    A.confirm='envoi';rendre();
+    try{
+      const r=await appel(Object.assign({action:'enregistrer',date:date},l));
+      await rafraichir();
+      A.confirm='fait';
+      A.message=nb(r.kcal)+' kcal enregistrees en '+r.repas+' le '+jjmm(r.date)+'.';
+    }catch(e){A.confirm='ko';A.message=e.message;}
+    rendre();
+  }
+  on('#e-auj','click',()=>enregistrer(auj()));
+  on('#e-autre','click',()=>{S.ajout.confirm='date';rendre();});
+  on('#e-non','click',()=>{S.ajout.confirm='refus';rendre();});
+  on('#e-date','change',e=>{S.ajout.dateAutre=e.target.value;});
+  on('#e-valide','click',()=>enregistrer(S.ajout.dateAutre||auj()));
 
   on('#p-envoi','click',async()=>{
     const v=(($('#p-val')||{}).value)||'';
