@@ -127,6 +127,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <div id="racine"></div>
 <script>
 "use strict";
+let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,
   ajout:{repas:'midi',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
@@ -151,12 +152,14 @@ async function appel(corps){
     body:JSON.stringify(Object.assign({token:S.cfg.token.trim()},corps))});
   let j=null;
   try{j=await r.json();}catch(e){}
+  if(r.status===429)throw new Error('Trop de requetes vers Google Sheets. Attends une minute et reessaie.');
   if(!j)throw new Error('Le serveur a repondu '+r.status+' sans contenu lisible.');
   if(j.ok!==true)throw new Error(j.erreur||('Le serveur a repondu '+r.status+'.'));
   return j;
 }
 async function rafraichir(){
   const d=await appel({action:'data'});
+  dernierAppel=Date.now();
   localStorage.setItem(S.cache,JSON.stringify(d));
   S.data=d;return d;
 }
@@ -508,7 +511,8 @@ function bandeau(d){
       '<span class="'+(r.ecart>0?'sur':'sous')+'">'+esc(String(r.mode).toLowerCase())+(r.ecart!==null?' '+sgn(r.ecart):'')+'</span></div>';
   }
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+'</h1>'+
-    '<button class="roue" id="b-reglages">'+(S.reglages?'Fermer':'Reglages')+'</button></div>'+m+'</div>';
+    '<div><button class="roue" id="b-maj">Actualiser</button>'+
+    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Reglages')+'</button></div></div>'+m+'</div>';
 }
 
 const VUES=[['jour','Jour'],['ajout','Ajouter'],['courbes','Courbes'],['journal','Journal'],['coach','Coach']];
@@ -535,6 +539,11 @@ function brancher(){
   const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);});
+  });
+  on('#b-maj','click',async e=>{
+    e.target.textContent='\u2026';
+    try{await rafraichir();}catch(err){window.alert(err.message);}
+    rendre();
   });
   on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();window.scrollTo(0,0);});
 
@@ -682,7 +691,9 @@ async function demarrer(){
 }
 
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden&&S.cfg&&S.data&&!S.reglages)rafraichir().then(rendre).catch(()=>{});
+  if(document.hidden||!S.cfg||!S.data||S.reglages)return;
+  if(Date.now()-dernierAppel<60000)return;   // pas plus d'un releve par minute
+  rafraichir().then(rendre).catch(()=>{});
 });
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
