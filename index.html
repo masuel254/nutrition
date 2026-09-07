@@ -17,14 +17,14 @@
 <style>
 :root{
   --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#5D6E71;
-  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E4E8E5;
+  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3;
 }
 @media (prefers-color-scheme: dark){
   :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#8FA1A3;
-         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#1D2A2C; }
+         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;width:100%;overflow-x:hidden}
 body{
   background:var(--paper); color:var(--ink);
   font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -40,16 +40,32 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .bandeau .qui{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .bandeau h1{font-size:19px;letter-spacing:-0.01em}
 .bandeau .roue{font-size:13px;color:var(--soft);padding:4px 2px}
-.mesures{display:flex;gap:16px;margin-top:7px;font-size:13px;color:var(--soft);font-weight:300;flex-wrap:wrap}
+.mesures{display:flex;gap:6px 0;margin-top:8px;font-size:13px;color:var(--soft);font-weight:300;flex-wrap:wrap}
+.mesures span{padding-right:10px;margin-right:10px;border-right:1px solid var(--rule)}
+.mesures span:last-child{border-right:none;padding-right:0;margin-right:0}
+.badge{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:600}
+.badge.sous{background:var(--under);color:var(--paper)}
+.badge.sur{background:var(--over);color:var(--paper)}
+.conso{font-size:14px;color:var(--soft);font-weight:300;margin-top:10px}
+.conso b{font-weight:600;color:var(--ink)}
+.rappel{font-size:13px;margin-top:10px;line-height:1.45}
+.periode{display:flex;gap:6px;margin-bottom:12px}
+.periode button{padding:5px 12px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
+.periode button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.detailjour{margin-top:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:4px;
+  background:var(--card);font-size:13px;line-height:1.5}
+.detailjour b{font-weight:600}
+.raccourci{width:100%;margin-top:14px;padding:11px;border:1px solid var(--ink);border-radius:3px;
+  font-size:14.5px;font-weight:600}
 .mesures b{font-weight:600;color:var(--ink)}
 
-main{padding:18px 18px 8px;max-width:640px;margin:0 auto}
+main{padding:18px 18px 8px;max-width:640px;margin:0 auto;overflow-x:hidden}
 .vue{display:none}.vue.on{display:block}
 section{margin-bottom:26px}
 section h2{font-size:14px;font-weight:600;margin-bottom:10px}
 .note{font-size:12.5px;color:var(--soft);font-weight:300;margin-top:8px;line-height:1.4}
 .vide{color:var(--soft);font-size:14px;font-weight:300;padding:8px 0}
-svg{display:block;width:100%;height:auto;overflow:visible}
+svg{display:block;width:100%;max-width:100%;height:auto}
 
 .reste{margin:2px 0 6px}
 .reste .val{font-size:56px;font-weight:300;letter-spacing:-0.035em;line-height:1}
@@ -147,7 +163,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 "use strict";
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
-  cfg:null,data:null,vue:'jour',reglages:false,
+  cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
   ajout:{repas:'midi',recents:[],photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
   pesee:{etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
@@ -249,8 +265,12 @@ function barresLigne(items,h){
   o+='<line x1="0" y1="'+zero+'" x2="'+w+'" y2="'+zero+'" stroke="var(--rule)"/>';
   items.forEach((it,i)=>{
     const cx=pas*(i+0.5),ht=Math.abs(it.v)*ech,y=it.v<0?zero:zero-ht;
-    o+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+
-       '" height="'+Math.max(1,ht).toFixed(1)+'" fill="'+(it.v<0?'var(--under)':'var(--over)')+'" rx="1"/>';
+    const sel=(S.insp&&S.insp.date===it.date);
+    o+='<rect data-jour="'+it.date+'" x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+
+       '" height="'+Math.max(1,ht).toFixed(1)+'" fill="'+(it.v<0?'var(--under)':'var(--over)')+'" rx="1"'+
+       (sel?' stroke="var(--ink)" stroke-width="1.4"':'')+'/>';
+    if(sel)o+='<text x="'+cx.toFixed(1)+'" y="'+(it.v<0?zero+ht+11:zero-ht-4).toFixed(1)+
+       '" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--ink)">'+sgn(it.v)+'</text>';
   });
   if(items.length>=5){
     let m='';
@@ -278,24 +298,40 @@ function calendrier(jours){
   ['L','M','M','J','V','S','D'].forEach((d,i)=>{
     o+='<text x="'+(28+i*(cell+g)+cell/2)+'" y="10" text-anchor="middle" font-size="9.5" fill="var(--soft)" font-weight="300">'+d+'</text>';
   });
-  for(let s=0;s<sem;s++){
+  for(let sm=0;sm<sem;sm++){
     for(let d=0;d<7;d++){
-      const dt=new Date(debut);dt.setDate(dt.getDate()+s*7+d);
+      const dt=new Date(debut);dt.setDate(dt.getDate()+sm*7+d);
       if(dt>fin)continue;
       const k=dt.toISOString().slice(0,10),j=par[k];
-      const x=28+d*(cell+g),y=16+s*(cell+g);
-      let f='var(--creux)',op=1;
-      if(j&&j.ecart!==null&&j.repas>=1){
+      const x=28+d*(cell+g),y=16+sm*(cell+g);
+      const saisi=!!(j&&j.repas>=1&&j.kcal>0);
+      let f='var(--creux)',op=1,cadre='';
+      if(saisi&&j.ecart!==null){
         const inten=Math.min(1,Math.abs(j.ecart)/900);
         f=j.ecart<0?'var(--under)':'var(--over)';
-        op=0.25+inten*0.75;
-      }
-      o+='<rect x="'+x+'" y="'+y+'" width="'+cell+'" height="'+cell+'" rx="2" fill="'+f+'" opacity="'+op.toFixed(2)+
-         '"><title>'+k+(j?' \u00b7 '+Math.round(j.kcal)+' kcal':' \u00b7 rien')+'</title></rect>';
+        op=0.3+inten*0.7;
+      }else if(saisi){f='var(--soft)';op=0.4;}
+      if(S.insp&&S.insp.date===k)cadre=' stroke="var(--ink)" stroke-width="1.6"';
+      o+='<rect data-jour="'+k+'" x="'+x+'" y="'+y+'" width="'+cell+'" height="'+cell+
+         '" rx="2" fill="'+f+'" opacity="'+op.toFixed(2)+'"'+cadre+'></rect>';
       if(d===0)o+='<text x="0" y="'+(y+cell/2+3)+'" font-size="9" fill="var(--soft)" font-weight="300">'+jjmm(k)+'</text>';
     }
   }
   return o+'</svg>';
+}
+
+function detailJour(d,date){
+  if(!date)return '<p class="note">Touche une case pour voir la journee.</p>';
+  const j=(d.jours||[]).filter(x=>x.date===date)[0];
+  if(!j||!j.repas)return '<div class="detailjour"><b>'+jjmm(date)+'</b> \u00b7 aucune saisie ce jour-la.</div>';
+  const lignes=(d.journal||[]).filter(r=>r.date===date);
+  let o='<div class="detailjour"><b>'+jjmm(date)+'</b> \u00b7 '+nb(j.kcal)+' kcal';
+  if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+(j.ecart>0?'sur':'sous')+'">'+sgn(j.ecart)+'</span>';
+  o+='<br><span style="color:var(--soft)">P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc)+
+     ' \u00b7 '+j.repas+' repas</span>';
+  lignes.forEach(r=>{o+='<br>'+esc(r.repas)+' \u00b7 '+esc((r.detail||'').slice(0,60))+' \u00b7 '+nb(r.kcal)+' kcal';});
+  if(!lignes.length)o+='<br><span style="color:var(--soft)">Detail hors des 40 dernieres saisies.</span>';
+  return o+'</div>';
 }
 
 function jauge(conso,cible){
@@ -330,6 +366,19 @@ function barreMacros(a){
 const REPAS=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['autre','Autre']];
 const ACTIV=[[1.2,'Sedentaire'],[1.375,'Peu actif'],[1.55,'Moderement actif'],[1.725,'Tres actif'],[1.9,'Extremement actif']];
 
+function couleurMacro(nom,v,t){
+  if(!t)return '';
+  const r=v/t;
+  if(nom==='prot'){            // les proteines sont un plancher, pas un plafond
+    if(r>=0.9)return 'sous';
+    if(r>=0.7)return 'sur';
+    return 'sur';
+  }
+  if(r<=1)return 'sous';
+  if(r<=1.1)return '';
+  return 'sur';
+}
+
 function vueJour(d){
   const c=d.cibles,a=d.aujourdhui;
   const reste=c.kcal?c.kcal-a.kcal:null;
@@ -338,6 +387,12 @@ function vueJour(d){
     h+='<div class="reste"><div class="val'+(reste<0?' depasse':'')+'">'+nb(Math.abs(reste))+'</div>'+
        '<div class="leg">'+(reste<0?'kcal au-dessus de ta cible':'kcal encore disponibles aujourd\'hui')+'</div></div>';
     h+=jauge(a.kcal,c.kcal);
+    h+='<div class="conso"><b>'+nb(a.kcal)+'</b> kcal mangees sur une cible de <b>'+nb(c.kcal)+'</b>'+
+       (a.repas?' \u00b7 '+a.repas+' repas':'')+'</div>';
+    const manque=c.prot-a.prot;
+    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de proteines.</span> '+
+      'En seche, c\'est ce qui protege ta masse musculaire : vise-les avant de combler le reste.</p>';
+    h+='<button class="raccourci" id="j-ajout">Ajouter un repas</button>';
   } else h+='<p class="vide">Aucune cible enregistree. Ouvre les reglages pour la fixer.</p>';
   h+='</section>';
 
@@ -346,9 +401,9 @@ function vueJour(d){
     [['Proteines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
       const v=a[m[1]],t=c[m[1]];
       h+='<tr><td>'+m[0]+'</td><td>'+nb(v)+' g</td><td style="color:var(--soft)">sur '+nb(t)+'</td>'+
-         '<td class="'+(t&&v>t?'sur':'sous')+'">'+(t?sgn(v-t):'\u2014')+'</td></tr>';
+         '<td class="'+couleurMacro(m[1],v,t)+'">'+(t?sgn(v-t):'\u2014')+'</td></tr>';
     });
-    h+='</tbody></table></section>';
+    h+='</tbody></table><p class="note">Les proteines se lisent a l\'envers des autres : etre en dessous est un manque, pas une reussite.</p></section>';
   }
 
   h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mange</th><th>Prevu</th><th>Ecart</th></tr></thead><tbody>';
@@ -362,11 +417,16 @@ function vueJour(d){
 
   const m=d.moyennes;
   h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
+  function fleche(v){
+    if(v===null||v===undefined||!c.kcal)return '';
+    return v>c.kcal?' <span class="sur">\u25B2</span>':' <span class="sous">\u25BC</span>';
+  }
+  h+='<tr><td>Aujourd\'hui</td><td>'+nb(a.kcal)+fleche(a.kcal)+'</td><td>'+nb(a.prot)+'</td><td>'+nb(a.lip)+'</td><td>'+nb(a.gluc)+'</td></tr>';
   [['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(p=>{
     const v=m[p[1]];
-    h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
+    h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">Seuls les jours a deux repas ou plus sont comptes, pour ne pas fausser la moyenne avec une saisie oubliee.</p></section>';
+  h+='</tbody></table><p class="note">La fleche compare a ta cible. Seuls les jours a deux repas ou plus entrent dans les moyennes.</p></section>';
   return h;
 }
 
@@ -459,9 +519,16 @@ function vueCourbes(d){
   }
   h+='</section>';
 
-  const js=d.jours.filter(j=>j.valide&&j.ecart!==null);
-  h+='<section><h2>Ecart quotidien</h2>'+barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
-     '<p class="note">Chaque barre compare ce que tu as mange aux besoins reels de ce jour-la. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
+  let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
+  const P=S.periode||30;
+  if(P)js=js.slice(-P);
+  h+='<section><h2>Ecart quotidien</h2><div class="periode" id="ch-periode">';
+  [[30,'30 jours'],[90,'90 jours'],[0,'Tout']].forEach(x=>{
+    h+='<button data-p="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
+  });
+  h+='</div>'+barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
+     detailJour(d,S.insp?S.insp.date:null)+
+     '<p class="note">Chaque barre compare ce que tu as mange aux besoins reels de ce jour-la. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
 
   const cu=d.deficit.cumule;
   if(cu.length>1){
@@ -471,7 +538,8 @@ function vueCourbes(d){
   }
 
   h+='<section><h2>Regularite</h2>'+calendrier(d.jours)+
-     '<p class="note">Neuf semaines. Plus la case est foncee, plus l\'ecart du jour est marque. Les cases claires sont les jours sans saisie.</p></section>';
+     detailJour(d,S.insp?S.insp.date:null)+
+     '<p class="note">Neuf semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncee plus l\'ecart est marque. Les cases grises sont les jours sans aucune saisie. Touche une case pour le detail.</p></section>';
 
   const f=d.deficit;
   h+='<section><h2>Cumul</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>Equivalent</th></tr></thead><tbody>';
@@ -565,7 +633,8 @@ function bandeau(d){
       '<span>metabolisme <b>'+nb(r.mb)+'</b></span>'+
       '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
       '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
-      '<span class="'+(r.ecart>0?'sur':'sous')+'">'+esc(String(r.mode).toLowerCase())+(r.ecart!==null?' '+sgn(r.ecart):'')+'</span></div>';
+      '</div><span class="badge '+(r.ecart>0?'sur':'sous')+'">'+esc(r.mode)+
+      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
   }
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+'</h1>'+
     '<div><button class="roue" id="b-maj">Actualiser</button>'+
@@ -610,6 +679,17 @@ function brancher(){
       S.ajout.repas=b.dataset.r;S.ajout.etat=null;rendre();
     });
   });
+  document.querySelectorAll('[data-jour]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.getAttribute('data-jour');
+      S.insp=(S.insp&&S.insp.date===k)?null:{date:k};
+      rendre();
+    });
+  });
+  document.querySelectorAll('#ch-periode button').forEach(b=>{
+    b.addEventListener('click',()=>{S.periode=Number(b.dataset.p);rendre();});
+  });
+  on('#j-ajout','click',()=>{S.vue='ajout';rendre();window.scrollTo(0,0);});
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
   document.querySelectorAll('#p-recents button').forEach(b=>{
