@@ -63,13 +63,31 @@ td{padding:7px 0;border-top:1px solid var(--rule);text-align:right}
 td:first-child{text-align:left}
 .sous{color:var(--under)}.sur{color:var(--over)}
 
-.jour-titre{font-size:12.5px;color:var(--soft);font-weight:600;margin:18px 0 4px;display:flex;justify-content:space-between}
-.ligne{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--rule)}
+.jour{margin:22px 0 0;padding-top:14px;border-top:2px solid var(--ink)}
+.jour:first-child{margin-top:0}
+.jour-titre{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:600}
+.jour-titre .tot{font-size:17px}
+.jour-sous{font-size:12px;color:var(--soft);font-weight:300;margin-top:2px;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.repas-titre{display:flex;justify-content:space-between;font-size:12.5px;color:var(--soft);
+  font-weight:600;margin:12px 0 0}
+.ligne{display:flex;align-items:flex-start;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .ligne .quoi{flex:1;min-width:0}
-.ligne .repas{font-size:12px;color:var(--soft);font-weight:300}
-.ligne .detail{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ligne .kcal{font-size:14px;white-space:nowrap}
-.ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:4px 2px 4px 8px}
+.ligne .detail{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden}
+.ligne.ouvert .detail{-webkit-line-clamp:unset;overflow:visible}
+.ligne .macro{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:2px}
+.ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px}
+.ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px}
+.puces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.puces button{padding:6px 11px;border:1px solid var(--rule);border-radius:999px;
+  font-size:12.5px;color:var(--soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card)}
+.zone img{max-width:100%;border-radius:3px;display:block;margin:0 auto 10px}
+.zone .taille{font-size:12px;color:var(--soft);font-weight:300;margin-top:8px}
+.deux{display:flex;gap:8px;margin-top:12px}
+.deux button{flex:1;padding:11px;border:1px solid var(--ink);border-radius:3px;font-size:14px;font-weight:600}
+.aide{font-size:12.5px;color:var(--soft);font-weight:300;margin-top:8px;text-align:center}
 
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);
   border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);z-index:5}
@@ -130,7 +148,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,
-  ajout:{repas:'midi',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  ajout:{repas:'midi',recents:[],photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
   pesee:{etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -352,7 +370,15 @@ function vueJour(d){
   return h;
 }
 
-function vueAjout(){
+function repasParHeure(){
+  const h=new Date().getHours();
+  if(h<11)return 'matin';
+  if(h<15)return 'midi';
+  if(h<18)return 'encas';
+  return 'soir';
+}
+
+function vueAjout(d){
   const A=S.ajout;
   let h='<section><h2>Quel repas</h2><div class="choix" id="ch-repas">';
   [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['estim','Estimation']].forEach(r=>{
@@ -362,18 +388,32 @@ function vueAjout(){
   if(A.repas==='estim')h+='<p class="note">L\'estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
   h+='</section>';
 
-  h+='<section><h2>Photo</h2><input id="a-fichier" type="file" accept="image/*" style="display:none">'+
-     '<div class="photo" id="a-zone">';
+  h+='<section><h2>Photo</h2>'+
+     '<input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none">'+
+     '<input id="a-galerie" type="file" accept="image/*" style="display:none">'+
+     '<div class="zone">';
   if(A.apercu)h+='<img src="'+A.apercu+'" alt="Apercu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko a envoyer</div>';
-  else h+='Touche ici pour prendre une photo ou en choisir une.';
-  h+='</div>';
+  else h+='<div style="font-size:30px;line-height:1">\uD83D\uDCF7</div><div class="taille">Aucune photo. Tu peux aussi decrire ton repas plus bas, l\'analyse marche sans image.</div>';
+  h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
   if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
   h+='</section>';
 
   h+='<section><h2>Description</h2>'+
-     '<textarea id="a-desc" placeholder="Facultatif avec une photo. Precise les quantites, ce que tu n\'as pas mange, ou un x2.">'+esc(A.desc)+'</textarea>'+
-     '<button class="primaire" id="a-envoi"'+((!A.photo&&!A.desc.trim())||A.etat==='envoi'?' disabled':'')+'>'+
+     '<textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitie du plat, x2">'+esc(A.desc)+'</textarea>';
+  const recents=[];
+  (d&&d.journal?d.journal:[]).forEach(r=>{
+    if(r.detail&&recents.indexOf(r.detail)<0&&recents.length<6)recents.push(r.detail);
+  });
+  if(recents.length){
+    h+='<p class="note">Repas recents, touche pour reprendre :</p><div class="puces" id="p-recents">';
+    recents.forEach((t,i)=>{h+='<button data-rec="'+i+'">'+esc(t.length>34?t.slice(0,33)+'\u2026':t)+'</button>';});
+    h+='</div>';
+    S.ajout.recents=recents;
+  }
+  const pret=!!(A.photo||A.desc.trim());
+  h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+
      (A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
+  if(!pret)h+='<p class="aide">Prends une photo ou ecris ce que tu as mange pour lancer l\'analyse.</p>';
   if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
   h+='</section>';
 
@@ -446,17 +486,34 @@ function vueCourbes(d){
 
 function vueJournal(d){
   if(!d.journal.length)return '<p class="vide">Rien d\'enregistre pour le moment. Passe par Ajouter.</p>';
-  const par={};d.journal.forEach(r=>{(par[r.date]=par[r.date]||[]).push(r);});
+  const infoJour={};(d.jours||[]).forEach(j=>{infoJour[j.date]=j;});
+  const par={};d.journal.forEach((r,i)=>{r.__i=i;(par[r.date]=par[r.date]||[]).push(r);});
   let h='<section>';
   Object.keys(par).sort().reverse().forEach(k=>{
-    const l=par[k],tot=l.reduce((s,r)=>s+r.kcal,0);
-    h+='<div class="jour-titre"><span>'+jjmm(k)+'</span><span>'+nb(tot)+' kcal</span></div>';
-    l.forEach((r,i)=>{
-      h+='<div class="ligne"><div class="quoi"><div class="repas">'+esc(r.repas)+'</div>'+
-         '<div class="detail">'+esc(r.detail||'sans description')+'</div></div>'+
-         '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
-         '<button class="sup" data-sup="'+esc(k)+'|'+i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
+    const l=par[k],j=infoJour[k];
+    const tot=j?j.kcal:l.reduce((s,r)=>s+r.kcal,0);
+    const cible=j?j.cible:0;
+    let cls='';
+    if(cible)cls=(tot<=cible)?'sous':(tot<=cible*1.1?'':'sur');
+    h+='<div class="jour"><div class="jour-titre"><span>'+jjmm(k)+'</span>'+
+       '<span class="tot '+cls+'">'+nb(tot)+' kcal</span></div>';
+    h+='<div class="jour-sous"><span>'+
+       (cible?(tot<=cible?'sous la cible de '+nb(cible):'au-dessus de '+nb(cible))+' \u00b7 '+sgn(tot-cible):'aucune cible ce jour-la')+
+       '</span><span>'+(j?'P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc):'')+'</span></div>';
+    const groupes={};
+    l.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
+    Object.keys(groupes).forEach(nom=>{
+      const g=groupes[nom],st=g.reduce((s,r)=>s+r.kcal,0);
+      h+='<div class="repas-titre"><span>'+esc(nom)+'</span><span>'+nb(st)+' kcal</span></div>';
+      g.forEach(r=>{
+        h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
+           '<div class="detail">'+esc(r.detail||'sans description')+'</div>'+
+           '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+'</div></div>'+
+           '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
+           '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
+      });
     });
+    h+='</div>';
   });
   return h+'</section>';
 }
@@ -524,7 +581,7 @@ function rendre(){
     h+='<div class="vue on">'+vueReglages(d)+'</div>';
   } else {
     h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
-    h+='<div class="vue'+(S.vue==='ajout'?' on':'')+'">'+vueAjout()+'</div>';
+    h+='<div class="vue'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
     h+='<div class="vue'+(S.vue==='courbes'?' on':'')+'">'+vueCourbes(d)+'</div>';
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
     h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
@@ -553,8 +610,21 @@ function brancher(){
       S.ajout.repas=b.dataset.r;S.ajout.etat=null;rendre();
     });
   });
-  on('#a-zone','click',()=>{const f=$('#a-fichier');if(f)f.click();});
-  on('#a-fichier','change',async e=>{
+  on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
+  on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
+  document.querySelectorAll('#p-recents button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      S.ajout.desc=(S.ajout.recents||[])[Number(b.dataset.rec)]||'';
+      rendre();
+    });
+  });
+  document.querySelectorAll('[data-ouvre]').forEach(l=>{
+    l.addEventListener('click',e=>{
+      if(e.target.closest('.sup'))return;
+      l.classList.toggle('ouvert');
+    });
+  });
+  ['#a-photo','#a-galerie'].forEach(sel=>on(sel,'change',async e=>{
     const f=e.target.files&&e.target.files[0];
     if(!f)return;
     S.ajout.desc=(($('#a-desc')||{}).value)||S.ajout.desc;
@@ -563,7 +633,7 @@ function brancher(){
       S.ajout.photo=r.b64;S.ajout.apercu=r.dataUrl;S.ajout.taille=r.octets;S.ajout.etat=null;
     }catch(err){S.ajout.etat='ko';S.ajout.message=err.message;}
     rendre();
-  });
+  }));
   on('#a-retire','click',()=>{S.ajout.photo=null;S.ajout.apercu=null;S.ajout.taille=0;rendre();});
   on('#a-desc','input',e=>{
     S.ajout.desc=e.target.value;
@@ -617,8 +687,7 @@ function brancher(){
 
   document.querySelectorAll('[data-sup]').forEach(b=>{
     b.addEventListener('click',async()=>{
-      const parts=b.dataset.sup.split('|');
-      const l=S.data.journal.filter(r=>r.date===parts[0])[Number(parts[1])];
+      const l=S.data.journal[Number(b.dataset.sup)];
       if(!l)return;
       if(!window.confirm('Supprimer '+(l.detail||l.repas)+' ?'))return;
       b.textContent='\u2026';
@@ -678,6 +747,7 @@ function connexion(msg){
 }
 
 async function demarrer(){
+  S.ajout.repas=repasParHeure();
   S.cfg=S.cfg||lireCfg();
   if(!S.cfg||!S.cfg.api||!S.cfg.token){connexion();return;}
   try{S.coach.fil=JSON.parse(localStorage.getItem(S.chat))||[];}catch(e){S.coach.fil=[];}
