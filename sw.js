@@ -1,7 +1,7 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans reseau. Les appels a l'API
 // ne passent pas par ici : le dernier releve est garde par l'app elle-meme.
-const SHELL = 'suivi-shell-v2';
+const SHELL = 'suivi-shell-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -17,11 +17,28 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  const req = e.request;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // Navigation : reseau d'abord, cache en secours.
+  // Evite de servir un index.html perime apres une mise a jour.
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req)
+        .then(r => {
+          if (r.ok) { const c = r.clone(); caches.open(SHELL).then(k => k.put('./index.html', c)); }
+          return r;
+        })
+        .catch(() => caches.match('./index.html').then(hit => hit || caches.match('./')))
+    );
+    return;
+  }
+
+  // Le reste (icones, manifest) : cache d'abord, c'est stable.
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(r => {
-      if (r.ok) { const c = r.clone(); caches.open(SHELL).then(k => k.put(e.request, c)); }
+    caches.match(req).then(hit => hit || fetch(req).then(r => {
+      if (r.ok) { const c = r.clone(); caches.open(SHELL).then(k => k.put(req, c)); }
       return r;
     }))
   );
