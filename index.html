@@ -181,6 +181,11 @@ const $=(s,r)=>(r||document).querySelector(s);
 const nb=n=>(n===null||n===undefined||isNaN(n))?'\u2014':Math.round(n).toLocaleString('fr-FR');
 const sgn=n=>(n===null||n===undefined||isNaN(n))?'\u2014':(n>0?'+':'')+Math.round(n).toLocaleString('fr-FR');
 const jjmm=d=>d.slice(8,10)+'/'+d.slice(5,7);
+// Date du journal : format JJ/MM - Jour, calculé dynamiquement depuis la date.
+const jjmmJour=d=>{
+  const date=new Date(d+'T12:00:00');
+  return jjmm(d)+' - '+JOURS[date.getDay()].charAt(0).toUpperCase()+JOURS[date.getDay()].slice(1);
+};
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const p2=n=>String(n).padStart(2,'0');
 const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
@@ -607,7 +612,7 @@ function vueJournal(d){
     const cible=j?j.cible:0;
     let cls='';
     if(cible)cls=(tot<=cible)?'sous':(tot<=cible*1.1?'':'sur');
-    h+='<div class="jour"><div class="jour-titre"><span>'+jjmm(k)+'</span>'+
+    h+='<div class="jour"><div class="jour-titre"><span>'+jjmmJour(k)+'</span>'+
        '<span class="tot '+cls+'">'+nb(tot)+' kcal</span></div>';
     h+='<div class="jour-sous"><span>'+
        (cible?(tot<=cible?'sous la cible de '+nb(cible):'au-dessus de '+nb(cible))+' \u00b7 '+sgn(tot-cible):'aucune cible ce jour-la')+
@@ -939,6 +944,7 @@ if('serviceWorker' in navigator){
 }
 demarrer();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
