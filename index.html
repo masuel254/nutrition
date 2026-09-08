@@ -344,7 +344,7 @@ function detailJour(d,date){
   o+='<br><span style="color:var(--soft)">P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc)+
      ' \u00b7 '+j.repas+' repas</span>';
   lignes.forEach(r=>{o+='<br>'+esc(r.repas)+' \u00b7 '+esc((r.detail||'').slice(0,60))+' \u00b7 '+nb(r.kcal)+' kcal';});
-  if(!lignes.length)o+='<br><span style="color:var(--soft)">Detail hors des 40 dernieres saisies.</span>';
+  if(!lignes.length)o+='<br><span style="color:var(--soft)">Detail hors des 100 dernieres saisies.</span>';
   return o+'</div>';
 }
 
@@ -939,5 +939,6 @@ if('serviceWorker' in navigator){
 }
 demarrer();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
