@@ -11,16 +11,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Suivi">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#5D6E71;
+  --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#9BA8A3;
   --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3;
+  --tabbar:66px;
+  --screen-pad-bottom:calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px);
 }
 @media (prefers-color-scheme: dark){
-  :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#8FA1A3;
+  :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#B0BEC2;
          --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
 }
 *{box-sizing:border-box}
@@ -30,13 +29,14 @@ body{
   font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.45; font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
-  padding-bottom:calc(66px + env(safe-area-inset-bottom));
+  padding-bottom:var(--screen-pad-bottom);
 }
 h1,h2{font-weight:600;margin:0}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
 
-.bandeau{padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--rule)}
+.bandeau{padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--rule);
+  background:var(--paper);position:sticky;top:0;z-index:4}
 .bandeau .qui{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .bandeau h1{font-size:19px;letter-spacing:-0.01em}
 .lejour{font-size:13px;font-weight:300;color:var(--soft);display:block;margin-top:1px}
@@ -61,11 +61,11 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .peson{display:flex;align-items:stretch;gap:8px}
 .peson input{text-align:center;font-size:26px;font-weight:300;letter-spacing:-0.01em;padding:10px 4px}
 .peson button{width:58px;flex:none;border:1px solid var(--rule);border-radius:3px;font-size:24px;font-weight:300;background:var(--card)}
-.raccourci{width:100%;margin-top:14px;padding:11px;border:1px solid var(--ink);border-radius:3px;
-  font-size:14.5px;font-weight:600}
+.raccourci{width:100%;margin-top:14px;padding:13px;background:var(--ink);color:var(--paper);
+  border:1px solid var(--ink);border-radius:3px;font-size:15px;font-weight:600}
 .mesures b{font-weight:600;color:var(--ink)}
 
-main{padding:18px 18px 8px;max-width:640px;margin:0 auto;overflow-x:hidden}
+main{padding:calc(18px + env(safe-area-inset-top)) 18px var(--screen-pad-bottom);max-width:640px;margin:0 auto;overflow-x:hidden}
 .vue{display:none}.vue.on{display:block}
 section{margin-bottom:26px}
 section h2{font-size:14px;font-weight:600;margin-bottom:10px}
@@ -100,10 +100,15 @@ td:first-child{text-align:left}
 .ligne.ouvert .detail{-webkit-line-clamp:unset;overflow:visible}
 .ligne .macro{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:2px}
 .ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px}
-.ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px}
+.ligne .sup{position:relative;font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px;background:none;border:none;cursor:pointer}
+.ligne .sup::before{content:"";position:absolute;left:-12px;right:-12px;top:-13px;bottom:-13px}
 .puces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.puces button{padding:6px 11px;border:1px solid var(--rule);border-radius:999px;
-  font-size:12.5px;color:var(--soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.puces button{padding:7px 12px;border:1px solid var(--rule);border-radius:14px;
+  background:var(--card);font-size:12.5px;color:var(--ink);
+  display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  max-width:100%;min-width:0;text-align:left}
+.puces button .nom{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500;line-height:1.25;max-width:100%}
+.puces button .kcal{font-size:11.5px;color:var(--soft);font-weight:400}
 .zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card)}
 .zone img{max-width:100%;border-radius:3px;display:block;margin:0 auto 10px}
 .zone .taille{font-size:12px;color:var(--soft);font-weight:300;margin-top:8px}
@@ -140,7 +145,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .choix{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
 .choix button{padding:8px 13px;border:1px solid var(--rule);border-radius:999px;font-size:14px;color:var(--soft)}
 .choix button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
-.photo{margin-top:14px;border:1px dashed var(--rule);border-radius:4px;padding:22px;text-align:center;
+.photo-compact{padding:10px;margin-top:8px;min-height:52px}.photo-compact img{max-height:92px;object-fit:cover;margin-bottom:5px}.photo{margin-top:14px;border:1px dashed var(--rule);border-radius:4px;padding:22px;text-align:center;
   color:var(--soft);font-size:14px;font-weight:300}
 .photo img{max-width:100%;border-radius:3px;display:block;margin:0 auto}
 .photo .taille{font-size:12px;margin-top:8px}
@@ -173,9 +178,9 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 "use strict";
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
-  cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
-  ajout:{repas:'midi',recents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
-  pesee:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
+  cfg:null,data:null,vue:'jour',réglages:false,insp:null,periode:30,
+  ajout:{repas:'midi',récents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
 const nb=n=>(n===null||n===undefined||isNaN(n))?'\u2014':Math.round(n).toLocaleString('fr-FR');
@@ -185,9 +190,9 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const p2=n=>String(n).padStart(2,'0');
 const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
 const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-const MOIS=['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 const dateLongue=()=>{const d=new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
-/* jour de la semaine capitalise a partir d'une date AAAA-MM-JJ, construite en heure locale */
+/* jour de la semaine capitalisé a partir d'une date AAAA-MM-JJ, construite en heure locale */
 const jourSemaine=s=>{
   if(!s)return '';
   const a=Number(s.slice(0,4)),m=Number(s.slice(5,7)),j=Number(s.slice(8,10));
@@ -195,7 +200,7 @@ const jourSemaine=s=>{
   const n=JOURS[new Date(a,m-1,j).getDay()];
   return n.charAt(0).toUpperCase()+n.slice(1);
 };
-/* etiquette complete : 08/09 - Mardi */
+/* étiquette complète : 08/09 - Mardi */
 const jjmmJour=s=>jjmm(s)+' - '+jourSemaine(s);
 
 /* ---------- reseau ---------- */
@@ -210,9 +215,9 @@ async function appel(corps){
     body:JSON.stringify(Object.assign({token:S.cfg.token.trim()},corps))});
   let j=null;
   try{j=await r.json();}catch(e){}
-  if(r.status===429)throw new Error('Trop de requetes vers Google Sheets. Attends une minute et reessaie.');
-  if(!j)throw new Error('Le serveur a repondu '+r.status+' sans contenu lisible.');
-  if(j.ok!==true)throw new Error(j.erreur||('Le serveur a repondu '+r.status+'.'));
+  if(r.status===429)throw new Error('Trop de requêtes vers Google Sheets. Attends une minute et réessaie.');
+  if(!j)throw new Error('Le serveur a répondu '+r.status+' sans contenu lisible.');
+  if(j.ok!==true)throw new Error(j.erreur||('Le serveur a répondu '+r.status+'.'));
   return j;
 }
 async function rafraichir(){
@@ -249,7 +254,7 @@ function redim(fichier){
 /* ---------- graphiques ---------- */
 function serieCourbe(vals,opt){
   const w=320,h=opt.h||140,pt=16,pb=22,pl=4,pr=4,n=vals.length;
-  if(n<2)return '<p class="vide">Deux points sont necessaires pour tracer une courbe.</p>';
+  if(n<2)return '<p class="vide">Deux points sont nécessaires pour tracer une courbe.</p>';
   let mn=Math.min.apply(null,vals.map(p=>p.v)),mx=Math.max.apply(null,vals.map(p=>p.v));
   if(mn===mx){mn-=1;mx+=1;}
   const pad=(mx-mn)*0.2;mn-=pad;mx+=pad;
@@ -285,7 +290,7 @@ function barresLigne(items,h){
   const amp=Math.max(200,Math.max.apply(null,items.map(i=>Math.abs(i.v))));
   const zero=pt+(h-pt-pb)/2,ech=((h-pt-pb)/2)/amp,pas=w/items.length;
   const lg=Math.max(2,Math.min(15,pas*0.6));
-  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Ecart quotidien">';
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Écart quotidien">';
   o+='<line x1="0" y1="'+zero+'" x2="'+w+'" y2="'+zero+'" stroke="var(--rule)"/>';
   items.forEach((it,i)=>{
     const cx=pas*(i+0.5),ht=Math.abs(it.v)*ech,y=it.v<0?zero:zero-ht;
@@ -318,7 +323,7 @@ function calendrier(jours){
   const dec=(fin.getDay()+6)%7;
   const debut=new Date(fin);debut.setDate(debut.getDate()-dec-(sem-1)*7);
   const h=sem*(cell+g)+18;
-  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Regularite des dernieres semaines">';
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Régularité des dernières semaines">';
   ['L','M','M','J','V','S','D'].forEach((d,i)=>{
     o+='<text x="'+(28+i*(cell+g)+cell/2)+'" y="10" text-anchor="middle" font-size="9.5" fill="var(--soft)" font-weight="300">'+d+'</text>';
   });
@@ -345,9 +350,9 @@ function calendrier(jours){
 }
 
 function detailJour(d,date){
-  if(!date)return '<p class="note">Touche une case pour voir la journee.</p>';
+  if(!date)return '<p class="note">Touche une case pour voir la journée.</p>';
   const j=(d.jours||[]).filter(x=>x.date===date)[0];
-  if(!j||!j.repas)return '<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 aucune saisie ce jour-la.</div>';
+  if(!j||!j.repas)return '<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 aucune saisie ce jour-là.</div>';
   const lignes=(d.journal||[]).filter(r=>r.date===date);
   let o='<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 '+nb(j.kcal)+' kcal';
   if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+(j.ecart>0?'sur':'sous')+'">'+sgn(j.ecart)+'</span>';
@@ -362,7 +367,7 @@ function jauge(conso,cible){
   if(!cible)return '';
   const w=320,h=30,maxi=Math.max(conso,cible)*1.06;
   const lx=(cible/maxi)*w,cx=Math.min((conso/maxi)*w,w),trop=conso>cible;
-  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Consomme par rapport a la cible">';
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Consomme par rapport à la cible">';
   o+='<rect x="0" y="6" width="'+w+'" height="13" fill="var(--creux)" rx="1.5"/>';
   o+='<rect x="0" y="6" width="'+cx.toFixed(1)+'" height="13" fill="'+(trop?'var(--over)':'var(--under)')+'" rx="1.5"/>';
   o+='<line x1="'+lx.toFixed(1)+'" y1="1" x2="'+lx.toFixed(1)+'" y2="24" stroke="var(--ink)" stroke-width="1.5"/>';
@@ -375,8 +380,8 @@ function barreMacros(a){
   const tot=(a.prot*4)+(a.lip*9)+(a.gluc*4);
   if(!tot)return '';
   const w=320,h=32;
-  const seg=[['Proteines',a.prot*4,'var(--under)'],['Lipides',a.lip*9,'var(--over)'],['Glucides',a.gluc*4,'var(--ink)']];
-  let x=0,o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Repartition des calories par macronutriment">';
+  const seg=[['Protéines',a.prot*4,'var(--under)'],['Lipides',a.lip*9,'var(--over)'],['Glucides',a.gluc*4,'var(--ink)']];
+  let x=0,o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Répartition des calories par macronutriment">';
   seg.forEach(s=>{
     const lg=(s[1]/tot)*w;
     o+='<rect x="'+x.toFixed(1)+'" y="0" width="'+Math.max(0,lg-1.5).toFixed(1)+'" height="12" fill="'+s[2]+'" rx="1.5"/>';
@@ -393,7 +398,7 @@ const ACTIV=[[1.2,'Sedentaire'],[1.375,'Peu actif'],[1.55,'Moderement actif'],[1
 function couleurMacro(nom,v,t){
   if(!t)return '';
   const r=v/t;
-  if(nom==='prot'){            // les proteines sont un plancher, pas un plafond
+  if(nom==='prot'){            // les protéines sont un plancher, pas un plafond
     if(r>=0.9)return 'sous';
     if(r>=0.7)return 'sur';
     return 'sur';
@@ -411,36 +416,36 @@ function vueJour(d){
     h+='<div class="reste"><div class="val'+(reste<0?' depasse':'')+'">'+nb(Math.abs(reste))+'</div>'+
        '<div class="leg">'+(reste<0?'kcal au-dessus de ta cible':'kcal encore disponibles aujourd\'hui')+'</div></div>';
     h+=jauge(a.kcal,c.kcal);
-    h+='<div class="conso"><b>'+nb(a.kcal)+'</b> kcal mangees sur une cible de <b>'+nb(c.kcal)+'</b>'+
+    h+='<div class="conso"><b>'+nb(a.kcal)+'</b> kcal mangées sur une cible de <b>'+nb(c.kcal)+'</b>'+
        (a.repas?' \u00b7 '+a.repas+' repas':'')+'</div>';
     const manque=c.prot-a.prot;
-    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de proteines.</span> '+
-      'En seche, c\'est ce qui protege ta masse musculaire : vise-les avant de combler le reste.</p>';
+    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de protéines.</span> '+
+      'En sèche, c\'est ce qui protège ta masse musculaire : vise-les avant de combler le reste.</p>';
     h+='<button class="raccourci" id="j-ajout">Ajouter un repas</button>';
-  } else h+='<p class="vide">Aucune cible enregistree. Ouvre les reglages pour la fixer.</p>';
+  } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour là fixer.</p>';
   h+='</section>';
 
   if(a.kcal){
     h+='<section><h2>D\'ou viennent tes calories</h2>'+barreMacros(a)+'<table><tbody>';
-    [['Proteines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
+    [['Protéines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
       const v=a[m[1]],t=c[m[1]];
       h+='<tr><td>'+m[0]+'</td><td>'+nb(v)+' g</td><td style="color:var(--soft)">sur '+nb(t)+'</td>'+
          '<td class="'+couleurMacro(m[1],v,t)+'">'+(t?sgn(v-t):'\u2014')+'</td></tr>';
     });
-    h+='</tbody></table><p class="note">Les proteines se lisent a l\'envers des autres : etre en dessous est un manque, pas une reussite.</p></section>';
+    h+='</tbody></table><p class="note">Les protéines se lisent a l\'envers des autres : être en dessous est un manque, pas une réussite.</p></section>';
   }
 
-  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mange</th><th>Prevu</th><th>Ecart</th></tr></thead><tbody>';
+  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mangé</th><th>Prévu</th><th>Écart</th></tr></thead><tbody>';
   REPAS.forEach(r=>{
     const p=a.parRepas[r[0]];
     if(!p||(!p.kcal&&!p.cible))return;
     h+='<tr><td>'+r[1]+'</td><td>'+nb(p.kcal)+'</td><td style="color:var(--soft)">'+(p.cible?nb(p.cible):'\u2014')+'</td>'+
        '<td class="'+(p.cible&&p.kcal>p.cible?'sur':'sous')+'">'+(p.cible?sgn(p.kcal-p.cible):'\u2014')+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">Repartition indicative : 25 % le matin, 40 % le midi, 5 % en-cas, 30 % le soir.</p></section>';
+  h+='</tbody></table><p class="note">Répartition indicative : 25 % le matin, 40 % le midi, 5 % en-cas, 30 % le soir.</p></section>';
 
   const m=d.moyennes;
-  h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
+  h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
   function fleche(v){
     if(v===null||v===undefined||!c.kcal)return '';
     return v>c.kcal?' <span class="sur">\u25B2</span>':' <span class="sous">\u25BC</span>';
@@ -450,7 +455,7 @@ function vueJour(d){
     const v=m[p[1]];
     h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">La fleche compare a ta cible. Seuls les jours a deux repas ou plus entrent dans les moyennes.</p></section>';
+  h+='</tbody></table><p class="note">La flèche compare a ta cible. Seuls les jours a deux repas ou plus entrent dans les moyennes.</p></section>';
   return h;
 }
 
@@ -472,85 +477,62 @@ function vueAjout(d){
   if(A.repas==='estim')h+='<p class="note">L\'estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
   h+='</section>';
 
-  h+='<section><h2>Photo</h2>'+
-     '<input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none">'+
-     '<input id="a-galerie" type="file" accept="image/*" style="display:none">'+
-     '<div class="zone">';
-  if(A.apercu)h+='<img src="'+A.apercu+'" alt="Apercu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko a envoyer</div>';
-  else h+='<div style="font-size:30px;line-height:1">\uD83D\uDCF7</div><div class="taille">Aucune photo. Tu peux aussi decrire ton repas plus bas, l\'analyse marche sans image.</div>';
-  h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
-  if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
-  h+='</section>';
-
-  h+='<section><h2>Description</h2>'+
-     '<textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitie du plat, x2">'+esc(A.desc)+'</textarea>';
   const recents=[];
   (d&&d.journal?d.journal:[]).forEach(r=>{
-    if(r.detail&&recents.indexOf(r.detail)<0&&recents.length<6)recents.push(r.detail);
+    if(r.detail&&recents.every(x=>x.detail!==r.detail)&&recents.length<6)recents.push({detail:r.detail,kcal:r.kcal});
   });
   if(recents.length){
-    h+='<p class="note">Repas recents, touche pour reprendre :</p><div class="puces" id="p-recents">';
-    recents.forEach((t,i)=>{h+='<button data-rec="'+i+'">'+esc(t.length>34?t.slice(0,33)+'\u2026':t)+'</button>';});
-    h+='</div>';
+    h+='<section><h2>Repas récents</h2><p class="note">Touche pour reprendre :</p><div class="puces" id="p-recents">';
+    recents.forEach((t,i)=>{h+='<button data-rec="'+i+'"><span class="nom">'+esc(t.detail)+'</span>'+(t.kcal!=null?'<span class="kcal">'+nb(t.kcal)+' kcal</span>':'')+'</button>';});
+    h+='</div></section>';
     S.ajout.recents=recents;
   }
+
+  h+='<section><h2>Description</h2>'+ '<textarea id="a-desc" autofocus placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
   const pret=!!(A.photo||A.desc.trim());
-  h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+
-     (A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
-  if(!pret)h+='<p class="aide">Prends une photo ou ecris ce que tu as mange pour lancer l\'analyse.</p>';
+  h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+ (A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
+  if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l\'analyse.</p>';
   if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+  h+='</section>';
+
+  h+='<section><h2>Photo</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none"><div class="zone photo-compact">';
+  if(A.apercu)h+='<img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div>';
+  else h+='<div style="font-size:24px;line-height:1">📷</div><div class="taille">Aucune photo. Tu peux aussi décrire ton repas, l\'analyse marche sans image.</div>';
+  h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
+  if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
   h+='</section>';
 
   if(A.resultat){
     const r=A.resultat;
     h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';
-    r.aliments.forEach(al=>{
-      h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+
-         '</span><span>'+nb(al.kcal)+' kcal</span></li>';
-    });
-    h+='<li><span>Proteines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li>';
-    h+='</ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
-
-    if(r.estimation){
-      h+='<p class="note">Estimation seule, rien n\'est enregistre.</p>';
-    } else if(A.confirm==='fait'){
-      h+='<p class="bien">'+esc(A.message)+'</p>';
-    } else if(A.confirm==='refus'){
-      h+='<p class="note">Non enregistre.</p>';
-    } else {
-      h+='<div class="confirme"><b>Enregistrer ce repas ?</b>'+
-         '<div class="trois">'+
-         '<button id="e-auj">Aujourd\'hui</button>'+
-         '<button id="e-autre">Autre jour</button>'+
-         '<button id="e-non">Non</button></div>';
-      if(A.confirm==='date'){
-        h+='<label for="e-date">Quel jour</label>'+
-           '<input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'">'+
-           '<button class="primaire" id="e-valide">Enregistrer a cette date</button>';
-      }
+    r.aliments.forEach(al=>{ h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>'; });
+    h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
+    if(r.estimation)h+='<p class="note">Estimation seule, rien n\'est enregistré.</p>';
+    else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';
+    else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';
+    else { h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';
+      if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';
       if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';
       if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
-      h+='</div>';
-    }
+      h+='</div>'; }
     h+='</div></section>';
   }
   return h;
 }
-
 function vueCourbes(d){
   const p=d.poids;
   const dernier=p.length?p[p.length-1].poids:(d.reference.poids||80);
   if(S.pesee.val===null||S.pesee.val===undefined)S.pesee.val=dernier;
-  let h='<section><h2>Nouvelle pesee</h2>'+
+  let h='<section><h2>Nouvelle pesée</h2>'+
     '<div class="peson">'+
       '<button id="p-moins" aria-label="Retirer 100 grammes">\u2212</button>'+
       '<input id="p-val" type="number" step="0.1" min="30" max="300" inputmode="decimal" value="'+S.pesee.val.toFixed(1)+'">'+
       '<button id="p-plus" aria-label="Ajouter 100 grammes">+</button>'+
     '</div>'+
-    '<p class="note">Derniere pesee : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'\u2014')+
+    '<p class="note">Dernière pesée : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'\u2014')+
     '. Ajuste avec les boutons ou tape la valeur.</p>'+
     '<button class="primaire" id="p-envoi"'+(S.pesee.etat==='envoi'?' disabled':'')+'>'+
-    (S.pesee.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesee')+'</button>';
+    (S.pesee.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
   if(S.pesee.etat==='ko')h+='<p class="alerte">'+esc(S.pesee.message)+'</p>';
   if(S.pesee.etat==='ok')h+='<p class="bien">'+esc(S.pesee.message)+'</p>';
   h+='</section>';
@@ -560,43 +542,43 @@ function vueCourbes(d){
   if(p.length>1){
     const e=p[p.length-1].poids-p[0].poids;
     h+='<p class="note">'+(e<0?'Perte':'Prise')+' de '+Math.abs(e).toFixed(1)+' kg entre le '+
-       jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+'. La ligne pointillee lisse les variations d\'eau et de digestion.</p>';
+       jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+'. La ligne pointillée lisse les variations d\'eau et de digestion.</p>';
   }
   h+='</section>';
 
-  h+='<section><h2>Ce que tu brules</h2>'+serieCourbe(p.map(r=>({date:r.date,v:r.tdee})),
+  h+='<section><h2>Ce que tu brûles</h2>'+serieCourbe(p.map(r=>({date:r.date,v:r.tdee})),
       {h:126,unite:' kcal',couleur:'var(--under)',titre:'besoins'});
   if(p.length>1){
     const dt=p[p.length-1].tdee-p[0].tdee;
-    h+='<p class="note">Tes besoins ont '+(dt<0?'baisse':'augmente')+' de '+Math.abs(dt)+
-       ' kcal par jour sur la periode. Un corps plus leger depense moins : le deficit se referme tout seul si la cible ne bouge pas.</p>';
+    h+='<p class="note">Tes besoins ont '+(dt<0?'baissé':'augmenté')+' de '+Math.abs(dt)+
+       ' kcal par jour sur la période. Un corps plus léger dépense moins : le déficit se referme tout seul si la cible ne bouge pas.</p>';
   }
   h+='</section>';
 
   let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
   const P=S.periode||30;
   if(P)js=js.slice(-P);
-  h+='<section><h2>Ecart quotidien</h2><div class="periode" id="ch-periode">';
+  h+='<section><h2>Écart quotidien</h2><div class="periode" id="ch-periode">';
   [[30,'30 jours'],[90,'90 jours'],[0,'Tout']].forEach(x=>{
     h+='<button data-p="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div>'+barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
      detailJour(d,S.insp?S.insp.date:null)+
-     '<p class="note">Chaque barre compare ce que tu as mange aux besoins reels de ce jour-la. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
+     '<p class="note">Chaque barre compare ce que tu as mangé aux besoins réels de ce jour-là. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
 
   const cu=d.deficit.cumule;
   if(cu.length>1){
-    h+='<section><h2>Effet cumule</h2>'+serieCourbe(cu.map(c=>({date:c.date,v:c.kg})),
+    h+='<section><h2>Effet cumulé</h2>'+serieCourbe(cu.map(c=>({date:c.date,v:c.kg})),
        {h:126,unite:' kg',dec:2,couleur:'var(--under)',aire:true,titre:'cumul'})+
-       '<p class="note">Conversion a 7000 kcal pour un kilo. C\'est une projection theorique : la balance reste l\'arbitre.</p></section>';
+       '<p class="note">Conversion à 7 000 kcal pour un kilo. C\'est une projection théorique : la balance reste l\'arbitre.</p></section>';
   }
 
-  h+='<section><h2>Regularite</h2>'+calendrier(d.jours)+
+  h+='<section><h2>Régularité</h2>'+calendrier(d.jours)+
      detailJour(d,S.insp?S.insp.date:null)+
-     '<p class="note">Neuf semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncee plus l\'ecart est marque. Les cases grises sont les jours sans aucune saisie. Touche une case pour le detail.</p></section>';
+     '<p class="note">Neuf semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncée plus l\'ecart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p></section>';
 
   const f=d.deficit;
-  h+='<section><h2>Cumul</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>Equivalent</th></tr></thead><tbody>';
+  h+='<section><h2>Cumul</h2><table><thead><tr><th>Période</th><th>kcal</th><th>Équivalent</th></tr></thead><tbody>';
   [['Aujourd\'hui','j'],['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(x=>{
     const v=f[x[1]];
     h+='<tr><td>'+x[0]+'</td><td class="'+(v>0?'sur':'sous')+'">'+sgn(v)+'</td>'+
@@ -620,7 +602,7 @@ function vueJournal(d){
     h+='<div class="jour"><div class="jour-titre"><span>'+jjmmJour(k)+'</span>'+
        '<span class="tot '+cls+'">'+nb(tot)+' kcal</span></div>';
     h+='<div class="jour-sous"><span>'+
-       (cible?(tot<=cible?'sous la cible de '+nb(cible):'au-dessus de '+nb(cible))+' \u00b7 '+sgn(tot-cible):'aucune cible ce jour-la')+
+       (cible?(tot<=cible?'sous la cible de '+nb(cible):'au-dessus de '+nb(cible))+' \u00b7 '+sgn(tot-cible):'aucune cible ce jour-là')+
        '</span><span>'+(j?'P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc):'')+'</span></div>';
     const groupes={};
     l.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
@@ -642,9 +624,9 @@ function vueJournal(d){
 
 function vueCoach(){
   let h='<section>';
-  if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journee. Le coach connait tes chiffres et ne s\'en sert que si la question le justifie.</p>';
+  if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
   S.coach.fil.forEach(m=>{h+='<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
-  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span>Le coach reflechit</div>';
+  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span>Le coach réfléchit</div>';
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
      '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>';
   if(S.coach.fil.length)h+='<button class="lien" id="c-vider">Effacer la conversation</button>';
@@ -656,10 +638,10 @@ function vueReglages(d){
   let h='<section><h2>Objectif</h2>'+
     '<label for="g-cible">Cible calorique</label>'+
     '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
-    '<label>Niveau d\'activite</label><div class="choix" id="ch-act">';
+    '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
   ACTIV.forEach(x=>{h+='<button data-f="'+x[0]+'" class="'+(Math.abs((r.facteur||1.2)-x[0])<0.001?'on':'')+'">'+x[1]+'</button>';});
   h+='</div>';
-  if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu seches, au-dessus tu prends de la masse. Le niveau d\'activite inclut deja tes seances : ne compte pas en plus les calories brulees a la salle.</p>';
+  if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu sèches, au-dessus tu prends de la masse. Le niveau d\'activité inclut deja tes séances : ne compte pas en plus les calories brûlées à la salle.</p>';
   h+='<button class="primaire" id="g-envoi"'+(S.para.etat==='envoi'?' disabled':'')+'>'+
      (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>';
   if(S.para.etat==='ko')h+='<p class="alerte">'+esc(S.para.message)+'</p>';
@@ -669,11 +651,11 @@ function vueReglages(d){
   h+='<section><h2>Connexion</h2>'+
     '<label for="r-api">Adresse de l\'API</label>'+
     '<input id="r-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(S.cfg.api)+'">'+
-    '<label for="r-token">Code d\'acces</label>'+
+    '<label for="r-token">Code d\'accès</label>'+
     '<input id="r-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(S.cfg.token)+'">'+
     '<button class="primaire" id="r-ok">Enregistrer la connexion</button>'+
     '<button class="lien" id="r-out">Oublier ce telephone</button>'+
-    '<p class="note">Le code vient du bot Telegram, menu Application. Le regenerer la-bas invalide celui-ci.</p></section>';
+    '<p class="note">Le code vient du bot Telegram, menu Application. Le régénérer là-bas invalide celui-ci.</p></section>';
   return h;
 }
 
@@ -691,12 +673,12 @@ function bandeau(d){
       (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
-  if(perime)m+='<div class="perime">Ce releve date du '+jjmm(d.reference.date)+
+  if(perime)m+='<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+
     '. Touche Actualiser pour passer a aujourd\'hui.</div>';
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
     ' <span class="lejour">'+dateLongue()+'</span></h1>'+
     '<div><button class="roue" id="b-maj">Actualiser</button>'+
-    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Reglages')+'</button></div></div>'+m+'</div>';
+    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+'</button></div></div>'+m+'</div>';
 }
 
 const VUES=[['jour','Jour'],['ajout','Ajouter'],['courbes','Courbes'],['journal','Journal'],['coach','Coach']];
@@ -705,7 +687,7 @@ function rendre(){
   const d=S.data,r=$('#racine');
   let h=bandeau(d)+'<main>';
   if(S.reglages){
-    h+='<div class="vue on">'+vueReglages(d)+'</div>';
+    h+='<div class="vue on">'+vueRéglages(d)+'</div>';
   } else {
     h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
     h+='<div class="vue'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
@@ -752,7 +734,7 @@ function brancher(){
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
   document.querySelectorAll('#p-recents button').forEach(b=>{
     b.addEventListener('click',()=>{
-      S.ajout.desc=(S.ajout.recents||[])[Number(b.dataset.rec)]||'';
+      S.ajout.desc=(S.ajout.recents||[])[Number(b.dataset.rec)]?.detail||'';
       rendre();
     });
   });
@@ -798,7 +780,7 @@ function brancher(){
       const r=await appel(Object.assign({action:'enregistrer',date:date},l));
       await rafraichir();
       A.confirm='fait';
-      A.message=nb(r.kcal)+' kcal enregistrees en '+r.repas+' le '+jjmm(r.date)+'.';
+      A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.';
     }catch(e){A.confirm='ko';A.message=e.message;}
     rendre();
   }
@@ -829,7 +811,7 @@ function brancher(){
       const r=await appel({action:'poids',poids:v,date:auj()});
       await rafraichir();
       S.pesee.etat='ok';
-      S.pesee.message=r.poids+' kg enregistres. Metabolisme et besoins recalcules.';
+      S.pesee.message=r.poids+' kg enregistrés. Métabolisme et besoins recalculés.';
     }catch(e){S.pesee.etat='ko';S.pesee.message=e.message;}
     rendre();
   });
@@ -849,7 +831,7 @@ function brancher(){
       const r=await appel({action:'params',cible:cible,facteur:f});
       await rafraichir();
       S.para.etat='ok';
-      S.para.message='Cible '+r.cible+' kcal, '+r.activite+'. Programme en '+String(r.mode).toLowerCase()+
+      S.para.message='Cible '+r.cible+' kcal, '+r.activité+'. Programme en '+String(r.mode).toLowerCase()+
         (r.ecart!==null?' de '+Math.abs(r.ecart)+' kcal par jour.':'.');
     }catch(e){S.para.etat='ko';S.para.message=e.message;}
     rendre();
@@ -905,8 +887,8 @@ function connexion(msg){
     '<p>Colle l\'adresse de ton serveur et le code fourni par le bot, menu Application. Une seule fois.</p>'+
     '<label for="c-api">Adresse de l\'API</label>'+
     '<input id="c-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://\u2026/webhook/nutrition/api">'+
-    '<label for="c-token">Code d\'acces</label>'+
-    '<input id="c-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="24 caracteres">'+
+    '<label for="c-token">Code d\'accès</label>'+
+    '<input id="c-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="24 caractères">'+
     '<button class="primaire" id="c-ok">Se connecter</button>'+
     (msg?'<p class="alerte">'+esc(msg)+'</p>':'')+'</div>';
   $('#c-ok').addEventListener('click',()=>{
@@ -926,7 +908,7 @@ async function demarrer(){
   try{await rafraichir();rendre();}
   catch(e){
     if(S.data)return;
-    connexion(e.message+' Verifie l\'adresse et le code.');
+    connexion(e.message+' Vérifie l\'adresse et le code.');
   }
 }
 
@@ -949,7 +931,6 @@ if('serviceWorker' in navigator){
 }
 demarrer();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
