@@ -178,6 +178,8 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
+const APP_VERSION='09/09/2026 22h40';
+const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
@@ -651,7 +653,7 @@ function bandeau(d){
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
     ' <span class="lejour">'+dateLongue()+'</span></h1>'+
     '<div><button class="roue" id="b-maj">Actualiser</button>'+
-    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+'</button></div></div>'+m+'</div>';
+    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+' · '+esc(localStorage.getItem(VERSION_KEY)||APP_VERSION)+'</button></div></div>'+m+'</div>';
 }
 
 const VUES=[
@@ -686,8 +688,9 @@ function brancher(){
     b.addEventListener('click',()=>{S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);});
   });
   on('#b-maj','click',async e=>{
-    e.target.textContent='\u2026';
-    try{await rafraichir();}catch(err){window.alert(err.message);}
+    e.target.textContent='Mise à jour…';
+    try{await actualiserApplication();await rafraichir();}
+    catch(err){window.alert(err.message||'Impossible de mettre à jour l’application.');}
     rendre();
   });
   on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();window.scrollTo(0,0);});
@@ -899,11 +902,35 @@ setInterval(()=>{
   if(document.hidden||!S.cfg||!S.data)return;
   if(jourChange())rafraichir().then(rendre).catch(()=>{});
 },60000);
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+async function actualiserApplication(){
+  if(!('serviceWorker' in navigator))return;
+  const registration=await navigator.serviceWorker.ready;
+  await registration.update();
+  const worker=registration.waiting||registration.installing;
+  if(!worker)return;
+  if(worker.state==='installing'){
+    await new Promise(resolve=>worker.addEventListener('statechange',()=>{
+      if(worker.state==='installed')resolve();
+    }));
+  }
+  worker.postMessage({type:'SKIP_WAITING'});
 }
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',e=>{
+    if(e.data&&e.data.type==='VERSION_ACTIVATED'){
+      localStorage.setItem(VERSION_KEY,e.data.version);rendre();
+    }
+  });
+  navigator.serviceWorker.addEventListener('controllerchange',()=>window.location.reload());
+  window.addEventListener('load',async()=>{try{
+    const registration=await navigator.serviceWorker.register('./sw.js');
+    await registration.update();
+  }catch(e){}});
+}
+if(!localStorage.getItem(VERSION_KEY))localStorage.setItem(VERSION_KEY,APP_VERSION);
 demarrer();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>

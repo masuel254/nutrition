@@ -1,11 +1,12 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans reseau. Les appels a l'API
 // ne passent pas par ici : le dernier releve est garde par l'app elle-meme.
-const SHELL = 'suivi-shell-v4';
+const VERSION = '09/09/2026 22h40';
+const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => {/* Wait for an explicit SKIP_WAITING message. */}));
 });
 
 self.addEventListener('activate', e => {
@@ -13,7 +14,13 @@ self.addEventListener('activate', e => {
     caches.keys()
       .then(ks => Promise.all(ks.map(k => (k === SHELL ? null : caches.delete(k)))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({type: 'window'}))
+      .then(clients => clients.forEach(client => client.postMessage({type: 'VERSION_ACTIVATED', version: VERSION})))
   );
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
