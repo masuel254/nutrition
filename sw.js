@@ -1,7 +1,7 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans reseau. Les appels a l'API
 // ne passent pas par ici : le dernier releve est garde par l'app elle-meme.
-const SHELL = 'suivi-shell-v4';
+const SHELL = 'suivi-shell-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
