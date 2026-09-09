@@ -477,7 +477,16 @@ function vueAjout(d){
   h+='</div>';
   if(A.repas==='estim')h+='<p class="note">L’estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
   h+='</section>';
-   }
+  const recents=[];
+  (d&&d.journal?d.journal:[]).forEach(r=>{
+    if(r.detail&&!recents.some(x=>x.detail===r.detail&&x.kcal===r.kcal)&&recents.length<6)recents.push({detail:r.detail,kcal:r.kcal});
+  });
+  S.ajout.recents=recents;
+  if(recents.length){
+    h+='<section><h2>Repas récents</h2><div class="puces" id="p-recents">';
+    recents.forEach((x,i)=>{h+='<button data-rec="'+i+'"><span>'+esc(x.detail.length>34?x.detail.slice(0,33)+'…':x.detail)+'</span><small>'+nb(x.kcal)+' kcal</small></button>';});
+    h+='</div></section>';
+  }
   h+='<section><h2>Description</h2><textarea id="a-desc" autofocus placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
   const pret=!!(A.photo||A.desc.trim());
   h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
@@ -712,6 +721,12 @@ function brancher(){
   on('#j-ajout','click',()=>{S.vue='ajout';rendre();window.scrollTo(0,0);});
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
+  document.querySelectorAll('#p-recents button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      S.ajout.desc=(S.ajout.recents||[])[Number(b.dataset.rec)]?.detail||'';
+      rendre();
+    });
+  });
   document.querySelectorAll('[data-ouvre]').forEach(l=>{
     l.addEventListener('click',e=>{
       if(e.target.closest('.sup'))return;
