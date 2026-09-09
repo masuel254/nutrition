@@ -130,7 +130,6 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-/* --- barre du bas : FIGEE, quel que soit le nombre de messages --- */
 nav{
   position:fixed;
   left:0;right:0;bottom:0;
@@ -175,7 +174,6 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .photo img{max-width:100%;border-radius:3px;display:block;margin:0 auto}
 .photo .taille{font-size:12px;margin-top:8px}
 
-/* --- bulles coach : jamais hors cadre, aucun jeu latéral --- */
 .bulle{
   padding:11px 13px;
   border-radius:12px;
@@ -214,6 +212,23 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .resu li{padding:5px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px}
 .resu li span:last-child{color:var(--soft);white-space:nowrap}
 
+.version-info{
+  padding:12px 14px;
+  border:1px solid var(--rule);
+  border-radius:4px;
+  background:var(--card);
+  font-size:13.5px;
+  line-height:1.5;
+  margin-bottom:14px;
+}
+.version-info b{font-weight:600;display:block;margin-bottom:4px}
+.version-info code{
+  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-size:13px;
+  color:var(--ink);
+  font-weight:600;
+}
+
 .attente{display:inline-block;width:13px;height:13px;border:2px solid var(--rule);
   border-top-color:currentColor;border-radius:50%;vertical-align:-2px;margin-right:7px}
 @media (prefers-reduced-motion: no-preference){
@@ -228,6 +243,15 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <div id="racine"></div>
 <script>
 "use strict";
+
+/* ============================================================
+   VERSION DE L'APPLICATION
+   À MODIFIER MANUELLEMENT À CHAQUE NOUVELLE RELEASE.
+   Format : JJ/MM/AAAA à HHhMM
+   ============================================================ */
+const APP_VERSION = '10/09/2026 à 15h42';
+/* ============================================================ */
+
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
@@ -244,7 +268,6 @@ const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+
 const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','decembre'];
 const dateLongue=()=>{const d=new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
-/* jour de la semaine capitalisé a partir d'une date AAAA-MM-JJ, construite en heure locale */
 const jourSemaine=s=>{
   if(!s)return '';
   const a=Number(s.slice(0,4)),m=Number(s.slice(5,7)),j=Number(s.slice(8,10));
@@ -252,7 +275,6 @@ const jourSemaine=s=>{
   const n=JOURS[new Date(a,m-1,j).getDay()];
   return n.charAt(0).toUpperCase()+n.slice(1);
 };
-/* etiquette complete : 08/09 - Mardi */
 const jjmmJour=s=>jjmm(s)+' - '+jourSemaine(s);
 
 /* ---------- reseau ---------- */
@@ -450,7 +472,7 @@ const ACTIV=[[1.2,'Sedentaire'],[1.375,'Peu actif'],[1.55,'Moderement actif'],[1
 function couleurMacro(nom,v,t){
   if(!t)return '';
   const r=v/t;
-  if(nom==='prot'){            // les proteines sont un plancher, pas un plafond
+  if(nom==='prot'){
     if(r>=0.9)return 'sous';
     if(r>=0.7)return 'sur';
     return 'sur';
@@ -487,7 +509,7 @@ function vueJour(d){
     h+='</tbody></table><p class="note">Les proteines se lisent a l\'envers des autres : etre en dessous est un manque, pas une reussite.</p></section>';
   }
 
-  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mang19</th><th>Prevu</th><th>Écart</th></tr></thead><tbody>';
+  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mangé</th><th>Prevu</th><th>Écart</th></tr></thead><tbody>';
   REPAS.forEach(r=>{
     const p=a.parRepas[r[0]];
     if(!p||(!p.kcal&&!p.cible))return;
@@ -659,7 +681,17 @@ function vueCoach(){
 
 function vueRéglages(d){
   const r=d?d.reference:{cible:0,facteur:1.2,tdee:0};
-  let h='<section><h2>Objectif</h2>'+
+
+  /* ---------- BLOC VERSION ---------- */
+  let h='<section><h2>Version</h2>'+
+    '<div class="version-info">'+
+      '<b>Dernière mise à jour installée</b>'+
+      '<code>'+esc(APP_VERSION)+'</code>'+
+      '<div class="note" style="margin-top:8px;margin-bottom:0">Touche « Actualiser » en haut de l\'écran pour récupérer une nouvelle version si disponible. La page se rechargera automatiquement.</div>'+
+    '</div></section>';
+  /* --------------------------------- */
+
+  h+='<section><h2>Objectif</h2>'+
     '<label for="g-cible">Cible calorique</label>'+
     '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
     '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
@@ -733,14 +765,51 @@ function rendre(){
 
 function brancher(){
   const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
+
+  /* ============================================================
+     BOUTON ACTUALISER :
+     1. Vide le cache SW pour index.html (pour forcer le rechargement)
+     2. Demande au SW actif de s'arrêter immédiatement (SKIP_WAITING)
+     3. Rafraîchit les données serveur
+     4. Recharge la page => le nouveau JS (nouvelle APP_VERSION) est chargé
+     ============================================================ */
+  on('#b-maj','click',async e=>{
+    e.target.textContent='\u2026';
+    e.target.disabled=true;
+    try{
+      // 1. Vider index.html du cache du SW pour forcer le téléchargement
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const k of keys) {
+          if (k.startsWith('suivi-shell')) {
+            const c = await caches.open(k);
+            await c.delete('./index.html');
+            await c.delete('./');
+            await c.delete('./index.html'.replace('./','/'));
+          }
+        }
+      }
+      // 2. Dire au SW actif de s'arrêter pour qu'un nouveau prenne la main
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'});
+        // Force aussi une mise à jour du SW lui-même
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      }
+      // 3. Rafraîchir les données
+      try { await rafraichir(); } catch(err) { /* silencieux, on va recharger */ }
+    } catch(err) {
+      console.warn('Mise à jour : ', err);
+    }
+    // 4. Recharger la page (le nouveau index.html + nouveau JS sera chargé)
+    window.location.reload();
+  });
+  /* ============================================================ */
+
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);});
   });
-  on('#b-maj','click',async e=>{
-    e.target.textContent='\u2026';
-    try{await rafraichir();}catch(err){window.alert(err.message);}
-    rendre();
-  });
+
   on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();window.scrollTo(0,0);});
 
   document.querySelectorAll('#ch-repas button').forEach(b=>{
@@ -941,17 +1010,32 @@ function jourChange(){
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!S.cfg||!S.data||S.reglages)return;
-  // on force le rafraichissement si on a change de jour, sinon un par minute au plus
   if(!jourChange()&&Date.now()-dernierAppel<60000)return;
   rafraichir().then(rendre).catch(()=>{});
 });
-// controle du passage de minuit tant que l'app reste ouverte
 setInterval(()=>{
   if(document.hidden||!S.cfg||!S.data)return;
   if(jourChange())rafraichir().then(rendre).catch(()=>{});
 },60000);
+
+/* ---------- enregistrement du SW avec détection d'une MAJ disponible ---------- */
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  window.addEventListener('load', async ()=>{
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      // Si un nouveau SW est en attente (après un update), on lui propose de s'activer
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Nouvelle version disponible : on l'active au prochain "Actualiser"
+            console.log('[Suivi] Nouvelle version détectée. Touche Actualiser pour l\'installer.');
+          }
+        });
+      });
+    } catch(e) { /* SW non supporté ou erreur réseau, pas bloquant */ }
+  });
 }
 demarrer();
 </script>
