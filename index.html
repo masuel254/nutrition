@@ -24,102 +24,89 @@
          --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
 }
 *{box-sizing:border-box}
-html,body{
-  margin:0;padding:0;
-  width:100%;max-width:100vw;
-  overflow-x:hidden;
-  overscroll-behavior-y:none;
-}
-html{overflow-x:clip}
+html,body{margin:0;padding:0;width:100%;overflow-x:hidden;overscroll-behavior-y:none}
 body{
   background:var(--paper); color:var(--ink);
   font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.45; font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
-  padding-bottom:calc(58px + env(safe-area-inset-bottom) + 12px);
-  position:relative;
+  padding-bottom:calc(58px + env(safe-area-inset-bottom));
 }
 h1,h2{font-weight:600;margin:0}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
 
-.bandeau{padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--rule);max-width:100%;overflow:hidden}
-.bandeau .qui{display:flex;justify-content:space-between;align-items:center;gap:10px;max-width:100%}
-.bandeau h1{font-size:19px;letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis}
+.bandeau{padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--rule)}
+.bandeau .qui{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.bandeau h1{font-size:19px;letter-spacing:-0.01em}
 .lejour{font-size:13px;font-weight:300;color:var(--soft);display:block;margin-top:1px}
 .perime{margin-top:9px;padding:7px 10px;border-radius:4px;background:var(--over);color:var(--paper);
-  font-size:12.5px;font-weight:400;line-height:1.35;word-break:break-word}
+  font-size:12.5px;font-weight:400;line-height:1.35}
 .bandeau .roue{font-size:13px;color:var(--soft);padding:4px 2px}
-.mesures{display:flex;gap:6px 0;margin-top:8px;font-size:13px;color:var(--soft);font-weight:300;flex-wrap:wrap;max-width:100%}
-.mesures span{padding-right:10px;margin-right:10px;border-right:1px solid var(--rule);white-space:nowrap}
+.mesures{display:flex;gap:6px 0;margin-top:8px;font-size:13px;color:var(--soft);font-weight:300;flex-wrap:wrap}
+.mesures span{padding-right:10px;margin-right:10px;border-right:1px solid var(--rule)}
 .mesures span:last-child{border-right:none;padding-right:0;margin-right:0}
-.badge{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:600;word-break:break-word}
+.badge{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:600}
 .badge.sous{background:var(--under);color:var(--paper)}
 .badge.sur{background:var(--over);color:var(--paper)}
 .conso{font-size:14px;color:var(--soft);font-weight:300;margin-top:10px}
 .conso b{font-weight:600;color:var(--ink)}
 .rappel{font-size:13px;margin-top:10px;line-height:1.45}
-.periode{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.periode{display:flex;gap:6px;margin-bottom:12px}
 .periode button{padding:5px 12px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
 .periode button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
 .detailjour{margin-top:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:4px;
-  background:var(--card);font-size:13px;line-height:1.5;word-break:break-word}
+  background:var(--card);font-size:13px;line-height:1.5}
 .detailjour b{font-weight:600}
-.peson{display:flex;align-items:stretch;gap:8px;max-width:100%}
-.peson input{text-align:center;font-size:26px;font-weight:300;letter-spacing:-0.01em;padding:10px 4px;flex:1;min-width:0}
+.peson{display:flex;align-items:stretch;gap:8px}
+.peson input{text-align:center;font-size:26px;font-weight:300;letter-spacing:-0.01em;padding:10px 4px}
 .peson button{width:58px;flex:none;border:1px solid var(--rule);border-radius:3px;font-size:24px;font-weight:300;background:var(--card)}
 .raccourci{width:100%;margin-top:14px;padding:11px;border:1px solid var(--ink);border-radius:3px;
   font-size:14.5px;font-weight:600}
 .mesures b{font-weight:600;color:var(--ink)}
 
-main{
-  padding:18px 18px 8px;
-  max-width:640px;margin:0 auto;
-  width:100%;
-  overflow-x:hidden;
-  overflow-wrap:anywhere;
-}
-.vue{display:none;overflow-x:hidden}.vue.on{display:block}
-section{margin-bottom:26px;max-width:100%;overflow-x:hidden}
+main{padding:18px 18px 8px;max-width:640px;margin:0 auto;overflow-x:hidden}
+.vue{display:none}.vue.on{display:block}
+section{margin-bottom:26px}
 section h2{font-size:14px;font-weight:600;margin-bottom:10px}
-.note{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;line-height:1.4;word-break:break-word}
+.note{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;line-height:1.4}
 .vide{color:var(--soft);font-size:14px;font-weight:300;padding:8px 0}
-svg{display:block;width:100%;max-width:100%;height:auto;overflow:hidden}
+svg{display:block;width:100%;max-width:100%;height:auto}
 
 .reste{margin:2px 0 6px}
 .reste .val{font-size:56px;font-weight:300;letter-spacing:-0.035em;line-height:1}
 .reste .val.depasse{color:var(--over)}
 .reste .leg{font-size:13.5px;color:var(--soft);font-weight:300;margin-top:2px}
 
-table{width:100%;border-collapse:collapse;font-size:14px;max-width:100%}
+table{width:100%;border-collapse:collapse;font-size:14px}
 th{font-weight:600;text-align:right;font-size:12.5px;color:var(--soft);padding:0 0 6px}
 th:first-child{text-align:left}
 td{padding:7px 0;border-top:1px solid var(--rule);text-align:right}
 td:first-child{text-align:left}
 .sous{color:var(--under)}.sur{color:var(--over)}
 
-.jour{margin:22px 0 0;padding-top:14px;border-top:2px solid var(--ink);max-width:100%}
+.jour{margin:22px 0 0;padding-top:14px;border-top:2px solid var(--ink)}
 .jour:first-child{margin-top:0}
-.jour-titre{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:600;gap:10px}
-.jour-titre .tot{font-size:17px;white-space:nowrap}
+.jour-titre{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:600}
+.jour-titre .tot{font-size:17px}
 .jour-sous{font-size:12px;color:var(--soft);font-weight:400;margin-top:2px;
   display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .repas-titre{display:flex;justify-content:space-between;font-size:12.5px;color:var(--soft);
   font-weight:600;margin:12px 0 0}
-.ligne{display:flex;align-items:flex-start;gap:12px;padding:7px 0;border-top:1px solid var(--rule);max-width:100%}
+.ligne{display:flex;align-items:flex-start;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .ligne .quoi{flex:1;min-width:0}
 .ligne .detail{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;
-  -webkit-box-orient:vertical;overflow:hidden;word-break:break-word;overflow-wrap:anywhere}
+  -webkit-box-orient:vertical;overflow:hidden}
 .ligne.ouvert .detail{-webkit-line-clamp:unset;overflow:visible}
 .ligne .macro{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:2px}
-.ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px;flex-shrink:0}
-.ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px;position:relative;flex-shrink:0}
+.ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px}
+.ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px;position:relative}
 .ligne .sup::before{content:"";position:absolute;inset:-11px;min-width:44px;min-height:44px}
 .puces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .puces button{padding:6px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--rule);border-radius:999px;
   font-size:12.5px;color:var(--soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .puces button small{font-size:10px;font-weight:600;color:var(--ink)}
-.zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card);max-width:100%}
+.zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card)}
 .zone img{max-width:100%;border-radius:3px;display:block;margin:0 auto 10px}
 .zone .taille{font-size:12px;color:var(--soft);font-weight:400;margin-top:8px}
 .deux{display:flex;gap:8px;margin-top:12px}
@@ -130,104 +117,51 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-nav{
-  position:fixed;
-  left:0;right:0;bottom:0;
-  display:flex;
-  width:100%;
-  height:calc(58px + env(safe-area-inset-bottom));
-  background:var(--card);
-  border-top:1px solid var(--rule);
-  padding-bottom:env(safe-area-inset-bottom);
-  z-index:100;
-  box-shadow:0 -3px 12px rgba(23,38,42,.08);
-  touch-action:manipulation;
-  flex-shrink:0;
-  pointer-events:auto;
-}
+nav{position:fixed;inset-inline:0;bottom:0;display:flex;height:calc(58px + env(safe-area-inset-bottom));
+  background:var(--card);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);
+  z-index:5;box-shadow:0 -3px 12px rgba(23,38,42,.08);
+  transform:translate3d(0,0,0);will-change:transform;backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;contain:layout paint}
 nav button{flex:1;min-width:44px;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
   border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none}
 nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
 
-.ecran{max-width:420px;margin:0 auto;padding:40px 22px;width:100%}
+.ecran{max-width:420px;margin:0 auto;padding:40px 22px}
 .ecran h1{font-size:26px;font-weight:300;letter-spacing:-0.02em;margin-bottom:6px}
 .ecran p{color:var(--soft);font-size:14px;font-weight:300;margin:0 0 22px}
 label{display:block;font-size:13px;font-weight:600;margin:16px 0 5px}
 input,textarea{width:100%;padding:11px 12px;font:inherit;font-size:15px;background:var(--card);
-  color:var(--ink);border:1px solid var(--rule);border-radius:3px;-webkit-appearance:none;max-width:100%}
-textarea{min-height:78px;resize:vertical;overflow-wrap:anywhere;word-break:break-word}
+  color:var(--ink);border:1px solid var(--rule);border-radius:3px;-webkit-appearance:none}
+textarea{min-height:78px;resize:vertical}
 input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .primaire{width:100%;margin-top:18px;padding:13px;background:var(--ink);color:var(--paper);
   border-radius:3px;font-weight:600;font-size:15px}
 .primaire[disabled]{opacity:.45}
 .lien{display:block;width:100%;margin-top:14px;text-align:center;font-size:13.5px;color:var(--soft);
   text-decoration:underline;text-underline-offset:3px}
-.alerte{margin-top:14px;font-size:13.5px;color:var(--over);line-height:1.4;word-break:break-word}
-.bien{margin-top:14px;font-size:13.5px;color:var(--under);line-height:1.4;word-break:break-word}
+.alerte{margin-top:14px;font-size:13.5px;color:var(--over);line-height:1.4}
+.bien{margin-top:14px;font-size:13.5px;color:var(--under);line-height:1.4}
 
 .choix{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
 .choix button{padding:8px 13px;border:1px solid var(--rule);border-radius:999px;font-size:14px;color:var(--soft)}
 .choix button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
 .photo{margin-top:14px;border:1px dashed var(--rule);border-radius:4px;padding:22px;text-align:center;
-  color:var(--soft);font-size:14px;font-weight:300;max-width:100%}
+  color:var(--soft);font-size:14px;font-weight:300}
 .photo img{max-width:100%;border-radius:3px;display:block;margin:0 auto}
 .photo .taille{font-size:12px;margin-top:8px}
 
-.bulle{
-  padding:11px 13px;
-  border-radius:12px;
-  margin-bottom:10px;
-  font-size:14.5px;
-  line-height:1.5;
-  max-width:calc(100% - 4px);
-  min-width:0;
-  width:fit-content;
-  box-sizing:border-box;
-  white-space:pre-wrap;
-  overflow-wrap:anywhere;
-  word-break:break-word;
-  hyphens:auto;
-  overflow-x:hidden;
-}
-.bulle.moi{
-  background:var(--ink);
-  color:var(--paper);
-  margin-left:auto;
-  margin-right:0;
-  border-bottom-right-radius:3px;
-}
-.bulle.coach{
-  background:var(--card);
-  border:1px solid var(--rule);
-  border-bottom-left-radius:3px;
-  margin-left:0;
-  margin-right:auto;
-}
+.bulle{padding:11px 13px;border-radius:12px;margin-bottom:10px;font-size:14.5px;line-height:1.5;
+  max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere}
+.bulle.moi{background:var(--ink);color:var(--paper);margin-left:auto;border-bottom-right-radius:3px}
+.bulle.coach{background:var(--card);border:1px solid var(--rule);border-bottom-left-radius:3px}
 
-.resu{border:1px solid var(--rule);border-radius:4px;padding:14px;margin-top:16px;background:var(--card);max-width:100%;overflow-x:hidden}
-.resu .tt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:10px}
+.resu{border:1px solid var(--rule);border-radius:4px;padding:14px;margin-top:16px;background:var(--card)}
+.resu .tt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 .resu .tt b{font-size:22px;font-weight:600}
 .resu ul{list-style:none;margin:0;padding:0;font-size:14px}
 .resu li{padding:5px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px}
 .resu li span:last-child{color:var(--soft);white-space:nowrap}
-
-.version-info{
-  padding:12px 14px;
-  border:1px solid var(--rule);
-  border-radius:4px;
-  background:var(--card);
-  font-size:13.5px;
-  line-height:1.5;
-  margin-bottom:14px;
-}
-.version-info b{font-weight:600;display:block;margin-bottom:4px}
-.version-info code{
-  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  font-size:13px;
-  color:var(--ink);
-  font-weight:600;
-}
 
 .attente{display:inline-block;width:13px;height:13px;border:2px solid var(--rule);
   border-top-color:currentColor;border-radius:50%;vertical-align:-2px;margin-right:7px}
@@ -243,19 +177,10 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <div id="racine"></div>
 <script>
 "use strict";
-
-/* ============================================================
-   VERSION DE L'APPLICATION
-   À MODIFIER MANUELLEMENT À CHAQUE NOUVELLE RELEASE.
-   Format : JJ/MM/AAAA à HHhMM
-   ============================================================ */
-const APP_VERSION = '10/09/2026 à 15h42';
-/* ============================================================ */
-
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
-  ajout:{repas:'midi',recents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -268,6 +193,7 @@ const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+
 const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','decembre'];
 const dateLongue=()=>{const d=new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
+/* jour de la semaine capitalisé a partir d'une date AAAA-MM-JJ, construite en heure locale */
 const jourSemaine=s=>{
   if(!s)return '';
   const a=Number(s.slice(0,4)),m=Number(s.slice(5,7)),j=Number(s.slice(8,10));
@@ -275,6 +201,7 @@ const jourSemaine=s=>{
   const n=JOURS[new Date(a,m-1,j).getDay()];
   return n.charAt(0).toUpperCase()+n.slice(1);
 };
+/* etiquette complete : 08/09 - Mardi */
 const jjmmJour=s=>jjmm(s)+' - '+jourSemaine(s);
 
 /* ---------- reseau ---------- */
@@ -472,7 +399,7 @@ const ACTIV=[[1.2,'Sedentaire'],[1.375,'Peu actif'],[1.55,'Moderement actif'],[1
 function couleurMacro(nom,v,t){
   if(!t)return '';
   const r=v/t;
-  if(nom==='prot'){
+  if(nom==='prot'){            // les proteines sont un plancher, pas un plafond
     if(r>=0.9)return 'sous';
     if(r>=0.7)return 'sur';
     return 'sur';
@@ -509,7 +436,7 @@ function vueJour(d){
     h+='</tbody></table><p class="note">Les proteines se lisent a l\'envers des autres : etre en dessous est un manque, pas une reussite.</p></section>';
   }
 
-  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mangé</th><th>Prevu</th><th>Écart</th></tr></thead><tbody>';
+  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mang19</th><th>Prevu</th><th>Écart</th></tr></thead><tbody>';
   REPAS.forEach(r=>{
     const p=a.parRepas[r[0]];
     if(!p||(!p.kcal&&!p.cible))return;
@@ -681,17 +608,7 @@ function vueCoach(){
 
 function vueRéglages(d){
   const r=d?d.reference:{cible:0,facteur:1.2,tdee:0};
-
-  /* ---------- BLOC VERSION ---------- */
-  let h='<section><h2>Version</h2>'+
-    '<div class="version-info">'+
-      '<b>Dernière mise à jour installée</b>'+
-      '<code>'+esc(APP_VERSION)+'</code>'+
-      '<div class="note" style="margin-top:8px;margin-bottom:0">Touche « Actualiser » en haut de l\'écran pour récupérer une nouvelle version si disponible. La page se rechargera automatiquement.</div>'+
-    '</div></section>';
-  /* --------------------------------- */
-
-  h+='<section><h2>Objectif</h2>'+
+  let h='<section><h2>Objectif</h2>'+
     '<label for="g-cible">Cible calorique</label>'+
     '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
     '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
@@ -765,51 +682,14 @@ function rendre(){
 
 function brancher(){
   const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
-
-  /* ============================================================
-     BOUTON ACTUALISER :
-     1. Vide le cache SW pour index.html (pour forcer le rechargement)
-     2. Demande au SW actif de s'arrêter immédiatement (SKIP_WAITING)
-     3. Rafraîchit les données serveur
-     4. Recharge la page => le nouveau JS (nouvelle APP_VERSION) est chargé
-     ============================================================ */
-  on('#b-maj','click',async e=>{
-    e.target.textContent='\u2026';
-    e.target.disabled=true;
-    try{
-      // 1. Vider index.html du cache du SW pour forcer le téléchargement
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        for (const k of keys) {
-          if (k.startsWith('suivi-shell')) {
-            const c = await caches.open(k);
-            await c.delete('./index.html');
-            await c.delete('./');
-            await c.delete('./index.html'.replace('./','/'));
-          }
-        }
-      }
-      // 2. Dire au SW actif de s'arrêter pour qu'un nouveau prenne la main
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'});
-        // Force aussi une mise à jour du SW lui-même
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
-      }
-      // 3. Rafraîchir les données
-      try { await rafraichir(); } catch(err) { /* silencieux, on va recharger */ }
-    } catch(err) {
-      console.warn('Mise à jour : ', err);
-    }
-    // 4. Recharger la page (le nouveau index.html + nouveau JS sera chargé)
-    window.location.reload();
-  });
-  /* ============================================================ */
-
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);});
   });
-
+  on('#b-maj','click',async e=>{
+    e.target.textContent='\u2026';
+    try{await rafraichir();}catch(err){window.alert(err.message);}
+    rendre();
+  });
   on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();window.scrollTo(0,0);});
 
   document.querySelectorAll('#ch-repas button').forEach(b=>{
@@ -1010,34 +890,24 @@ function jourChange(){
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!S.cfg||!S.data||S.reglages)return;
+  // on force le rafraichissement si on a change de jour, sinon un par minute au plus
   if(!jourChange()&&Date.now()-dernierAppel<60000)return;
   rafraichir().then(rendre).catch(()=>{});
 });
+// controle du passage de minuit tant que l'app reste ouverte
 setInterval(()=>{
   if(document.hidden||!S.cfg||!S.data)return;
   if(jourChange())rafraichir().then(rendre).catch(()=>{});
 },60000);
-
-/* ---------- enregistrement du SW avec détection d'une MAJ disponible ---------- */
 if('serviceWorker' in navigator){
-  window.addEventListener('load', async ()=>{
-    try {
-      const reg = await navigator.serviceWorker.register('./sw.js');
-      // Si un nouveau SW est en attente (après un update), on lui propose de s'activer
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // Nouvelle version disponible : on l'active au prochain "Actualiser"
-            console.log('[Suivi] Nouvelle version détectée. Touche Actualiser pour l\'installer.');
-          }
-        });
-      });
-    } catch(e) { /* SW non supporté ou erreur réseau, pas bloquant */ }
-  });
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 demarrer();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
