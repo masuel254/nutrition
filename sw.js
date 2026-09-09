@@ -1,7 +1,7 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans réseau. Les appels à l'API
 // ne passent pas par ici : le dernier relevé est gardé par l'app elle-même.
-const VERSION = '09/09/2026 à 22h40';
+const VERSION = '10/09/2026 à 12h00';
 const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
 const FILES = ['./', './index.html', './manifest.webmanifest'];
 const OPTIONAL_FILES = ['./icon-192.png', './icon-512.png'];
