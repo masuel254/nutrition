@@ -117,11 +117,12 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-nav{position:fixed;inset-inline:0;bottom:0;display:flex;height:calc(58px + env(safe-area-inset-bottom));
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;width:100%;height:calc(58px + env(safe-area-inset-bottom));
   background:var(--card);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);
-  z-index:5;box-shadow:0 -3px 12px rgba(23,38,42,.08);
-  transform:translate3d(0,0,0);will-change:transform;backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;contain:layout paint}
+  z-index:100;box-shadow:0 -3px 12px rgba(23,38,42,.08);
+  transform:none;will-change:auto;backface-visibility:visible;
+  -webkit-backface-visibility:visible;contain:layout paint;isolation:isolate;
+  touch-action:manipulation}
 nav button{flex:1;min-width:44px;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
   border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none}
@@ -180,7 +181,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
-  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  ajout:{repas:'midi',recents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
