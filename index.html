@@ -24,7 +24,8 @@
          --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;width:100%;overflow-x:hidden;overscroll-behavior-y:none}
+html,body{margin:0;padding:0;width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-y:none}
+#racine{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
 body{
   background:var(--paper); color:var(--ink);
   font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -65,7 +66,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   font-size:14.5px;font-weight:600}
 .mesures b{font-weight:600;color:var(--ink)}
 
-main{padding:18px 18px 8px;max-width:640px;margin:0 auto;overflow-x:hidden}
+main{padding:18px 18px 8px;max-width:640px;min-width:0;margin:0 auto;overflow-x:hidden}
+.vue{min-width:0;max-width:100%}
 .vue{display:none}.vue.on{display:block}
 section{margin-bottom:26px}
 section h2{font-size:14px;font-weight:600;margin-bottom:10px}
@@ -117,12 +119,12 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-nav{position:fixed;inset-inline:0;bottom:0;display:flex;height:calc(58px + env(safe-area-inset-bottom));
+nav{position:fixed;inset-inline:0;bottom:0;display:flex;flex:0 0 auto;width:100%;min-width:0;height:calc(58px + env(safe-area-inset-bottom));min-height:calc(58px + env(safe-area-inset-bottom));
   background:var(--card);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);
   z-index:5;box-shadow:0 -3px 12px rgba(23,38,42,.08);
   transform:translate3d(0,0,0);will-change:transform;backface-visibility:hidden;
   -webkit-backface-visibility:hidden;contain:layout paint}
-nav button{flex:1;min-width:44px;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
+nav button{flex:1 1 0;min-width:44px;max-width:20%;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
   border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none}
 nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
@@ -152,7 +154,8 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .photo .taille{font-size:12px;margin-top:8px}
 
 .bulle{padding:11px 13px;border-radius:12px;margin-bottom:10px;font-size:14.5px;line-height:1.5;
-  max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere}
+  max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+#c-q{display:block;max-width:100%;min-width:0;box-sizing:border-box}
 .bulle.moi{background:var(--ink);color:var(--paper);margin-left:auto;border-bottom-right-radius:3px}
 .bulle.coach{background:var(--card);border:1px solid var(--rule);border-bottom-left-radius:3px}
 
@@ -178,7 +181,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/09/2026 22h40';
+const APP_VERSION='09/09/2026 22h59';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
@@ -608,9 +611,16 @@ function vueCoach(){
   return h+'</section>';
 }
 
+function versionAffiche(){
+  const v=localStorage.getItem(VERSION_KEY)||APP_VERSION;
+  const m=String(v).match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2})h(\d{2})$/);
+  return m?'dernière mise à jour le : '+m[1]+' à '+m[2]+'h'+m[3]:'dernière mise à jour le : '+esc(v);
+}
+
 function vueRéglages(d){
   const r=d?d.reference:{cible:0,facteur:1.2,tdee:0};
-  let h='<section><h2>Objectif</h2>'+
+  let h='<section><h2>Application</h2><p class="note" aria-label="Version de l’application">'+versionAffiche()+'</p></section>'+
+    '<section><h2>Objectif</h2>'+
     '<label for="g-cible">Cible calorique</label>'+
     '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
     '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
@@ -653,7 +663,7 @@ function bandeau(d){
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
     ' <span class="lejour">'+dateLongue()+'</span></h1>'+
     '<div><button class="roue" id="b-maj">Actualiser</button>'+
-    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+' · '+esc(localStorage.getItem(VERSION_KEY)||APP_VERSION)+'</button></div></div>'+m+'</div>';
+    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+'</button></div></div>'+m+'</div>';
 }
 
 const VUES=[
@@ -909,11 +919,12 @@ async function actualiserApplication(){
   const worker=registration.waiting||registration.installing;
   if(!worker)return;
   if(worker.state==='installing'){
-    await new Promise(resolve=>worker.addEventListener('statechange',()=>{
-      if(worker.state==='installed')resolve();
-    }));
+    await new Promise((resolve,reject)=>{
+      const fini=()=>{if(worker.state==='installed')resolve();else if(worker.state==='redundant')reject(new Error('Mise à jour abandonnée.'));};
+      worker.addEventListener('statechange',fini); fini();
+    });
   }
-  worker.postMessage({type:'SKIP_WAITING'});
+  (registration.waiting||worker).postMessage({type:'SKIP_WAITING'});
 }
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('message',e=>{
@@ -930,6 +941,7 @@ if('serviceWorker' in navigator){
 if(!localStorage.getItem(VERSION_KEY))localStorage.setItem(VERSION_KEY,APP_VERSION);
 demarrer();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>

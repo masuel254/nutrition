@@ -1,12 +1,13 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans reseau. Les appels a l'API
 // ne passent pas par ici : le dernier releve est garde par l'app elle-meme.
-const VERSION = '09/09/2026 22h40';
+const VERSION = '09/09/2026 22h59';
 const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const FILES = ['./', './index.html', './manifest.webmanifest'];
+const OPTIONAL_FILES = ['./icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => {/* Wait for an explicit SKIP_WAITING message. */}));
+  e.waitUntil(caches.open(SHELL).then(async c => { await c.addAll(FILES); await Promise.all(OPTIONAL_FILES.map(url => fetch(url, {cache: 'reload'}).then(r => r.ok && c.put(url, r)).catch(() => null))); }).then(() => {/* Wait for an explicit SKIP_WAITING message. */}));
 });
 
 self.addEventListener('activate', e => {
