@@ -1,3 +1,4 @@
+===== index.html (contenu complet) =====
 <!doctype html>
 <html lang="fr">
 <head>
@@ -24,8 +25,7 @@
          --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-y:none}
-#racine{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
+html,body{margin:0;padding:0;width:100%;overflow-x:hidden;overscroll-behavior-y:none}
 body{
   background:var(--paper); color:var(--ink);
   font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -66,8 +66,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   font-size:14.5px;font-weight:600}
 .mesures b{font-weight:600;color:var(--ink)}
 
-main{padding:18px 18px 8px;max-width:640px;min-width:0;margin:0 auto;overflow-x:hidden}
-.vue{min-width:0;max-width:100%}
+main{padding:18px 18px 8px;max-width:640px;margin:0 auto;overflow-x:hidden}
 .vue{display:none}.vue.on{display:block}
 section{margin-bottom:26px}
 section h2{font-size:14px;font-weight:600;margin-bottom:10px}
@@ -119,12 +118,12 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-nav{position:fixed;inset-inline:0;bottom:0;display:flex;flex:0 0 auto;width:100%;min-width:0;height:calc(58px + env(safe-area-inset-bottom));min-height:calc(58px + env(safe-area-inset-bottom));
+nav{position:fixed;inset-inline:0;bottom:0;display:flex;height:calc(58px + env(safe-area-inset-bottom));
   background:var(--card);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);
   z-index:5;box-shadow:0 -3px 12px rgba(23,38,42,.08);
   transform:translate3d(0,0,0);will-change:transform;backface-visibility:hidden;
   -webkit-backface-visibility:hidden;contain:layout paint}
-nav button{flex:1 1 0;min-width:44px;max-width:20%;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
+nav button{flex:1;min-width:44px;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
   border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none}
 nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
@@ -154,8 +153,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .photo .taille{font-size:12px;margin-top:8px}
 
 .bulle{padding:11px 13px;border-radius:12px;margin-bottom:10px;font-size:14.5px;line-height:1.5;
-  max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
-#c-q{display:block;max-width:100%;min-width:0;box-sizing:border-box}
+  max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere}
 .bulle.moi{background:var(--ink);color:var(--paper);margin-left:auto;border-bottom-right-radius:3px}
 .bulle.coach{background:var(--card);border:1px solid var(--rule);border-bottom-left-radius:3px}
 
@@ -181,7 +179,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/09/2026 22h59';
+const APP_VERSION='09/09/2026 22h40';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
@@ -198,7 +196,7 @@ const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+
 const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','decembre'];
 const dateLongue=()=>{const d=new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
-/* jour de la semaine capitalisé a partir d'une date AAAA-MM-JJ, construite en heure locale */
+/* jour de la semaine capitalisé à partir d'une date AAAA-MM-JJ, construite en heure locale */
 const jourSemaine=s=>{
   if(!s)return '';
   const a=Number(s.slice(0,4)),m=Number(s.slice(5,7)),j=Number(s.slice(8,10));
@@ -222,7 +220,7 @@ async function appel(corps){
   let j=null;
   try{j=await r.json();}catch(e){}
   if(r.status===429)throw new Error('Trop de requetes vers Google Sheets. Attends une minute et reessaie.');
-  if(!j)throw new Error('Le serveur a repondu '+r.status+' sans contenu lisible.');
+  if(!j)throw new Error('Le serveur a répondu '+r.status+' sans contenu lisible.');
   if(j.ok!==true)throw new Error(j.erreur||('Le serveur a repondu '+r.status+'.'));
   return j;
 }
@@ -373,7 +371,7 @@ function jauge(conso,cible){
   if(!cible)return '';
   const w=320,h=30,maxi=Math.max(conso,cible)*1.06;
   const lx=(cible/maxi)*w,cx=Math.min((conso/maxi)*w,w),trop=conso>cible;
-  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Consomme par rapport a la cible">';
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Consomme par rapport à la cible">';
   o+='<rect x="0" y="6" width="'+w+'" height="13" fill="var(--creux)" rx="1.5"/>';
   o+='<rect x="0" y="6" width="'+cx.toFixed(1)+'" height="13" fill="'+(trop?'var(--over)':'var(--under)')+'" rx="1.5"/>';
   o+='<line x1="'+lx.toFixed(1)+'" y1="1" x2="'+lx.toFixed(1)+'" y2="24" stroke="var(--ink)" stroke-width="1.5"/>';
@@ -387,7 +385,7 @@ function barreMacros(a){
   if(!tot)return '';
   const w=320,h=32;
   const seg=[['Protéines',a.prot*4,'var(--under)'],['Lipides',a.lip*9,'var(--over)'],['Glucides',a.gluc*4,'var(--ink)']];
-  let x=0,o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Repartition des calories par macronutriment">';
+  let x=0,o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Répartition des calories par macronutriment">';
   seg.forEach(s=>{
     const lg=(s[1]/tot)*w;
     o+='<rect x="'+x.toFixed(1)+'" y="0" width="'+Math.max(0,lg-1.5).toFixed(1)+'" height="12" fill="'+s[2]+'" rx="1.5"/>';
@@ -399,12 +397,12 @@ function barreMacros(a){
 
 /* ---------- vues ---------- */
 const REPAS=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['autre','Autre']];
-const ACTIV=[[1.2,'Sedentaire'],[1.375,'Peu actif'],[1.55,'Moderement actif'],[1.725,'Tres actif'],[1.9,'Extremement actif']];
+const ACTIV=[[1.2,'Sédentaire'],[1.375,'Peu actif'],[1.55,'Modérément actif'],[1.725,'Très actif'],[1.9,'Extrêmement actif']];
 
 function couleurMacro(nom,v,t){
   if(!t)return '';
   const r=v/t;
-  if(nom==='prot'){            // les proteines sont un plancher, pas un plafond
+  if(nom==='prot'){            // les protéines sont un plancher, pas un plafond
     if(r>=0.9)return 'sous';
     if(r>=0.7)return 'sur';
     return 'sur';
@@ -425,33 +423,33 @@ function vueJour(d){
     h+='<div class="conso"><b>'+nb(a.kcal)+'</b> kcal mangées sur une cible de <b>'+nb(c.kcal)+'</b>'+
        (a.repas?' \u00b7 '+a.repas+' repas':'')+'</div>';
     const manque=c.prot-a.prot;
-    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de proteines.</span> '+
-      'En seche, c\'est ce qui protege ta masse musculaire : vise-les avant de combler le reste.</p>';
+    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de protéines.</span> '+
+      'En sèche, c\'est ce qui protège ta masse musculaire : vise-les avant de combler le reste.</p>';
     h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les reglages pour la fixer.</p>';
   h+='</section>';
 
   if(a.kcal){
-    h+='<section><h2>D\'ou viennent tes calories</h2>'+barreMacros(a)+'<table><tbody>';
+    h+='<section><h2>D\'où viennent tes calories</h2>'+barreMacros(a)+'<table><tbody>';
     [['Protéines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
       const v=a[m[1]],t=c[m[1]];
       h+='<tr><td>'+m[0]+'</td><td>'+nb(v)+' g</td><td style="color:var(--soft)">sur '+nb(t)+'</td>'+
          '<td class="'+couleurMacro(m[1],v,t)+'">'+(t?sgn(v-t):'\u2014')+'</td></tr>';
     });
-    h+='</tbody></table><p class="note">Les proteines se lisent a l\'envers des autres : etre en dessous est un manque, pas une reussite.</p></section>';
+    h+='</tbody></table><p class="note">Les protéines se lisent a l\'envers des autres : être en dessous est un manque, pas une réussite.</p></section>';
   }
 
-  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mang19</th><th>Prevu</th><th>Écart</th></tr></thead><tbody>';
+  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mangées</th><th>Prévu</th><th>Écart</th></tr></thead><tbody>';
   REPAS.forEach(r=>{
     const p=a.parRepas[r[0]];
     if(!p||(!p.kcal&&!p.cible))return;
     h+='<tr><td>'+r[1]+'</td><td>'+nb(p.kcal)+'</td><td style="color:var(--soft)">'+(p.cible?nb(p.cible):'\u2014')+'</td>'+
        '<td class="'+(p.cible&&p.kcal>p.cible?'sur':'sous')+'">'+(p.cible?sgn(p.kcal-p.cible):'\u2014')+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">Repartition indicative : 25 % le matin, 40 % le midi, 5 % en-cas, 30 % le soir.</p></section>';
+  h+='</tbody></table><p class="note">Répartition indicative : 25 % le matin, 40 % le midi, 5 % en-cas, 30 % le soir.</p></section>';
 
   const m=d.moyennes;
-  h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
+  h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
   function fleche(v){
     if(v===null||v===undefined||!c.kcal)return '';
     return v>c.kcal?' <span class="sur">\u25B2</span>':' <span class="sous">\u25BC</span>';
@@ -461,7 +459,7 @@ function vueJour(d){
     const v=m[p[1]];
     h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">La fleche compare a ta cible. Seuls les jours a deux repas ou plus entrent dans les moyennes.</p></section>';
+  h+='</tbody></table><p class="note">La flèche compare à ta cible. Seuls les jours à deux repas ou plus entrent dans les moyennes.</p></section>';
   return h;
 }
 
@@ -507,7 +505,7 @@ function vueCourbes(d){
       '<input id="p-val" type="number" step="0.1" min="30" max="300" inputmode="decimal" value="'+S.pesée.val.toFixed(1)+'">'+
       '<button id="p-plus" aria-label="Ajouter 100 grammes">+</button>'+
     '</div>'+
-    '<p class="note">Derniere pesée : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'\u2014')+
+    '<p class="note">Dernière pesée : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'\u2014')+
     '. Ajuste avec les boutons ou tape la valeur.</p>'+
     '<button class="primaire" id="p-envoi"'+(S.pesée.etat==='envoi'?' disabled':'')+'>'+
     (S.pesée.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
@@ -520,7 +518,7 @@ function vueCourbes(d){
   if(p.length>1){
     const e=p[p.length-1].poids-p[0].poids;
     h+='<p class="note">'+(e<0?'Perte':'Prise')+' de '+Math.abs(e).toFixed(1)+' kg entre le '+
-       jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+'. La ligne pointillee lisse les variations d\'eau et de digestion.</p>';
+       jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+'. La ligne pointillée lisse les variations d\'eau et de digestion.</p>';
   }
   h+='</section>';
 
@@ -529,7 +527,7 @@ function vueCourbes(d){
   if(p.length>1){
     const dt=p[p.length-1].tdee-p[0].tdee;
     h+='<p class="note">Tes besoins ont '+(dt<0?'baissé':'augmenté')+' de '+Math.abs(dt)+
-       ' kcal par jour sur la periode. Un corps plus léger dépense moins : le deficit se referme tout seul si la cible ne bouge pas.</p>';
+       ' kcal par jour sur la période. Un corps plus léger dépense moins : le déficit se referme tout seul si la cible ne bouge pas.</p>';
   }
   h+='</section>';
 
@@ -542,21 +540,21 @@ function vueCourbes(d){
   });
   h+='</div>'+barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
      detailJour(d,S.insp?S.insp.date:null)+
-     '<p class="note">Chaque barre compare ce que tu as mangé aux besoins reels de ce jour-là. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
+     '<p class="note">Chaque barre compare ce que tu as mangé aux besoins réels de ce jour-là. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
 
   const cu=d.deficit.cumule;
   if(cu.length>1){
     h+='<section><h2>Effet cumule</h2>'+serieCourbe(cu.map(c=>({date:c.date,v:c.kg})),
        {h:126,unite:' kg',dec:2,couleur:'var(--under)',aire:true,titre:'cumul'})+
-       '<p class="note">Conversion a 7000 kcal pour un kilo. C\'est une projection théorique : la balance reste l\'arbitre.</p></section>';
+       '<p class="note">Conversion à 7000 kcal pour un kilo. C\'est une projection théorique : la balance reste l\'arbitre.</p></section>';
   }
 
   h+='<section><h2>Régularité</h2>'+calendrier(d.jours)+
      detailJour(d,S.insp?S.insp.date:null)+
-     '<p class="note">Neuf semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncee plus l\'ecart est marquée. Les cases grises sont les jours sans aucune saisie. Touche une case pour le detail.</p></section>';
+     '<p class="note">Neuf semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncée plus l\'écart est marquée. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p></section>';
 
   const f=d.deficit;
-  h+='<section><h2>Cumul</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>Equivalent</th></tr></thead><tbody>';
+  h+='<section><h2>Cumul</h2><table><thead><tr><th>Période</th><th>kcal</th><th>Équivalent</th></tr></thead><tbody>';
   [['Aujourd\'hui','j'],['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(x=>{
     const v=f[x[1]];
     h+='<tr><td>'+x[0]+'</td><td class="'+(v>0?'sur':'sous')+'">'+sgn(v)+'</td>'+
@@ -604,29 +602,22 @@ function vueCoach(){
   let h='<section>';
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
   S.coach.fil.forEach(m=>{h+='<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
-  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span>Le coach reflechit</div>';
+  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span>Le coach réfléchit</div>';
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
      '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>';
   if(S.coach.fil.length)h+='<button class="lien" id="c-vider">Effacer la conversation</button>';
   return h+'</section>';
 }
 
-function versionAffiche(){
-  const v=localStorage.getItem(VERSION_KEY)||APP_VERSION;
-  const m=String(v).match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2})h(\d{2})$/);
-  return m?'dernière mise à jour le : '+m[1]+' à '+m[2]+'h'+m[3]:'dernière mise à jour le : '+esc(v);
-}
-
 function vueRéglages(d){
   const r=d?d.reference:{cible:0,facteur:1.2,tdee:0};
-  let h='<section><h2>Application</h2><p class="note" aria-label="Version de l’application">'+versionAffiche()+'</p></section>'+
-    '<section><h2>Objectif</h2>'+
+  let h='<section><h2>Objectif</h2>'+
     '<label for="g-cible">Cible calorique</label>'+
     '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
     '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
   ACTIV.forEach(x=>{h+='<button data-f="'+x[0]+'" class="'+(Math.abs((r.facteur||1.2)-x[0])<0.001?'on':'')+'">'+x[1]+'</button>';});
   h+='</div>';
-  if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu sèches, au-dessus tu prends de la masse. Le niveau d\'activité inclut déjà tes seances : ne compte pas en plus les calories brulees a la salle.</p>';
+  if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu sèches, au-dessus tu prends de la masse. Le niveau d\'activité inclut déjà tes séances : ne compte pas en plus les calories brûlées à la salle.</p>';
   h+='<button class="primaire" id="g-envoi"'+(S.para.etat==='envoi'?' disabled':'')+'>'+
      (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>';
   if(S.para.etat==='ko')h+='<p class="alerte">'+esc(S.para.message)+'</p>';
@@ -651,7 +642,7 @@ function bandeau(d){
   if(r.tdee){
     m='<div class="mesures">'+
       '<span><b>'+(r.poids?r.poids.toFixed(1):'\u2014')+'</b> kg</span>'+
-      '<span>metabolisme <b>'+nb(r.mb)+'</b></span>'+
+      '<span>métabolisme <b>'+nb(r.mb)+'</b></span>'+
       '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
       '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
       '</div><span class="badge '+(r.ecart>0?'sur':'sous')+'">'+esc(r.mode)+
@@ -659,11 +650,11 @@ function bandeau(d){
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
   if(perime)m+='<div class="perime">Ce releve date du '+jjmm(d.reference.date)+
-    '. Touche Actualiser pour passer a aujourd\'hui.</div>';
+    '. Touche Actualiser pour passer à aujourd\'hui.</div>';
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
     ' <span class="lejour">'+dateLongue()+'</span></h1>'+
     '<div><button class="roue" id="b-maj">Actualiser</button>'+
-    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+'</button></div></div>'+m+'</div>';
+    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+' · '+esc(localStorage.getItem(VERSION_KEY)||APP_VERSION)+'</button></div></div>'+m+'</div>';
 }
 
 const VUES=[
@@ -894,7 +885,7 @@ async function demarrer(){
   try{await rafraichir();rendre();}
   catch(e){
     if(S.data)return;
-    connexion(e.message+' Verifie l\'adresse et le code.');
+    connexion(e.message+' Vérifie l\'adresse et le code.');
   }
 }
 
@@ -903,7 +894,7 @@ function jourChange(){
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!S.cfg||!S.data||S.reglages)return;
-  // on force le rafraichissement si on a change de jour, sinon un par minute au plus
+  // on force le rafraichissement si on a changé de jour, sinon un par minute au plus
   if(!jourChange()&&Date.now()-dernierAppel<60000)return;
   rafraichir().then(rendre).catch(()=>{});
 });
@@ -919,12 +910,11 @@ async function actualiserApplication(){
   const worker=registration.waiting||registration.installing;
   if(!worker)return;
   if(worker.state==='installing'){
-    await new Promise((resolve,reject)=>{
-      const fini=()=>{if(worker.state==='installed')resolve();else if(worker.state==='redundant')reject(new Error('Mise à jour abandonnée.'));};
-      worker.addEventListener('statechange',fini); fini();
-    });
+    await new Promise(resolve=>worker.addEventListener('statechange',()=>{
+      if(worker.state==='installed')resolve();
+    }));
   }
-  (registration.waiting||worker).postMessage({type:'SKIP_WAITING'});
+  worker.postMessage({type:'SKIP_WAITING'});
 }
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('message',e=>{
@@ -941,7 +931,6 @@ if('serviceWorker' in navigator){
 if(!localStorage.getItem(VERSION_KEY))localStorage.setItem(VERSION_KEY,APP_VERSION);
 demarrer();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
