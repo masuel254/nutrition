@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suivi</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#F2F3F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10181A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Suivi">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#6E7F82; --nav:#7A8A8C;
+  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#9BA8A3; --nav:#AEBDBF;
+         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;padding:0;
+  width:100%;max-width:100vw;
+  overflow-x:hidden;
+  overscroll-behavior-y:none;
+}
+html{overflow-x:clip}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.45; font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+  padding-bottom:calc(58px + env(safe-area-inset-bottom) + 12px);
+  position:relative;
+}
+h1,h2{font-weight:600;margin:0}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+
+.bandeau{padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--rule);max-width:100%;overflow:hidden}
+.bandeau .qui{display:flex;justify-content:space-between;align-items:center;gap:10px;max-width:100%}
+.bandeau h1{font-size:19px;letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis}
+.lejour{font-size:13px;font-weight:300;color:var(--soft);display:block;margin-top:1px}
+.perime{margin-top:9px;padding:7px 10px;border-radius:4px;background:var(--over);color:var(--paper);
+  font-size:12.5px;font-weight:400;line-height:1.35;word-break:break-word}
+.bandeau .roue{font-size:13px;color:var(--soft);padding:4px 2px}
+.mesures{display:flex;gap:6px 0;margin-top:8px;font-size:13px;color:var(--soft);font-weight:300;flex-wrap:wrap;max-width:100%}
+.mesures span{padding-right:10px;margin-right:10px;border-right:1px solid var(--rule);white-space:nowrap}
+.mesures span:last-child{border-right:none;padding-right:0;margin-right:0}
+.badge{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:600;word-break:break-word}
+.badge.sous{background:var(--under);color:var(--paper)}
+.badge.sur{background:var(--over);color:var(--paper)}
+.conso{font-size:14px;color:var(--soft);font-weight:300;margin-top:10px}
+.conso b{font-weight:600;color:var(--ink)}
+.rappel{font-size:13px;margin-top:10px;line-height:1.45}
+.periode{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.periode button{padding:5px 12px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
+.periode button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.detailjour{margin-top:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:4px;
+  background:var(--card);font-size:13px;line-height:1.5;word-break:break-word}
+.detailjour b{font-weight:600}
+.peson{display:flex;align-items:stretch;gap:8px;max-width:100%}
+.peson input{text-align:center;font-size:26px;font-weight:300;letter-spacing:-0.01em;padding:10px 4px;flex:1;min-width:0}
+.peson button{width:58px;flex:none;border:1px solid var(--rule);border-radius:3px;font-size:24px;font-weight:300;background:var(--card)}
+.raccourci{width:100%;margin-top:14px;padding:11px;border:1px solid var(--ink);border-radius:3px;
+  font-size:14.5px;font-weight:600}
+.mesures b{font-weight:600;color:var(--ink)}
+
+main{
+  padding:18px 18px 8px;
+  max-width:640px;margin:0 auto;
+  width:100%;
+  overflow-x:hidden;
+  overflow-wrap:anywhere;
+}
+.vue{display:none;overflow-x:hidden}.vue.on{display:block}
+section{margin-bottom:26px;max-width:100%;overflow-x:hidden}
+section h2{font-size:14px;font-weight:600;margin-bottom:10px}
+.note{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;line-height:1.4;word-break:break-word}
+.vide{color:var(--soft);font-size:14px;font-weight:300;padding:8px 0}
+svg{display:block;width:100%;max-width:100%;height:auto;overflow:hidden}
+
+.reste{margin:2px 0 6px}
+.reste .val{font-size:56px;font-weight:300;letter-spacing:-0.035em;line-height:1}
+.reste .val.depasse{color:var(--over)}
+.reste .leg{font-size:13.5px;color:var(--soft);font-weight:300;margin-top:2px}
+
+table{width:100%;border-collapse:collapse;font-size:14px;max-width:100%}
+th{font-weight:600;text-align:right;font-size:12.5px;color:var(--soft);padding:0 0 6px}
+th:first-child{text-align:left}
+td{padding:7px 0;border-top:1px solid var(--rule);text-align:right}
+td:first-child{text-align:left}
+.sous{color:var(--under)}.sur{color:var(--over)}
+
+.jour{margin:22px 0 0;padding-top:14px;border-top:2px solid var(--ink);max-width:100%}
+.jour:first-child{margin-top:0}
+.jour-titre{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:600;gap:10px}
+.jour-titre .tot{font-size:17px;white-space:nowrap}
+.jour-sous{font-size:12px;color:var(--soft);font-weight:400;margin-top:2px;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.repas-titre{display:flex;justify-content:space-between;font-size:12.5px;color:var(--soft);
+  font-weight:600;margin:12px 0 0}
+.ligne{display:flex;align-items:flex-start;gap:12px;padding:7px 0;border-top:1px solid var(--rule);max-width:100%}
+.ligne .quoi{flex:1;min-width:0}
+.ligne .detail{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;word-break:break-word;overflow-wrap:anywhere}
+.ligne.ouvert .detail{-webkit-line-clamp:unset;overflow:visible}
+.ligne .macro{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:2px}
+.ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px;flex-shrink:0}
+.ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px;position:relative;flex-shrink:0}
+.ligne .sup::before{content:"";position:absolute;inset:-11px;min-width:44px;min-height:44px}
+.puces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.puces button{padding:6px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--rule);border-radius:999px;
+  font-size:12.5px;color:var(--soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.puces button small{font-size:10px;font-weight:600;color:var(--ink)}
+.zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card);max-width:100%}
+.zone img{max-width:100%;border-radius:3px;display:block;margin:0 auto 10px}
+.zone .taille{font-size:12px;color:var(--soft);font-weight:400;margin-top:8px}
+.deux{display:flex;gap:8px;margin-top:12px}
+.deux button{flex:1;padding:11px;border:1px solid var(--ink);border-radius:3px;font-size:14px;font-weight:600}
+.confirme{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.trois{display:flex;gap:7px;margin-top:9px}
+.trois button{flex:1;padding:10px 4px;border:1px solid var(--ink);border-radius:3px;font-size:13.5px;font-weight:600}
+.trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
+.aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
+
+/* --- barre du bas : FIGEE, quel que soit le nombre de messages --- */
+nav{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  display:flex;
+  width:100%;
+  height:calc(58px + env(safe-area-inset-bottom));
+  background:var(--card);
+  border-top:1px solid var(--rule);
+  padding-bottom:env(safe-area-inset-bottom);
+  z-index:100;
+  box-shadow:0 -3px 12px rgba(23,38,42,.08);
+  touch-action:manipulation;
+  flex-shrink:0;
+  pointer-events:auto;
+}
+nav button{flex:1;min-width:44px;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
+  border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none}
+nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
+
+.ecran{max-width:420px;margin:0 auto;padding:40px 22px;width:100%}
+.ecran h1{font-size:26px;font-weight:300;letter-spacing:-0.02em;margin-bottom:6px}
+.ecran p{color:var(--soft);font-size:14px;font-weight:300;margin:0 0 22px}
+label{display:block;font-size:13px;font-weight:600;margin:16px 0 5px}
+input,textarea{width:100%;padding:11px 12px;font:inherit;font-size:15px;background:var(--card);
+  color:var(--ink);border:1px solid var(--rule);border-radius:3px;-webkit-appearance:none;max-width:100%}
+textarea{min-height:78px;resize:vertical;overflow-wrap:anywhere;word-break:break-word}
+input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
+.primaire{width:100%;margin-top:18px;padding:13px;background:var(--ink);color:var(--paper);
+  border-radius:3px;font-weight:600;font-size:15px}
+.primaire[disabled]{opacity:.45}
+.lien{display:block;width:100%;margin-top:14px;text-align:center;font-size:13.5px;color:var(--soft);
+  text-decoration:underline;text-underline-offset:3px}
+.alerte{margin-top:14px;font-size:13.5px;color:var(--over);line-height:1.4;word-break:break-word}
+.bien{margin-top:14px;font-size:13.5px;color:var(--under);line-height:1.4;word-break:break-word}
+
+.choix{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
+.choix button{padding:8px 13px;border:1px solid var(--rule);border-radius:999px;font-size:14px;color:var(--soft)}
+.choix button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.photo{margin-top:14px;border:1px dashed var(--rule);border-radius:4px;padding:22px;text-align:center;
+  color:var(--soft);font-size:14px;font-weight:300;max-width:100%}
+.photo img{max-width:100%;border-radius:3px;display:block;margin:0 auto}
+.photo .taille{font-size:12px;margin-top:8px}
+
+/* --- bulles coach : jamais hors cadre, aucun jeu latéral --- */
+.bulle{
+  padding:11px 13px;
+  border-radius:12px;
+  margin-bottom:10px;
+  font-size:14.5px;
+  line-height:1.5;
+  max-width:calc(100% - 4px);
+  min-width:0;
+  width:fit-content;
+  box-sizing:border-box;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  hyphens:auto;
+  overflow-x:hidden;
+}
+.bulle.moi{
+  background:var(--ink);
+  color:var(--paper);
+  margin-left:auto;
+  margin-right:0;
+  border-bottom-right-radius:3px;
+}
+.bulle.coach{
+  background:var(--card);
+  border:1px solid var(--rule);
+  border-bottom-left-radius:3px;
+  margin-left:0;
+  margin-right:auto;
+}
+
+.resu{border:1px solid var(--rule);border-radius:4px;padding:14px;margin-top:16px;background:var(--card);max-width:100%;overflow-x:hidden}
+.resu .tt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:10px}
+.resu .tt b{font-size:22px;font-weight:600}
+.resu ul{list-style:none;margin:0;padding:0;font-size:14px}
+.resu li{padding:5px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px}
+.resu li span:last-child{color:var(--soft);white-space:nowrap}
+
+.attente{display:inline-block;width:13px;height:13px;border:2px solid var(--rule);
+  border-top-color:currentColor;border-radius:50%;vertical-align:-2px;margin-right:7px}
+@media (prefers-reduced-motion: no-preference){
+  .attente{animation:tourne .7s linear infinite}
+  @keyframes tourne{to{transform:rotate(360deg)}}
+  .vue.on{animation:entree .18s ease-out}
+  @keyframes entree{from{opacity:0}to{opacity:1}}
+}
+</style>
+</head>
+<body>
+<div id="racine"></div>
+<script>
+"use strict";
+let dernierAppel=0;
+const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
+  cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
+  ajout:{repas:'midi',recents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
+
+const $=(s,r)=>(r||document).querySelector(s);
+const nb=n=>(n===null||n===undefined||isNaN(n))?'\u2014':Math.round(n).toLocaleString('fr-FR');
+const sgn=n=>(n===null||n===undefined||isNaN(n))?'\u2014':(n>0?'+':'')+Math.round(n).toLocaleString('fr-FR');
+const jjmm=d=>d.slice(8,10)+'/'+d.slice(5,7);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const p2=n=>String(n).padStart(2,'0');
+const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
+const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','decembre'];
+const dateLongue=()=>{const d=new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
+/* jour de la semaine capitalisé a partir d'une date AAAA-MM-JJ, construite en heure locale */
+const jourSemaine=s=>{
+  if(!s)return '';
+  const a=Number(s.slice(0,4)),m=Number(s.slice(5,7)),j=Number(s.slice(8,10));
+  if(!a||!m||!j)return '';
+  const n=JOURS[new Date(a,m-1,j).getDay()];
+  return n.charAt(0).toUpperCase()+n.slice(1);
+};
+/* etiquette complete : 08/09 - Mardi */
+const jjmmJour=s=>jjmm(s)+' - '+jourSemaine(s);
+
+/* ---------- reseau ---------- */
+function lireCfg(){try{return JSON.parse(localStorage.getItem(S.cle));}catch(e){return null;}}
+function ecrireCfg(c){localStorage.setItem(S.cle,JSON.stringify(c));S.cfg=c;}
+function lireCache(){try{return JSON.parse(localStorage.getItem(S.cache));}catch(e){return null;}}
+
+async function appel(corps){
+  const url=S.cfg.api.trim().replace(/\/+$/,'');
+  const r=await fetch(url,{method:'POST',cache:'no-store',
+    headers:{'Content-Type':'text/plain;charset=UTF-8'},
+    body:JSON.stringify(Object.assign({token:S.cfg.token.trim()},corps))});
+  let j=null;
+  try{j=await r.json();}catch(e){}
+  if(r.status===429)throw new Error('Trop de requetes vers Google Sheets. Attends une minute et reessaie.');
+  if(!j)throw new Error('Le serveur a repondu '+r.status+' sans contenu lisible.');
+  if(j.ok!==true)throw new Error(j.erreur||('Le serveur a repondu '+r.status+'.'));
+  return j;
+}
+async function rafraichir(){
+  const d=await appel({action:'data'});
+  dernierAppel=Date.now();
+  localStorage.setItem(S.cache,JSON.stringify(d));
+  S.data=d;return d;
+}
+
+/* ---------- photo ---------- */
+function redim(fichier){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    const u=URL.createObjectURL(fichier);
+    img.onload=()=>{
+      URL.revokeObjectURL(u);
+      const MAX=1024;
+      let w=img.naturalWidth,h=img.naturalHeight;
+      if(!w||!h){rej(new Error('Image illisible.'));return;}
+      if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      else if(h>=w&&h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const x=c.getContext('2d');
+      x.fillStyle='#ffffff';x.fillRect(0,0,w,h);
+      x.drawImage(img,0,0,w,h);
+      const url=c.toDataURL('image/jpeg',0.8);
+      res({dataUrl:url,b64:url.split(',')[1],octets:Math.round(url.length*0.75)});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Format d image non pris en charge.'));};
+    img.src=u;
+  });
+}
+
+/* ---------- graphiques ---------- */
+function serieCourbe(vals,opt){
+  const w=320,h=opt.h||140,pt=16,pb=22,pl=4,pr=4,n=vals.length;
+  if(n<2)return '<p class="vide">Deux points sont necessaires pour tracer une courbe.</p>';
+  let mn=Math.min.apply(null,vals.map(p=>p.v)),mx=Math.max.apply(null,vals.map(p=>p.v));
+  if(mn===mx){mn-=1;mx+=1;}
+  const pad=(mx-mn)*0.2;mn-=pad;mx+=pad;
+  const X=i=>pl+(i/(n-1))*(w-pl-pr);
+  const Y=v=>pt+(1-(v-mn)/(mx-mn))*(h-pt-pb);
+  const dec=opt.dec||0,u=opt.unite||'',col=opt.couleur||'var(--ink)';
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(opt.titre||'courbe')+'">';
+  if(opt.aire){
+    let a='M'+X(0).toFixed(1)+' '+Y(vals[0].v).toFixed(1)+' ';
+    vals.forEach((p,i)=>{if(i)a+='L'+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)+' ';});
+    a+='L'+X(n-1).toFixed(1)+' '+(h-pb)+' L'+X(0).toFixed(1)+' '+(h-pb)+' Z';
+    o+='<path d="'+a+'" fill="'+col+'" opacity="0.12"/>';
+  }
+  if(opt.moyenne&&n>=5){
+    const ms=[];
+    vals.forEach((p,i)=>{const d=vals.slice(Math.max(0,i-6),i+1);ms.push(d.reduce((s,x)=>s+x.v,0)/d.length);});
+    let m='';ms.forEach((v,i)=>{m+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';});
+    o+='<path d="'+m+'" fill="none" stroke="var(--soft)" stroke-width="1" stroke-dasharray="3 3"/>';
+  }
+  let d='';vals.forEach((p,i)=>{d+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)+' ';});
+  o+='<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"/>';
+  if(n<=40)vals.forEach((p,i)=>{o+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.3" fill="'+col+'"/>';});
+  o+='<text x="'+(X(n-1)-2).toFixed(1)+'" y="'+(Y(vals[n-1].v)-8).toFixed(1)+'" text-anchor="end" font-size="11.5" font-weight="600" fill="'+col+'">'+vals[n-1].v.toFixed(dec)+u+'</text>';
+  o+='<text x="'+(X(0)+2).toFixed(1)+'" y="'+(Y(vals[0].v)-8).toFixed(1)+'" font-size="10.5" font-weight="300" fill="var(--soft)">'+vals[0].v.toFixed(dec)+u+'</text>';
+  o+='<text x="'+X(0).toFixed(1)+'" y="'+(h-5)+'" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(vals[0].date)+'</text>';
+  o+='<text x="'+X(n-1).toFixed(1)+'" y="'+(h-5)+'" text-anchor="end" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(vals[n-1].date)+'</text>';
+  return o+'</svg>';
+}
+
+function barresLigne(items,h){
+  const w=320,pt=16,pb=20;
+  if(!items.length)return '<p class="vide">Aucun jour complet pour l\'instant.</p>';
+  const amp=Math.max(200,Math.max.apply(null,items.map(i=>Math.abs(i.v))));
+  const zero=pt+(h-pt-pb)/2,ech=((h-pt-pb)/2)/amp,pas=w/items.length;
+  const lg=Math.max(2,Math.min(15,pas*0.6));
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Écart quotidien">';
+  o+='<line x1="0" y1="'+zero+'" x2="'+w+'" y2="'+zero+'" stroke="var(--rule)"/>';
+  items.forEach((it,i)=>{
+    const cx=pas*(i+0.5),ht=Math.abs(it.v)*ech,y=it.v<0?zero:zero-ht;
+    const sel=(S.insp&&S.insp.date===it.date);
+    o+='<rect data-jour="'+it.date+'" x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+
+       '" height="'+Math.max(1,ht).toFixed(1)+'" fill="'+(it.v<0?'var(--under)':'var(--over)')+'" rx="1"'+
+       (sel?' stroke="var(--ink)" stroke-width="1.4"':'')+'/>';
+    if(sel)o+='<text x="'+cx.toFixed(1)+'" y="'+(it.v<0?zero+ht+11:zero-ht-4).toFixed(1)+
+       '" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--ink)">'+sgn(it.v)+'</text>';
+  });
+  if(items.length>=5){
+    let m='';
+    items.forEach((it,i)=>{
+      const d=items.slice(Math.max(0,i-6),i+1);
+      const v=d.reduce((s,x)=>s+x.v,0)/d.length;
+      m+=(i?'L':'M')+(pas*(i+0.5)).toFixed(1)+' '+(zero-v*ech).toFixed(1)+' ';
+    });
+    o+='<path d="'+m+'" fill="none" stroke="var(--ink)" stroke-width="1.3" opacity="0.7"/>';
+  }
+  o+='<text x="0" y="'+(zero-5)+'" font-size="10" fill="var(--soft)" font-weight="300">besoins du jour</text>';
+  o+='<text x="0" y="'+(h-4)+'" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[0].date)+'</text>';
+  o+='<text x="'+w+'" y="'+(h-4)+'" text-anchor="end" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[items.length-1].date)+'</text>';
+  return o+'</svg>';
+}
+
+function calendrier(jours){
+  const par={};jours.forEach(j=>{par[j.date]=j;});
+  const sem=9,w=320,cell=Math.floor((w-28)/7),g=3;
+  const fin=new Date();fin.setHours(12,0,0,0);
+  const dec=(fin.getDay()+6)%7;
+  const debut=new Date(fin);debut.setDate(debut.getDate()-dec-(sem-1)*7);
+  const h=sem*(cell+g)+18;
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Régularité des dernières semaines">';
+  ['L','M','M','J','V','S','D'].forEach((d,i)=>{
+    o+='<text x="'+(28+i*(cell+g)+cell/2)+'" y="10" text-anchor="middle" font-size="9.5" fill="var(--soft)" font-weight="300">'+d+'</text>';
+  });
+  for(let sm=0;sm<sem;sm++){
+    for(let d=0;d<7;d++){
+      const dt=new Date(debut);dt.setDate(dt.getDate()+sm*7+d);
+      if(dt>fin)continue;
+      const k=dt.toISOString().slice(0,10),j=par[k];
+      const x=28+d*(cell+g),y=16+sm*(cell+g);
+      const saisi=!!(j&&j.repas>=1&&j.kcal>0);
+      let f='var(--creux)',op=1,cadre='';
+      if(saisi&&j.ecart!==null){
+        const inten=Math.min(1,Math.abs(j.ecart)/900);
+        f=j.ecart<0?'var(--under)':'var(--over)';
+        op=0.3+inten*0.7;
+      }else if(saisi){f='var(--soft)';op=0.4;}
+      if(S.insp&&S.insp.date===k)cadre=' stroke="var(--ink)" stroke-width="1.6"';
+      o+='<rect data-jour="'+k+'" x="'+x+'" y="'+y+'" width="'+cell+'" height="'+cell+
+         '" rx="2" fill="'+f+'" opacity="'+op.toFixed(2)+'"'+cadre+'></rect>';
+      if(d===0)o+='<text x="0" y="'+(y+cell/2+3)+'" font-size="10px" fill="var(--soft)" font-weight="300">'+jjmm(k)+'</text>';
+    }
+  }
+  return o+'</svg>';
+}
+
+function detailJour(d,date){
+  if(!date)return '<p class="note">Touche une case pour voir la journée.</p>';
+  const j=(d.jours||[]).filter(x=>x.date===date)[0];
+  if(!j||!j.repas)return '<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 aucune saisie ce jour-là.</div>';
+  const lignes=(d.journal||[]).filter(r=>r.date===date);
+  let o='<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 '+nb(j.kcal)+' kcal';
+  if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+(j.ecart>0?'sur':'sous')+'">'+sgn(j.ecart)+'</span>';
+  o+='<br><span style="color:var(--soft)">P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc)+
+     ' \u00b7 '+j.repas+' repas</span>';
+  lignes.forEach(r=>{o+='<br>'+esc(r.repas)+' \u00b7 '+esc((r.detail||'').slice(0,60))+' \u00b7 '+nb(r.kcal)+' kcal';});
+  if(!lignes.length)o+='<br><span style="color:var(--soft)">Detail hors des 100 dernières saisies.</span>';
+  return o+'</div>';
+}
+
+function jauge(conso,cible){
+  if(!cible)return '';
+  const w=320,h=30,maxi=Math.max(conso,cible)*1.06;
+  const lx=(cible/maxi)*w,cx=Math.min((conso/maxi)*w,w),trop=conso>cible;
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Consomme par rapport a la cible">';
+  o+='<rect x="0" y="6" width="'+w+'" height="13" fill="var(--creux)" rx="1.5"/>';
+  o+='<rect x="0" y="6" width="'+cx.toFixed(1)+'" height="13" fill="'+(trop?'var(--over)':'var(--under)')+'" rx="1.5"/>';
+  o+='<line x1="'+lx.toFixed(1)+'" y1="1" x2="'+lx.toFixed(1)+'" y2="24" stroke="var(--ink)" stroke-width="1.5"/>';
+  o+='<text x="'+(lx>w-70?lx-5:lx+5).toFixed(1)+'" y="'+(h-1)+'" text-anchor="'+(lx>w-70?'end':'start')+
+     '" font-size="10.5" fill="var(--soft)" font-weight="300">cible '+nb(cible)+'</text>';
+  return o+'</svg>';
+}
+
+function barreMacros(a){
+  const tot=(a.prot*4)+(a.lip*9)+(a.gluc*4);
+  if(!tot)return '';
+  const w=320,h=32;
+  const seg=[['Protéines',a.prot*4,'var(--under)'],['Lipides',a.lip*9,'var(--over)'],['Glucides',a.gluc*4,'var(--ink)']];
+  let x=0,o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Repartition des calories par macronutriment">';
+  seg.forEach(s=>{
+    const lg=(s[1]/tot)*w;
+    o+='<rect x="'+x.toFixed(1)+'" y="0" width="'+Math.max(0,lg-1.5).toFixed(1)+'" height="12" fill="'+s[2]+'" rx="1.5"/>';
+    if(lg>46)o+='<text x="'+(x+2).toFixed(1)+'" y="26" font-size="10.5" fill="var(--soft)" font-weight="300">'+s[0].slice(0,4)+' '+Math.round(s[1]/tot*100)+'%</text>';
+    x+=lg;
+  });
+  return o+'</svg>';
+}
+
+/* ---------- vues ---------- */
+const REPAS=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['autre','Autre']];
+const ACTIV=[[1.2,'Sedentaire'],[1.375,'Peu actif'],[1.55,'Moderement actif'],[1.725,'Tres actif'],[1.9,'Extremement actif']];
+
+function couleurMacro(nom,v,t){
+  if(!t)return '';
+  const r=v/t;
+  if(nom==='prot'){            // les proteines sont un plancher, pas un plafond
+    if(r>=0.9)return 'sous';
+    if(r>=0.7)return 'sur';
+    return 'sur';
+  }
+  if(r<=1)return 'sous';
+  if(r<=1.1)return '';
+  return 'sur';
+}
+
+function vueJour(d){
+  const c=d.cibles,a=d.aujourdhui;
+  const reste=c.kcal?c.kcal-a.kcal:null;
+  let h='<section>';
+  if(c.kcal){
+    h+='<div class="reste"><div class="val'+(reste<0?' depasse':'')+'">'+nb(Math.abs(reste))+'</div>'+
+       '<div class="leg">'+(reste<0?'kcal au-dessus de ta cible':'kcal encore disponibles aujourd\'hui')+'</div></div>';
+    h+=jauge(a.kcal,c.kcal);
+    h+='<div class="conso"><b>'+nb(a.kcal)+'</b> kcal mangées sur une cible de <b>'+nb(c.kcal)+'</b>'+
+       (a.repas?' \u00b7 '+a.repas+' repas':'')+'</div>';
+    const manque=c.prot-a.prot;
+    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de proteines.</span> '+
+      'En seche, c\'est ce qui protege ta masse musculaire : vise-les avant de combler le reste.</p>';
+    h+='<button class="primaire" hid="j-ajout">Ajouter un repas</button>';
+  } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les reglages pour la fixer.</p>';
+  h+='</section>';
+
+  if(a.kcal){
+    h+='<section><h2>D\'ou viennent tes calories</h2>'+barreMacros(a)+'<table><tbody>';
+    [['Protéines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
+      const v=a[m[1]],t=c[m[1]];
+      h+='<tr><td>'+m[0]+'</td><td>'+nb(v)+' g</td><td style="color:var(--soft)">sur '+nb(t)+'</td>'+
+         '<td class="'+couleurMacro(m[1],v,t)+'">'+(t?sgn(v-t):'\u2014')+'</td></tr>';
+    });
+    h+='</tbody></table><p class="note">Les proteines se lisent a l\'envers des autres : etre en dessous est un manque, pas une reussite.</p></section>';
+  }
+
+  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mang19</th><th>Prevu</th><th>Écart</th></tr></thead><tbody>';
+  REPAS.forEach(r=>{
+    const p=a.parRepas[r[0]];
+    if(!p||(!p.kcal&&!p.cible))return;
+    h+='<tr><td>'+r[1]+'</td><td>'+nb(p.kcal)+'</td><td style="color:var(--soft)">'+(p.cible?nb(p.cible):'\u2014')+'</td>'+
+       '<td class="'+(p.cible&&p.kcal>p.cible?'sur':'sous')+'">'+(p.cible?sgn(p.kcal-p.cible):'\u2014')+'</td></tr>';
+  });
+  h+='</tbody></table><p class="note">Repartition indicative : 25 % le matin, 40 % le midi, 5 % en-cas, 30 % le soir.</p></section>';
+
+  const m=d.moyennes;
+  h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
+  function fleche(v){
+    if(v===null||v===undefined||!c.kcal)return '';
+    return v>c.kcal?' <span class="sur">\u25B2</span>':' <span class="sous">\u25BC</span>';
+  }
+  h+='<tr><td>Aujourd\'hui</td><td>'+nb(a.kcal)+fleche(a.kcal)+'</td><td>'+nb(a.prot)+'</td><td>'+nb(a.lip)+'</td><td>'+nb(a.gluc)+'</td></tr>';
+  [['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(p=>{
+    const v=m[p[1]];
+    h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
+  });
+  h+='</tbody></table><p class="note">La fleche compare a ta cible. Seuls les jours a deux repas ou plus entrent dans les moyennes.</p></section>';
+  return h;
+}
+
+function repasParHeure(){
+  const h=new Date().getHours();
+  if(h<11)return 'matin';
+  if(h<15)return 'midi';
+  if(h<18)return 'encas';
+  return 'soir';
+}
+
+function vueAjout(d){
+  const A=S.ajout;
+  let h='<section><h2>Quel repas</h2><div class="choix" id="ch-repas">';
+  [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['estim','Estimation']].forEach(r=>{
+    h+='<button data-r="'+r[0]+'" class="'+(A.repas===r[0]?'on':'')+'">'+r[1]+'</button>';
+  });
+  h+='</div>';
+  if(A.repas==='estim')h+='<p class="note">L’estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
+  h+='</section>';
+  h+='<section><h2>Description</h2><textarea id="a-desc" autofocus placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
+  const pret=!!(A.photo||A.desc.trim());
+  h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
+  if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l’analyse.</p>';
+  if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+  h+='</section>';
+  h+='<section><h2>Photo</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none"><div class="zone compact-photo">';
+  if(A.apercu)h+='<img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div>';
+  else h+='<div style="font-size:30px;line-height:1">📷</div><div class="taille">Aucune photo. Tu peux aussi décrire ton repas plus bas, l’analyse marche sans image.</div>';
+  h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
+  if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
+  h+='</section>';
+  if(A.resultat){const r=A.resultat;h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';if(r.estimation)h+='<p class="note">Estimation seule, rien n’est enregistré.</p>';else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';else{h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';h+='</div>';}h+='</div></section>';}
+  return h;
+}
+function vueCourbes(d){
+  const p=d.poids;
+  const dernier=p.length?p[p.length-1].poids:(d.reference.poids||80);
+  if(S.pesée.val===null||S.pesée.val===undefined)S.pesée.val=dernier;
+  let h='<section><h2>Nouvelle pesée</h2>'+
+    '<div class="peson">'+
+      '<button id="p-moins" aria-label="Retirer 100 grammes">\u2212</button>'+
+      '<input id="p-val" type="number" step="0.1" min="30" max="300" inputmode="decimal" value="'+S.pesée.val.toFixed(1)+'">'+
+      '<button id="p-plus" aria-label="Ajouter 100 grammes">+</button>'+
+    '</div>'+
+    '<p class="note">Derniere pesée : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'\u2014')+
+    '. Ajuste avec les boutons ou tape la valeur.</p>'+
+    '<button class="primaire" id="p-envoi"'+(S.pesée.etat==='envoi'?' disabled':'')+'>'+
+    (S.pesée.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
+  if(S.pesée.etat==='ko')h+='<p class="alerte">'+esc(S.pesée.message)+'</p>';
+  if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
+  h+='</section>';
+
+  h+='<section><h2>Poids</h2>'+serieCourbe(p.map(r=>({date:r.date,v:r.poids})),
+      {h:150,unite:' kg',dec:1,moyenne:true,titre:'poids'});
+  if(p.length>1){
+    const e=p[p.length-1].poids-p[0].poids;
+    h+='<p class="note">'+(e<0?'Perte':'Prise')+' de '+Math.abs(e).toFixed(1)+' kg entre le '+
+       jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+'. La ligne pointillee lisse les variations d\'eau et de digestion.</p>';
+  }
+  h+='</section>';
+
+  h+='<section><h2>Ce que tu brûles</h2>'+serieCourbe(p.map(r=>({date:r.date,v:r.tdee})),
+      {h:126,unite:' kcal',couleur:'var(--under)',titre:'besoins'});
+  if(p.length>1){
+    const dt=p[p.length-1].tdee-p[0].tdee;
+    h+='<p class="note">Tes besoins ont '+(dt<0?'baissé':'augmenté')+' de '+Math.abs(dt)+
+       ' kcal par jour sur la periode. Un corps plus léger dépense moins : le deficit se referme tout seul si la cible ne bouge pas.</p>';
+  }
+  h+='</section>';
+
+  let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
+  const P=S.periode||30;
+  if(P)js=js.slice(-P);
+  h+='<section><h2>Écart quotidien</h2><div class="periode" id="ch-periode">';
+  [[30,'30 jours'],[90,'90 jours'],[0,'Tout']].forEach(x=>{
+    h+='<button data-p="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
+  });
+  h+='</div>'+barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
+     detailJour(d,S.insp?S.insp.date:null)+
+     '<p class="note">Chaque barre compare ce que tu as mangé aux besoins reels de ce jour-là. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
+
+  const cu=d.deficit.cumule;
+  if(cu.length>1){
+    h+='<section><h2>Effet cumule</h2>'+serieCourbe(cu.map(c=>({date:c.date,v:c.kg})),
+       {h:126,unite:' kg',dec:2,couleur:'var(--under)',aire:true,titre:'cumul'})+
+       '<p class="note">Conversion a 7000 kcal pour un kilo. C\'est une projection théorique : la balance reste l\'arbitre.</p></section>';
+  }
+
+  h+='<section><h2>Régularité</h2>'+calendrier(d.jours)+
+     detailJour(d,S.insp?S.insp.date:null)+
+     '<p class="note">Neuf semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncee plus l\'ecart est marquée. Les cases grises sont les jours sans aucune saisie. Touche une case pour le detail.</p></section>';
+
+  const f=d.deficit;
+  h+='<section><h2>Cumul</h2><table><thead><tr><th>Periode</th><th>kcal</th><th>Equivalent</th></tr></thead><tbody>';
+  [['Aujourd\'hui','j'],['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(x=>{
+    const v=f[x[1]];
+    h+='<tr><td>'+x[0]+'</td><td class="'+(v>0?'sur':'sous')+'">'+sgn(v)+'</td>'+
+       '<td>'+(v===null||v===undefined?'\u2014':(v/7000).toFixed(2)+' kg')+'</td></tr>';
+  });
+  h+='</tbody></table></section>';
+  return h;
+}
+
+function vueJournal(d){
+  if(!d.journal.length)return '<p class="vide">Rien d\'enregistré pour le moment. Passe par Ajouter.</p>';
+  const infoJour={};(d.jours||[]).forEach(j=>{infoJour[j.date]=j;});
+  const par={};d.journal.forEach((r,i)=>{r.__i=i;(par[r.date]=par[r.date]||[]).push(r);});
+  let h='<section>';
+  Object.keys(par).sort().reverse().forEach(k=>{
+    const l=par[k],j=infoJour[k];
+    const tot=j?j.kcal:l.reduce((s,r)=>s+r.kcal,0);
+    const cible=j?j.cible:0;
+    let cls='';
+    if(cible)cls=(tot<=cible)?'sous':(tot<=cible*1.1?'':'sur');
+    h+='<div class="jour"><div class="jour-titre"><span>'+jjmmJour(k)+'</span>'+
+       '<span class="tot '+cls+'">'+nb(tot)+' kcal</span></div>';
+    h+='<div class="jour-sous"><span>'+
+       (cible?(tot<=cible?'sous la cible de '+nb(cible):'au-dessus de '+nb(cible))+' \u00b7 '+sgn(tot-cible):'aucune cible ce jour-là')+
+       '</span><span>'+(j?'P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc):'')+'</span></div>';
+    const groupes={};
+    l.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
+    Object.keys(groupes).forEach(nom=>{
+      const g=groupes[nom],st=g.reduce((s,r)=>s+r.kcal,0);
+      h+='<div class="repas-titre"><span>'+esc(nom)+'</span><span>'+nb(st)+' kcal</span></div>';
+      g.forEach(r=>{
+        h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
+           '<div class="detail">'+esc(r.detail||'sans description')+'</div>'+
+           '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+'</div></div>'+
+           '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
+           '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
+      });
+    });
+    h+='</div>';
+  });
+  return h+'</section>';
+}
+
+function vueCoach(){
+  let h='<section>';
+  if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
+  S.coach.fil.forEach(m=>{h+='<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
+  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span>Le coach reflechit</div>';
+  h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
+     '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>';
+  if(S.coach.fil.length)h+='<button class="lien" id="c-vider">Effacer la conversation</button>';
+  return h+'</section>';
+}
+
+function vueRéglages(d){
+  const r=d?d.reference:{cible:0,facteur:1.2,tdee:0};
+  let h='<section><h2>Objectif</h2>'+
+    '<label for="g-cible">Cible calorique</label>'+
+    '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
+    '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
+  ACTIV.forEach(x=>{h+='<button data-f="'+x[0]+'" class="'+(Math.abs((r.facteur||1.2)-x[0])<0.001?'on':'')+'">'+x[1]+'</button>';});
+  h+='</div>';
+  if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu sèches, au-dessus tu prends de la masse. Le niveau d\'activité inclut déjà tes seances : ne compte pas en plus les calories brulees a la salle.</p>';
+  h+='<button class="primaire" id="g-envoi"'+(S.para.etat==='envoi'?' disabled':'')+'>'+
+     (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>';
+  if(S.para.etat==='ko')h+='<p class="alerte">'+esc(S.para.message)+'</p>';
+  if(S.para.etat==='ok')h+='<p class="bien">'+esc(S.para.message)+'</p>';
+  h+='</section>';
+
+  h+='<section><h2>Connexion</h2>'+
+    '<label for="r-api">Adresse de l\'API</label>'+
+    '<input id="r-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(S.cfg.api)+'">'+
+    '<label for="r-token">Code d\'accès</label>'+
+    '<input id="r-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(S.cfg.token)+'">'+
+    '<button class="primaire" id="r-ok">Enregistrer la connexion</button>'+
+    '<button class="lien" id="r-out">Oublier ce telephone</button>'+
+    '<p class="note">Le code vient du bot Telegram, menu Application. Le regenerer la-bas invalide celui-ci.</p></section>';
+  return h;
+}
+
+/* ---------- rendu ---------- */
+function bandeau(d){
+  const r=d.reference;
+  let m='';
+  if(r.tdee){
+    m='<div class="mesures">'+
+      '<span><b>'+(r.poids?r.poids.toFixed(1):'\u2014')+'</b> kg</span>'+
+      '<span>metabolisme <b>'+nb(r.mb)+'</b></span>'+
+      '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
+      '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
+      '</div><span class="badge '+(r.ecart>0?'sur':'sous')+'">'+esc(r.mode)+
+      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
+  }
+  const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
+  if(perime)m+='<div class="perime">Ce releve date du '+jjmm(d.reference.date)+
+    '. Touche Actualiser pour passer a aujourd\'hui.</div>';
+  return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
+    ' <span class="lejour">'+dateLongue()+'</span></h1>'+
+    '<div><button class="roue" id="b-maj">Actualiser</button>'+
+    '<button class="roue" id="b-reglages" style="margin-left:14px">'+(S.reglages?'Fermer':'Réglages')+'</button></div></div>'+m+'</div>';
+}
+
+const VUES=[
+ ['jour','Jour','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 12l4-4"/><path d="M7 18h10"/></svg>'],
+ ['ajout','Ajouter','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'],
+ ['courbes','Courbes','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3-8 5-8 8-3s5 5 10-7"/></svg>'],
+ ['journal','Journal','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>'],
+ ['coach','Coach','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg>']
+];
+
+function rendre(){
+  const d=S.data,r=$('#racine');
+  let h=bandeau(d)+'<main>';
+  if(S.reglages){
+    h+='<div class="vue on">'+vueRéglages(d)+'</div>';
+  } else {
+    h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
+    h+='<div class="vue'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
+    h+='<div class="vue'+(S.vue==='courbes'?' on':'')+'">'+vueCourbes(d)+'</div>';
+    h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
+    h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
+  }
+  h+='</main><nav>';
+  VUES.forEach(v=>{h+='<button data-vue="'+v[0]+'" class="'+(!S.reglages&&S.vue===v[0]?'on':'')+'" aria-label="'+v[1]+'">'+v[2]+v[1]+'</button>';});
+  r.innerHTML=h+'</nav>';
+  brancher();
+}
+
+function brancher(){
+  const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
+  document.querySelectorAll('nav button').forEach(b=>{
+    b.addEventListener('click',()=>{S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);});
+  });
+  on('#b-maj','click',async e=>{
+    e.target.textContent='\u2026';
+    try{await rafraichir();}catch(err){window.alert(err.message);}
+    rendre();
+  });
+  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();window.scrollTo(0,0);});
+
+  document.querySelectorAll('#ch-repas button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      S.ajout.desc=(($('#a-desc')||{}).value)||S.ajout.desc;
+      S.ajout.repas=b.dataset.r;S.ajout.etat=null;rendre();
+    });
+  });
+  document.querySelectorAll('[data-jour]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.getAttribute('data-jour');
+      S.insp=(S.insp&&S.insp.date===k)?null:{date:k};
+      rendre();
+    });
+  });
+  document.querySelectorAll('#ch-periode button').forEach(b=>{
+    b.addEventListener('click',()=>{S.periode=Number(b.dataset.p);rendre();});
+  });
+  on('#j-ajout','click',()=>{S.vue='ajout';rendre();window.scrollTo(0,0);});
+  on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
+  on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
+  document.querySelectorAll('[data-ouvre]').forEach(l=>{
+    l.addEventListener('click',e=>{
+      if(e.target.closest('.sup'))return;
+      l.classList.toggle('ouvert');
+    });
+  });
+  ['#a-photo','#a-galerie'].forEach(sel=>on(sel,'change',async e=>{
+    const f=e.target.files&&e.target.files[0];
+    if(!f)return;
+    S.ajout.desc=(($('#a-desc')||{}).value)||S.ajout.desc;
+    try{
+      const r=await redim(f);
+      S.ajout.photo=r.b64;S.ajout.apercu=r.dataUrl;S.ajout.taille=r.octets;S.ajout.etat=null;
+    }catch(err){S.ajout.etat='ko';S.ajout.message=err.message;}
+    rendre();
+  }));
+  on('#a-retire','click',()=>{S.ajout.photo=null;S.ajout.apercu=null;S.ajout.taille=0;rendre();});
+  on('#a-desc','input',e=>{
+    S.ajout.desc=e.target.value;
+    const b=$('#a-envoi');
+    if(b)b.disabled=(!S.ajout.photo&&!e.target.value.trim());
+  });
+  on('#a-envoi','click',async()=>{
+    const A=S.ajout;
+    A.desc=(($('#a-desc')||{}).value)||'';
+    A.etat='envoi';A.resultat=null;rendre();
+    try{
+      const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
+      A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
+      A.photo=null;A.apercu=null;A.taille=0;A.desc='';
+    }catch(e){A.etat='ko';A.message=e.message;}
+    rendre();
+  });
+
+  async function enregistrer(date){
+    const A=S.ajout,l=A.resultat&&A.resultat.ligne;
+    if(!l)return;
+    A.confirm='envoi';rendre();
+    try{
+      const r=await appel(Object.assign({action:'enregistrer',date:date},l));
+      await rafraichir();
+      A.confirm='fait';
+      A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.';
+    }catch(e){A.confirm='ko';A.message=e.message;}
+    rendre();
+  }
+  on('#e-auj','click',()=>enregistrer(auj()));
+  on('#e-autre','click',()=>{S.ajout.confirm='date';rendre();});
+  on('#e-non','click',()=>{S.ajout.confirm='refus';rendre();});
+  on('#e-date','change',e=>{S.ajout.dateAutre=e.target.value;});
+  on('#e-valide','click',()=>enregistrer(S.ajout.dateAutre||auj()));
+
+  function litPoids(){
+    const e=$('#p-val');
+    const v=Number(String((e&&e.value)||'').replace(',','.'));
+    return isNaN(v)?null:Math.round(v*10)/10;
+  }
+  on('#p-moins','click',()=>{const v=litPoids();S.pesée.val=Math.max(30,(v===null?S.pesée.val:v)-0.1);S.pesée.etat=null;rendre();});
+  on('#p-plus','click',()=>{const v=litPoids();S.pesée.val=Math.min(300,(v===null?S.pesée.val:v)+0.1);S.pesée.etat=null;rendre();});
+  on('#p-val','input',()=>{const v=litPoids();if(v!==null)S.pesée.val=v;});
+  on('#p-envoi','click',async()=>{
+    const v=litPoids();
+    if(v===null||v<30||v>300){
+      S.pesée.etat='ko';
+      S.pesée.message='Saisis un poids entre 30 et 300 kg.';
+      rendre();return;
+    }
+    S.pesée.val=v;
+    S.pesée.etat='envoi';rendre();
+    try{
+      const r=await appel({action:'poids',poids:v,date:auj()});
+      await rafraichir();
+      S.pesée.etat='ok';
+      S.pesée.message=r.poids+' kg enregistrés. Metabolisme et besoins recalcules.';
+    }catch(e){S.pesée.etat='ko';S.pesée.message=e.message;}
+    rendre();
+  });
+
+  document.querySelectorAll('#ch-act button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#ch-act button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+  on('#g-envoi','click',async()=>{
+    const cible=(($('#g-cible')||{}).value)||'';
+    const sel=$('#ch-act button.on');
+    const f=sel?sel.dataset.f:'';
+    S.para.etat='envoi';rendre();
+    try{
+      const r=await appel({action:'params',cible:cible,facteur:f});
+      await rafraichir();
+      S.para.etat='ok';
+      S.para.message='Cible '+r.cible+' kcal, '+r.activité+'. Programme en '+String(r.mode).toLowerCase()+
+        (r.ecart!==null?' de '+Math.abs(r.ecart)+' kcal par jour.':'.');
+    }catch(e){S.para.etat='ko';S.para.message=e.message;}
+    rendre();
+  });
+
+  document.querySelectorAll('[data-sup]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const l=S.data.journal[Number(b.dataset.sup)];
+      if(!l)return;
+      if(!window.confirm('Supprimer '+(l.detail||l.repas)+' ?'))return;
+      b.textContent='\u2026';
+      try{
+        await appel({action:'suppr',date:l.date,repas:l.repas,detail:l.detail,kcal:l.kcal});
+        await rafraichir();
+      }catch(e){window.alert(e.message);}
+      rendre();
+    });
+  });
+
+  on('#c-envoi','click',async()=>{
+    const q=((($('#c-q')||{}).value)||'').trim();
+    if(!q)return;
+    S.coach.fil.push({role:'moi',texte:q});
+    S.coach.etat='envoi';rendre();
+    try{
+      const r=await appel({action:'conseil',question:q,
+        historique:S.coach.fil.slice(-6).map(m=>({role:m.role,texte:m.texte}))});
+      S.coach.fil.push({role:'coach',texte:r.texte});
+    }catch(e){S.coach.fil.push({role:'coach',texte:e.message});}
+    S.coach.etat=null;
+    localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));
+    rendre();
+    window.scrollTo(0,document.body.scrollHeight);
+  });
+  on('#c-vider','click',()=>{S.coach.fil=[];localStorage.removeItem(S.chat);rendre();});
+
+  const ok=$('#r-ok');
+  if(ok){
+    ok.addEventListener('click',()=>{
+      ecrireCfg({api:$('#r-api').value.trim(),token:$('#r-token').value.trim()});
+      S.reglages=false;demarrer();
+    });
+    $('#r-out').addEventListener('click',()=>{
+      [S.cle,S.cache,S.chat].forEach(k=>localStorage.removeItem(k));
+      S.cfg=null;S.data=null;connexion();
+    });
+  }
+}
+
+function connexion(msg){
+  $('#racine').innerHTML=
+    '<div class="ecran"><h1>Suivi</h1>'+
+    '<p>Colle l\'adresse de ton serveur et le code fourni par le bot, menu Application. Une seule fois.</p>'+
+    '<label for="c-api">Adresse de l\'API</label>'+
+    '<input id="c-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://\u2026/webhook/nutrition/api">'+
+    '<label for="c-token">Code d\'accès</label>'+
+    '<input id="c-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="24 caracteres">'+
+    '<button class="primaire" id="c-ok">Se connecter</button>'+
+    (msg?'<p class="alerte">'+esc(msg)+'</p>':'')+'</div>';
+  $('#c-ok').addEventListener('click',()=>{
+    const api=$('#c-api').value.trim(),token=$('#c-token').value.trim();
+    if(!api||!token){connexion('Renseigne les deux champs.');return;}
+    ecrireCfg({api:api,token:token});demarrer();
+  });
+}
+
+async function demarrer(){
+  S.ajout.repas=repasParHeure();
+  S.cfg=S.cfg||lireCfg();
+  if(!S.cfg||!S.cfg.api||!S.cfg.token){connexion();return;}
+  try{S.coach.fil=JSON.parse(localStorage.getItem(S.chat))||[];}catch(e){S.coach.fil=[];}
+  const vieux=lireCache();
+  if(vieux){S.data=vieux;rendre();}
+  try{await rafraichir();rendre();}
+  catch(e){
+    if(S.data)return;
+    connexion(e.message+' Verifie l\'adresse et le code.');
+  }
+}
+
+function jourChange(){
+  return !!(S.data&&S.data.reference&&S.data.reference.date&&S.data.reference.date!==auj());
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||!S.cfg||!S.data||S.reglages)return;
+  // on force le rafraichissement si on a change de jour, sinon un par minute au plus
+  if(!jourChange()&&Date.now()-dernierAppel<60000)return;
+  rafraichir().then(rendre).catch(()=>{});
+});
+// controle du passage de minuit tant que l'app reste ouverte
+setInterval(()=>{
+  if(document.hidden||!S.cfg||!S.data)return;
+  if(jourChange())rafraichir().then(rendre).catch(()=>{});
+},60000);
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+demarrer();
+</script>
+</body>
+</html>
