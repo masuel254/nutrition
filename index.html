@@ -102,6 +102,10 @@ td:first-child{text-align:left}
 .ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px}
 .ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px;position:relative}
 .ligne .sup::before{content:"";position:absolute;inset:-11px;min-width:44px;min-height:44px}
+.puces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.puces button{padding:6px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--rule);border-radius:999px;
+  font-size:12.5px;color:var(--soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.puces button small{font-size:10px;font-weight:600;color:var(--ink)}
 .zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card)}
 .zone img{max-width:100%;border-radius:3px;display:block;margin:0 auto 10px}
 .zone .taille{font-size:12px;color:var(--soft);font-weight:400;margin-top:8px}
@@ -176,7 +180,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 let dernierAppel=0;
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
-  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  ajout:{repas:'midi',recents:[],confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -418,7 +422,7 @@ function vueJour(d){
     const manque=c.prot-a.prot;
     if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de proteines.</span> '+
       'En seche, c\'est ce qui protege ta masse musculaire : vise-les avant de combler le reste.</p>';
-    h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';
+    h+='<button class="primaire" hid="j-ajout">Ajouter un repas</button>';
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les reglages pour la fixer.</p>';
   h+='</section>';
 
@@ -473,6 +477,16 @@ function vueAjout(d){
   h+='</div>';
   if(A.repas==='estim')h+='<p class="note">L’estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
   h+='</section>';
+  const recents=[];
+  (d&&d.journal?d.journal:[]).forEach(r=>{
+    if(r.detail&&!recents.some(x=>x.detail===r.detail&&x.kcal===r.kcal)&&recents.length<6)recents.push({detail:r.detail,kcal:r.kcal});
+  });
+  S.ajout.recents=recents;
+  if(recents.length){
+    h+='<section><h2>Repas récents</h2><div class="puces" id="p-recents">';
+    recents.forEach((x,i)=>{h+='<button data-rec="'+i+'"><span>'+esc(x.detail.length>34?x.detail.slice(0,33)+'…':x.detail)+'</span><small>'+nb(x.kcal)+' kcal</small></button>';});
+    h+='</div></section>';
+  }
   h+='<section><h2>Description</h2><textarea id="a-desc" autofocus placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
   const pret=!!(A.photo||A.desc.trim());
   h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
@@ -707,6 +721,12 @@ function brancher(){
   on('#j-ajout','click',()=>{S.vue='ajout';rendre();window.scrollTo(0,0);});
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
+  document.querySelectorAll('#p-recents button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      S.ajout.desc=(S.ajout.recents||[])[Number(b.dataset.rec)]?.detail||'';
+      rendre();
+    });
+  });
   document.querySelectorAll('[data-ouvre]').forEach(l=>{
     l.addEventListener('click',e=>{
       if(e.target.closest('.sup'))return;
@@ -741,23 +761,23 @@ function brancher(){
     rendre();
   });
 
-  async function enregistrér(date){
+  async function enregistrer(date){
     const A=S.ajout,l=A.resultat&&A.resultat.ligne;
     if(!l)return;
     A.confirm='envoi';rendre();
     try{
-      const r=await appel(Object.assign({action:'enregistrér',date:date},l));
+      const r=await appel(Object.assign({action:'enregistrer',date:date},l));
       await rafraichir();
       A.confirm='fait';
       A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.';
     }catch(e){A.confirm='ko';A.message=e.message;}
     rendre();
   }
-  on('#e-auj','click',()=>enregistrér(auj()));
+  on('#e-auj','click',()=>enregistrer(auj()));
   on('#e-autre','click',()=>{S.ajout.confirm='date';rendre();});
   on('#e-non','click',()=>{S.ajout.confirm='refus';rendre();});
   on('#e-date','change',e=>{S.ajout.dateAutre=e.target.value;});
-  on('#e-valide','click',()=>enregistrér(S.ajout.dateAutre||auj()));
+  on('#e-valide','click',()=>enregistrer(S.ajout.dateAutre||auj()));
 
   function litPoids(){
     const e=$('#p-val');
@@ -900,7 +920,6 @@ if('serviceWorker' in navigator){
 }
 demarrer();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
