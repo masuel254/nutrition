@@ -1,7 +1,15 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans reseau. Les appels a l'API
 // ne passent pas par ici : le dernier releve est garde par l'app elle-meme.
-const SHELL = 'suivi-shell-v7';
+
+// ============================================================
+// VERSION DU CACHE (horodatée)
+// À MODIFIER À CHAQUE RELEASE en cohérence avec APP_VERSION dans index.html
+// Format : suivi-shell-AAAAMMJJ-HHMM
+// ============================================================
+const SHELL = 'suivi-shell-20260910-1542';
+// ============================================================
+
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -16,13 +24,11 @@ self.addEventListener('activate', e => {
   );
 });
 
-/* ---------- message du client : forcer l'activation immédiate ---------- */
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
-/* ----------------------------------------------------------------------- */
 
 self.addEventListener('fetch', e => {
   const req = e.request;
