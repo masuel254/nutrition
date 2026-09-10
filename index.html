@@ -193,7 +193,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='10/09/2026 22h15';
+const APP_VERSION='10/09/2026 22h40';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
@@ -559,7 +559,7 @@ function historiqueRepas(A){
   const hi=A.histo||[];
   if(!hi.length)return '';
   let h='<section class="histo"><h2>Repas précédents</h2>'+
-    '<p class="note">Les deux dernières analyses, gardées même après fermeture. Tu peux les enregistrer.</p>';
+    '<p class="note">Les deux dernières analyses, gardées même après fermeture. Tu peux les reprendre pour les enregistrer, ou tout effacer plus bas.</p>';
   hi.forEach((it,i)=>{
     const r=it.resultat;if(!r||!r.total)return;
     h+='<div class="repas-cache"><div class="tt"><span>'+esc(r.repas||it.repas||'Repas')+'</span><b>'+nb(r.total.kcal)+' kcal</b></div>';
@@ -571,7 +571,7 @@ function historiqueRepas(A){
     if(r.ligne)h+='<button class="reenr" data-histo-enr="'+i+'">Reprendre pour enregistrer</button>';
     h+='</div>';
   });
-  h+='<button class="lien" id="a-vider-histo">Vider l\'historique</button>';
+  h+='<button class="secondaire" id="a-vider-histo">Tout effacer</button>';
   return h+'</section>';
 }
 function vueCourbes(d){
@@ -831,7 +831,12 @@ function brancher(){
     rendre();window.scrollTo(0,0);
   });
   on('#a-vider-histo','click',()=>{
-    S.ajout.histo=[];ecrireRepasCache();rendre();
+    if(!window.confirm('Effacer le repas en cours et tout l\'historique ?'))return;
+    const A=S.ajout;
+    A.histo=[];A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
+    A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
+    localStorage.removeItem(S.repas);
+    rendre();window.scrollTo(0,0);
   });
   document.querySelectorAll('[data-histo-enr]').forEach(b=>{
     b.addEventListener('click',()=>{
