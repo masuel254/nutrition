@@ -210,10 +210,10 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='10/09/2026 23h05';
+const APP_VERSION='10/09/2026 23h30';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
-  cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,periodeProg:30,
+  cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[]},
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
@@ -420,8 +420,8 @@ function calendrier(jours){
         f=j.ecart<0?'var(--under)':'var(--over)';
         op=0.3+inten*0.7;
       }else if(saisi){f='var(--soft)';op=0.4;}
-      if(S.insp&&S.insp.date===k)cadre=' stroke="var(--ink)" stroke-width="1.6"';
-      o+='<rect data-jour="'+k+'" x="'+x+'" y="'+y+'" width="'+cell+'" height="'+cell+
+      if(S.inspCal&&S.inspCal.date===k)cadre=' stroke="var(--ink)" stroke-width="1.6"';
+      o+='<rect data-jour-cal="'+k+'" x="'+x+'" y="'+y+'" width="'+cell+'" height="'+cell+
          '" rx="2" fill="'+f+'" opacity="'+op.toFixed(2)+'"'+cadre+'></rect>';
       if(d===0)o+='<text x="0" y="'+(y+cell/2+3)+'" font-size="10px" fill="var(--soft)" font-weight="300">'+jjmm(k)+'</text>';
     }
@@ -704,6 +704,13 @@ function vueCourbes(d){
   }
   h+='</section>';
 
+  const PP=S.periodeProg===undefined?30:S.periodeProg;
+  h+='<section><h2>Progression</h2><div class="periode" id="ch-periode-prog">';
+  [[7,'7 jours'],[30,'30 jours'],[0,'Tout']].forEach(x=>{
+    h+='<button data-pp="'+x[0]+'" class="'+(PP===x[0]?'on':'')+'">'+x[1]+'</button>';
+  });
+  h+='</div>'+progression(d,PP)+'</section>';
+
   let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
   const P=S.periode||30;
   if(P)js=js.slice(-P);
@@ -715,15 +722,8 @@ function vueCourbes(d){
      detailJour(d,S.insp?S.insp.date:null)+
      '<p class="note">Chaque barre compare ce que tu as mangé aux besoins réels de ce jour-là. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
 
-  const PP=S.periodeProg===undefined?30:S.periodeProg;
-  h+='<section><h2>Progression</h2><div class="periode" id="ch-periode-prog">';
-  [[7,'7 jours'],[30,'30 jours'],[0,'Tout']].forEach(x=>{
-    h+='<button data-pp="'+x[0]+'" class="'+(PP===x[0]?'on':'')+'">'+x[1]+'</button>';
-  });
-  h+='</div>'+progression(d,PP)+'</section>';
-
   h+='<section><h2>Régularité</h2>'+calendrier(d.jours)+
-     detailJour(d,S.insp?S.insp.date:null)+
+     detailJour(d,S.inspCal?S.inspCal.date:null)+
      '<p class="note">Quatre dernières semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncée plus l\'écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p></section>';
 
   return h;
@@ -881,6 +881,13 @@ function brancher(){
     el.addEventListener('click',()=>{
       const k=el.getAttribute('data-jour');
       S.insp=(S.insp&&S.insp.date===k)?null:{date:k};
+      rendre();
+    });
+  });
+  document.querySelectorAll('[data-jour-cal]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.getAttribute('data-jour-cal');
+      S.inspCal=(S.inspCal&&S.inspCal.date===k)?null:{date:k};
       rendre();
     });
   });
