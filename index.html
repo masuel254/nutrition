@@ -197,11 +197,55 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 
 .attente{display:inline-block;width:13px;height:13px;border:2px solid var(--rule);
   border-top-color:currentColor;border-radius:50%;vertical-align:-2px;margin-right:7px}
+/* Scanner code-barres plein écran */
+.scan-overlay{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column}
+.scan-video{flex:1;width:100%;object-fit:cover;background:#000}
+.scan-cadre{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-cadre .box{width:76%;max-width:340px;height:170px;border:2px solid rgba(255,255,255,.9);
+  border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45);position:relative}
+.scan-cadre .box::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;
+  background:var(--over);box-shadow:0 0 8px var(--over);opacity:.9}
+.scan-haut{position:absolute;top:0;left:0;right:0;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  color:#fff;font-size:14px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.6);z-index:2}
+.scan-bas{position:absolute;bottom:0;left:0;right:0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+  display:flex;gap:10px;z-index:2}
+.scan-bas button{flex:1;padding:13px;border-radius:8px;font-size:15px;font-weight:600;
+  background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(6px)}
+.scan-bas button.stop{background:#fff;color:#111;border-color:#fff}
+.scan-err{position:absolute;bottom:88px;left:16px;right:16px;z-index:2;color:#fff;text-align:center;
+  font-size:13.5px;background:rgba(0,0,0,.5);padding:10px 12px;border-radius:8px}
+/* Pastille Nutri-Score a..e */
+.nutri{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;
+  font-weight:700;font-size:15px;color:#fff;text-transform:uppercase;letter-spacing:0}
+.nutri.a{background:#188040}.nutri.b{background:#7ac13c}.nutri.c{background:#f2c200;color:#3a2f00}
+.nutri.d{background:#ea7c1b}.nutri.e{background:#d63636}
+.nutri-lg{width:40px;height:40px;font-size:22px;border-radius:8px}
+/* Panneau produit scanné */
+.prod{border:1px solid var(--rule);border-radius:6px;padding:14px;background:var(--card);margin-top:4px}
+.prod .haut{display:flex;align-items:flex-start;gap:12px}
+.prod .haut .txt{flex:1;min-width:0}
+.prod .haut .nom{font-size:16px;font-weight:600;line-height:1.25}
+.prod .haut .marque{font-size:13px;color:var(--soft);font-weight:300;margin-top:2px}
+.prod .p100{font-size:12.5px;color:var(--soft);font-weight:300;margin-top:10px;line-height:1.5}
+.prod .qte-lab{font-size:13px;font-weight:600;margin:14px 0 6px}
+.prod .raccourcis{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.prod .raccourcis button{padding:7px 12px;border:1px solid var(--rule);border-radius:999px;
+  font-size:13px;color:var(--soft)}
+.prod .raccourcis button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.prod .qte-saisie{display:flex;align-items:center;gap:8px}
+.prod .qte-saisie input{flex:1}
+.prod .qte-saisie .unite{font-size:14px;color:var(--soft);white-space:nowrap}
+.prod .calc{margin-top:12px;padding:11px 13px;border:1px solid var(--rule);border-radius:6px;
+  background:var(--paper);display:flex;justify-content:space-between;align-items:baseline}
+.prod .calc .kc{font-size:22px;font-weight:600}
+.prod .calc .mac{font-size:12px;color:var(--soft);font-weight:300}
 @media (prefers-reduced-motion: no-preference){
   .attente{animation:tourne .7s linear infinite}
   @keyframes tourne{to{transform:rotate(360deg)}}
   .vue.on{animation:entree .18s ease-out}
   @keyframes entree{from{opacity:0}to{opacity:1}}
+  .scan-cadre .box::after{animation:scanline 2s ease-in-out infinite}
+  @keyframes scanline{0%,100%{transform:translateY(-70px)}50%{transform:translateY(70px)}}
 }
 </style>
 </head>
@@ -210,11 +254,12 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='10/09/2026 23h30';
+const APP_VERSION='11/09/2026 00h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
-  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[]},
+  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[],
+    scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0}},
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -329,6 +374,109 @@ function redim(fichier){
     img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Format d image non pris en charge.'));};
     img.src=u;
   });
+}
+
+/* ---------- scanner code-barres ---------- */
+const ZXING_URL='https://cdn.jsdelivr.net/npm/@zxing/browser@0.2.1/umd/zxing-browser.min.js';
+let zxingPromise=null;
+function chargerZXing(){
+  if(window.ZXingBrowser)return Promise.resolve(window.ZXingBrowser);
+  if(zxingPromise)return zxingPromise;
+  zxingPromise=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=ZXING_URL;s.async=true;
+    s.onload=()=>window.ZXingBrowser?res(window.ZXingBrowser):rej(new Error('Bibliothèque de scan illisible.'));
+    s.onerror=()=>{zxingPromise=null;rej(new Error('Impossible de charger le scanner. Vérifie ta connexion.'));};
+    document.head.appendChild(s);
+  });
+  return zxingPromise;
+}
+let scanControls=null;
+let scanEnCours=false;
+function vibrer(ms){try{if(navigator.vibrate)navigator.vibrate(ms||60);}catch(e){}}
+async function demarrerScan(){
+  if(scanEnCours)return;
+  scanEnCours=true;
+  const SC=S.ajout.scan;
+  SC.message='';
+  let ZX;
+  try{ZX=await chargerZXing();}
+  catch(e){SC.etat='ko';SC.message=e.message;scanEnCours=false;rendre();return;}
+  const video=document.getElementById('scan-video');
+  if(!video){SC.etat=null;scanEnCours=false;return;}
+  try{
+    const hints=new Map();
+    const F=ZX.BarcodeFormat, H=ZX.DecodeHintType;
+    if(F&&H){
+      hints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E]);
+    }
+    const reader=new ZX.BrowserMultiFormatReader(hints);
+    const onResult=(result,err,controls)=>{
+      if(result){
+        const code=result.getText?result.getText():String(result.text||result);
+        if(code){controls&&controls.stop&&controls.stop();scanControls=null;onCodeScanne(code);}
+      }
+    };
+    // decodeFromConstraints permet de forcer la caméra arrière ; repli sur decodeFromVideoDevice
+    if(typeof reader.decodeFromConstraints==='function'){
+      scanControls=await reader.decodeFromConstraints(
+        {video:{facingMode:{ideal:'environment'}}},video,onResult);
+    }else{
+      scanControls=await reader.decodeFromVideoDevice(undefined,video,onResult);
+    }
+    // le flux est attaché à la vidéo : on ne re-rend PAS (cela détruirait l'élément).
+    // on met juste à jour le texte du bandeau haut à la main.
+    SC.etat='scan';
+    scanEnCours=false;
+    const haut=document.querySelector('.scan-haut');
+    if(haut)haut.textContent='Vise le code-barres du produit';
+  }catch(e){
+    scanEnCours=false;
+    SC.etat='ko';
+    SC.message=/permission|denied|NotAllowed/i.test(e.name+e.message)
+      ?'Accès caméra refusé. Autorise la caméra dans les réglages Safari.'
+      :'Caméra indisponible. '+(e.message||'');
+    rendre();
+  }
+}
+function arreterScan(){
+  try{if(scanControls&&scanControls.stop)scanControls.stop();}catch(e){}
+  scanControls=null;
+  scanEnCours=false;
+}
+function fermerScan(){
+  arreterScan();
+  S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;
+  rendre();
+}
+async function onCodeScanne(code){
+  vibrer(70);
+  const SC=S.ajout.scan;
+  SC.ouvert=false;SC.etat='recherche';SC.message='';SC.produit=null;
+  rendre();window.scrollTo(0,0);
+  try{
+    const r=await appel({action:'barcode',code:code});
+    if(r.trouve===false){
+      SC.etat='absent';SC.message=r.message||'Produit introuvable.';
+      rendre();return;
+    }
+    const p=r.produit;
+    SC.produit=p;SC.etat='ok';
+    // quantité initiale : portion si dispo, sinon 100
+    if(p.portion){SC.mode='portion';SC.qte=p.portion;}
+    else{SC.mode='libre';SC.qte=100;}
+    rendre();window.scrollTo(0,0);
+  }catch(e){
+    SC.etat='ko';SC.message=e.message;rendre();
+  }
+}
+// calcule kcal + macros pour la quantité choisie
+function calculProduit(p,grammes){
+  const f=(grammes||0)/100;
+  return {
+    kcal:Math.round(p.per100.kcal*f),prot:Math.round(p.per100.prot*f),
+    lip:Math.round(p.per100.lip*f),gluc:Math.round(p.per100.gluc*f)
+  };
 }
 
 /* ---------- graphiques ---------- */
@@ -473,6 +621,7 @@ function barreMacros(a){
 
 /* ---------- vues ---------- */
 const REPAS=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['autre','Autre']];
+function libelleRepas(r){return {matin:'Matin',midi:'Midi',soir:'Soir',encas:'En-cas',estim:'Estimation'}[r]||r;}
 const ACTIV=[[1.2,'Sédentaire'],[1.375,'Peu actif'],[1.55,'Modérément actif'],[1.725,'Très actif'],[1.9,'Extrêmement actif']];
 
 function couleurMacro(nom,v,t){
@@ -547,6 +696,64 @@ function repasParHeure(){
   return 'soir';
 }
 
+function sectionScan(A){
+  const SC=A.scan;
+  let h='<section><h2>Code-barres</h2>';
+  // produit reconnu : panneau quantité
+  if(SC.etat==='ok'&&SC.produit){
+    const p=SC.produit,g=Number(SC.qte)||0;
+    const calc=calculProduit(p,g);
+    h+='<div class="prod"><div class="haut">';
+    if(p.nutriscore)h+='<span class="nutri nutri-lg '+esc(p.nutriscore)+'">'+esc(p.nutriscore)+'</span>';
+    h+='<div class="txt"><div class="nom">'+esc(p.nom)+'</div>';
+    if(p.marque)h+='<div class="marque">'+esc(p.marque)+'</div>';
+    h+='</div></div>';
+    h+='<div class="p100">Pour 100 g : <b>'+nb(p.per100.kcal)+'</b> kcal · P '+nb(p.per100.prot)+
+       ' · L '+nb(p.per100.lip)+' · G '+nb(p.per100.gluc)+
+       (p.per100.sucres?' · dont sucres '+nb(p.per100.sucres):'')+'</div>';
+    h+='<div class="qte-lab">Quelle quantité ?</div><div class="raccourcis" id="sc-racc">';
+    if(p.portion)h+='<button data-m="portion" class="'+(SC.mode==='portion'?'on':'')+'">Portion '+nb(p.portion)+' g</button>';
+    if(p.paquet)h+='<button data-m="paquet" class="'+(SC.mode==='paquet'?'on':'')+'">Tout le paquet '+nb(p.paquet)+' g</button>';
+    h+='<button data-m="libre" class="'+(SC.mode==='libre'?'on':'')+'">Autre</button></div>';
+    if(SC.mode==='libre'){
+      h+='<div class="qte-saisie"><input id="sc-qte" type="number" inputmode="decimal" min="1" max="5000" step="1" value="'+esc(String(g))+'"><span class="unite">g / ml</span></div>';
+    }
+    h+='<div class="calc"><div><div class="kc">'+nb(calc.kcal)+' kcal</div>'+
+       '<div class="mac">P '+nb(calc.prot)+' · L '+nb(calc.lip)+' · G '+nb(calc.gluc)+' g pour '+nb(g)+' g</div></div></div>';
+    h+='<button class="primaire" id="sc-valide"'+(g<=0?' disabled':'')+'>Utiliser ce produit</button>';
+    h+='<button class="lien" id="sc-annule">Annuler</button>';
+    h+='</div></section>';
+    return h;
+  }
+  // recherche en cours
+  if(SC.etat==='recherche'){
+    h+='<div class="prod"><span class="attente"></span>Recherche du produit…</div></section>';
+    return h;
+  }
+  // produit absent -> bascule
+  if(SC.etat==='absent'){
+    h+='<p class="alerte">'+esc(SC.message||'Produit introuvable dans Open Food Facts.')+'</p>'+
+       '<p class="note">Pas de souci : prends-le en photo ou décris-le juste en dessous, l’analyse marche aussi bien.</p>'+
+       '<div class="deux"><button id="sc-relance">Scanner un autre</button><button id="sc-oublie">Fermer</button></div></section>';
+    return h;
+  }
+  if(SC.etat==='ko'){
+    h+='<p class="alerte">'+esc(SC.message)+'</p>';
+  }
+  h+='<p class="note">Scanne le code-barres d’un produit emballé pour récupérer ses valeurs officielles et son Nutri-Score.</p>'+
+     '<button class="secondaire" id="sc-ouvre">Scanner un code-barres</button></section>';
+  return h;
+}
+function overlayScan(){
+  const SC=S.ajout.scan;
+  if(!SC.ouvert)return '';
+  let h='<div class="scan-overlay"><video id="scan-video" class="scan-video" playsinline muted autoplay></video>'+
+    '<div class="scan-cadre"><div class="box"></div></div>'+
+    '<div class="scan-haut">'+(SC.etat==='demarrage'?'Démarrage de la caméra…':'Vise le code-barres du produit')+'</div>';
+  if(SC.etat==='ko')h+='<div class="scan-err">'+esc(SC.message)+'</div>';
+  h+='<div class="scan-bas"><button class="stop" id="scan-fermer">Fermer</button></div></div>';
+  return h;
+}
 function vueAjout(d){
   const A=S.ajout;
   let h='<section><h2>Quel repas</h2><div class="choix" id="ch-repas">';
@@ -556,6 +763,9 @@ function vueAjout(d){
   h+='</div>';
   if(A.repas==='estim')h+='<p class="note">L’estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
   h+='</section>';
+
+  h+=sectionScan(A);
+
   h+='<section><h2>Description</h2><textarea id="a-desc" autofocus placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
   const pret=!!(A.photo||A.desc.trim());
   h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
@@ -751,8 +961,10 @@ function vueJournal(d){
       const g=groupes[nom],st=g.reduce((s,r)=>s+r.kcal,0);
       h+='<div class="repas-titre"><span>'+esc(nom)+'</span><span>'+nb(st)+' kcal</span></div>';
       g.forEach(r=>{
+        const ns=String(r.nutriscore||'').trim().toLowerCase();
+        const pastille=/^[abcde]$/.test(ns)?'<span class="nutri '+ns+'" style="width:20px;height:20px;font-size:12px;vertical-align:-4px;margin-right:6px">'+ns+'</span>':'';
         h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
-           '<div class="detail">'+esc(r.detail||'sans description')+'</div>'+
+           '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
            '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+'</div></div>'+
            '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
            '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
@@ -848,14 +1060,17 @@ function rendre(){
   }
   h+='</main><nav>';
   VUES.forEach(v=>{h+='<button data-vue="'+v[0]+'" class="'+(!S.reglages&&S.vue===v[0]?'on':'')+'" aria-label="'+v[1]+'">'+v[2]+v[1]+'</button>';});
-  r.innerHTML=h+'</nav>';
+  r.innerHTML=h+'</nav>'+overlayScan();
   brancher();
 }
 
 function brancher(){
   const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
   document.querySelectorAll('nav button').forEach(b=>{
-    b.addEventListener('click',()=>{S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);});
+    b.addEventListener('click',()=>{
+      if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;}
+      S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);
+    });
   });
   on('#b-maj','click',async e=>{
     e.target.textContent='Mise à jour…';
@@ -917,6 +1132,67 @@ function brancher(){
     rendre();
   }));
   on('#a-retire','click',()=>{S.ajout.photo=null;S.ajout.apercu=null;S.ajout.taille=0;rendre();});
+
+  // --- scanner code-barres ---
+  on('#sc-ouvre','click',()=>{
+    const SC=S.ajout.scan;SC.ouvert=true;SC.etat='demarrage';SC.message='';SC.produit=null;
+    rendre();
+  });
+  on('#scan-fermer','click',fermerScan);
+  // lance la caméra dès que l'overlay est dans le DOM
+  if(S.ajout.scan.ouvert&&document.getElementById('scan-video')&&!scanControls&&S.ajout.scan.etat!=='ko'){
+    demarrerScan();
+  }
+  on('#sc-relance','click',()=>{
+    const SC=S.ajout.scan;SC.ouvert=true;SC.etat='demarrage';SC.message='';SC.produit=null;
+    rendre();
+  });
+  on('#sc-oublie','click',()=>{S.ajout.scan.etat=null;S.ajout.scan.message='';rendre();});
+  on('#sc-annule','click',()=>{S.ajout.scan.etat=null;S.ajout.scan.produit=null;rendre();});
+  document.querySelectorAll('#sc-racc button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const SC=S.ajout.scan,p=SC.produit;SC.mode=b.dataset.m;
+      if(SC.mode==='portion')SC.qte=p.portion;
+      else if(SC.mode==='paquet')SC.qte=p.paquet;
+      else if(!SC.qte||SC.qte===p.portion||SC.qte===p.paquet)SC.qte=100;
+      rendre();
+    });
+  });
+  on('#sc-qte','input',e=>{
+    const v=Number(String(e.target.value).replace(',','.'));
+    S.ajout.scan.qte=isNaN(v)?0:v;
+    // maj live du calcul sans re-rendre tout (garde le focus clavier)
+    const p=S.ajout.scan.produit;
+    if(p){const c=calculProduit(p,S.ajout.scan.qte);
+      const box=document.querySelector('.prod .calc');
+      if(box)box.innerHTML='<div><div class="kc">'+nb(c.kcal)+' kcal</div>'+
+        '<div class="mac">P '+nb(c.prot)+' · L '+nb(c.lip)+' · G '+nb(c.gluc)+' g pour '+nb(S.ajout.scan.qte)+' g</div></div>';
+      const vb=$('#sc-valide');if(vb)vb.disabled=(S.ajout.scan.qte<=0);
+    }
+  });
+  on('#sc-valide','click',()=>{
+    const SC=S.ajout.scan,p=SC.produit,g=Number(SC.qte)||0;
+    if(!p||g<=0)return;
+    const c=calculProduit(p,g);
+    const A=S.ajout;
+    // basculer un éventuel repas actif en historique, comme une nouvelle analyse
+    const precedent=paquetRepas();
+    if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
+    const detail=p.nom+(p.marque?' ('+p.marque+')':'')+' · '+nb(g)+' g';
+    A.resultat={
+      repas:libelleRepas(A.repas),estimation:(A.repas==='estim'),
+      aliments:[{nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal}],
+      total:c,incertitude:'faible',
+      note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
+      nutriscore:p.nutriscore||'',
+      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,nutriscore:p.nutriscore||''}
+    };
+    A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+    SC.etat=null;SC.produit=null;
+    ecrireRepasCache();
+    rendre();window.scrollTo(0,0);
+  });
+
   on('#a-nouveau','click',()=>{
     const A=S.ajout;
     const actuel=paquetRepas();
@@ -1128,7 +1404,8 @@ function jourChange(){
   return !!(S.data&&S.data.reference&&S.data.reference.date&&S.data.reference.date!==auj());
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden||!S.cfg||!S.data||S.reglages)return;
+  if(document.hidden){if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;rendre();}return;}
+  if(!S.cfg||!S.data||S.reglages)return;
   // on force le rafraichissement si on a changé de jour, sinon un par minute au plus
   if(!jourChange()&&Date.now()-dernierAppel<60000)return;
   rafraichir().then(rendre).catch(()=>{});

@@ -5,7 +5,7 @@
 // >>> POUR PUBLIER UNE MISE À JOUR : change UNE SEULE ligne, VERSION ci-dessous
 //     (mets la date/heure du jour). Ça suffit à déclencher la bascule
 //     automatique sur l'iPhone : il n'y a JAMAIS à réinstaller l'app.
-const VERSION = '10/09/2026 à 23h30';
+const VERSION = '11/09/2026 à 00h15';
 
 const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
 const FILES = ['./', './index.html', './manifest.webmanifest'];
@@ -39,6 +39,18 @@ self.addEventListener('message', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
+
+  // Bibliothèque de scan (CDN jsDelivr) : cache-first pour l'offline.
+  if (req.method === 'GET' && url.href.indexOf('cdn.jsdelivr.net') >= 0 && url.href.indexOf('zxing') >= 0) {
+    e.respondWith(
+      caches.match(req).then(hit => hit || fetch(req).then(r => {
+        if (r && (r.ok || r.type === 'opaque')) { const c = r.clone(); caches.open(SHELL).then(k => k.put(req, c)); }
+        return r;
+      }))
+    );
+    return;
+  }
+
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
   if (req.mode === 'navigate') {
