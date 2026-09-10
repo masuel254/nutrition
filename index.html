@@ -142,6 +142,17 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .primaire{width:100%;margin-top:18px;padding:13px;background:var(--ink);color:var(--paper);
   border-radius:3px;font-weight:600;font-size:15px}
 .primaire[disabled]{opacity:.45}
+.secondaire{width:100%;margin-top:14px;padding:12px;background:var(--card);color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:3px;font-weight:600;font-size:14.5px}
+.histo{margin-top:18px}
+.histo>h2{font-size:14px;font-weight:600;margin-bottom:4px}
+.histo .note{margin-top:0;margin-bottom:10px}
+.repas-cache{border:1px solid var(--rule);border-radius:4px;padding:12px 13px;margin-top:10px;background:var(--card)}
+.repas-cache .tt{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.repas-cache .tt b{font-size:16px;font-weight:600}
+.repas-cache .quand{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:2px}
+.repas-cache .liste{font-size:13px;color:var(--soft);font-weight:300;margin-top:6px;line-height:1.4}
+.repas-cache .reenr{margin-top:10px;padding:9px;border:1px solid var(--ink);border-radius:3px;font-size:13.5px;font-weight:600;width:100%}
 .lien{display:block;width:100%;margin-top:14px;text-align:center;font-size:13.5px;color:var(--soft);
   text-decoration:underline;text-underline-offset:3px}
 .alerte{margin-top:14px;font-size:13.5px;color:var(--over);line-height:1.4}
@@ -182,11 +193,11 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='10/09/2026 21h30';
+const APP_VERSION='10/09/2026 22h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,periode:30,
-  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null},
+  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[]},
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -234,18 +245,31 @@ const jjmmJour=s=>jjmm(s)+' - '+jourSemaine(s);
 function lireCfg(){try{return JSON.parse(localStorage.getItem(S.cle));}catch(e){return null;}}
 function ecrireCfg(c){localStorage.setItem(S.cle,JSON.stringify(c));S.cfg=c;}
 function lireCache(){try{return JSON.parse(localStorage.getItem(S.cache));}catch(e){return null;}}
-/* Dernier repas analysé/estimé : on le garde pour le retrouver
-   même après fermeture de l'app, et pouvoir le ré-enregistrer. */
-function ecrireDernierRepas(){
+/* Cache des repas analysés/estimés, conservés après fermeture de l'app.
+   On garde le repas actif (celui avec les boutons d'enregistrement) et
+   jusqu'à 2 repas précédents, pour les retrouver et pouvoir les ré-enregistrer.
+   Structure stockée : {actif:{...}|null, histo:[{...}, ...]} */
+const MAX_HISTO=2;
+function paquetRepas(){
+  const A=S.ajout;
+  if(!A.resultat)return null;
+  return {repas:A.repas,desc:A.desc,resultat:A.resultat,confirm:A.confirm,message:A.message,quand:Date.now()};
+}
+function ecrireRepasCache(){
   try{
-    const A=S.ajout;
-    if(!A.resultat){localStorage.removeItem(S.repas);return;}
-    localStorage.setItem(S.repas,JSON.stringify({
-      repas:A.repas,desc:A.desc,resultat:A.resultat,confirm:A.confirm,message:A.message,quand:Date.now()
-    }));
+    const actif=paquetRepas();
+    localStorage.setItem(S.repas,JSON.stringify({actif:actif,histo:(S.ajout.histo||[]).slice(0,MAX_HISTO)}));
   }catch(e){}
 }
-function lireDernierRepas(){try{return JSON.parse(localStorage.getItem(S.repas));}catch(e){return null;}}
+function lireRepasCache(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(S.repas));
+    if(!raw)return null;
+    // compat : ancien format = un seul objet repas
+    if(raw.resultat)return {actif:raw,histo:[]};
+    return {actif:raw.actif||null,histo:Array.isArray(raw.histo)?raw.histo:[]};
+  }catch(e){return null;}
+}
 
 async function appel(corps){
   const url=S.cfg.api.trim().replace(/\/+$/,'');
@@ -494,7 +518,7 @@ function vueJour(d){
     const v=m[p[1]];
     h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">La flèche compare à ta cible. Seuls les jours à deux repas ou plus entrent dans les moyennes.</p></section>';
+  h+='</tbody></table><p class="note">La flèche compare à ta cible. Les moyennes portent sur les jours pleins précédents (au moins deux repas), le jour en cours n\'est pas compté tant qu\'il n\'est pas terminé.</p></section>';
   return h;
 }
 
@@ -527,8 +551,28 @@ function vueAjout(d){
   h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
   if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
   h+='</section>';
-  if(A.resultat){const r=A.resultat;h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';if(r.estimation)h+='<p class="note">Estimation seule, rien n’est enregistré.</p>';else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';else{h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';h+='</div>';}h+='</div>';h+='<button class="lien" id="a-nouveau">Nouveau repas</button></section>';}
+  if(A.resultat){const r=A.resultat;h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';if(r.estimation)h+='<p class="note">Estimation seule, rien n’est enregistré.</p>';else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';else{h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';h+='</div>';}h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';}
+  h+=historiqueRepas(A);
   return h;
+}
+function historiqueRepas(A){
+  const hi=A.histo||[];
+  if(!hi.length)return '';
+  let h='<section class="histo"><h2>Repas précédents</h2>'+
+    '<p class="note">Les deux dernières analyses, gardées même après fermeture. Tu peux les enregistrer.</p>';
+  hi.forEach((it,i)=>{
+    const r=it.resultat;if(!r||!r.total)return;
+    h+='<div class="repas-cache"><div class="tt"><span>'+esc(r.repas||it.repas||'Repas')+'</span><b>'+nb(r.total.kcal)+' kcal</b></div>';
+    const q=it.quand?new Date(it.quand):null;
+    if(q)h+='<div class="quand">analysé le '+jjmm(q.toISOString().slice(0,10))+' à '+p2(q.getHours())+'h'+p2(q.getMinutes())+'</div>';
+    const noms=(r.aliments||[]).map(a=>esc(a.nom)).slice(0,6).join(', ');
+    if(noms)h+='<div class="liste">'+noms+'</div>';
+    h+='<div class="liste">P '+nb(r.total.prot)+' · L '+nb(r.total.lip)+' · G '+nb(r.total.gluc)+' g'+(it.confirm==='fait'?' · déjà enregistré':'')+'</div>';
+    if(r.ligne)h+='<button class="reenr" data-histo-enr="'+i+'">Reprendre pour enregistrer</button>';
+    h+='</div>';
+  });
+  h+='<button class="lien" id="a-vider-histo">Vider l\'historique</button>';
+  return h+'</section>';
 }
 function vueCourbes(d){
   const p=d.poids;
@@ -779,10 +823,30 @@ function brancher(){
   on('#a-retire','click',()=>{S.ajout.photo=null;S.ajout.apercu=null;S.ajout.taille=0;rendre();});
   on('#a-nouveau','click',()=>{
     const A=S.ajout;
+    const actuel=paquetRepas();
+    if(actuel)A.histo=[actuel].concat(A.histo||[]).slice(0,MAX_HISTO);
     A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
     A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
-    localStorage.removeItem(S.repas);
+    ecrireRepasCache();
     rendre();window.scrollTo(0,0);
+  });
+  on('#a-vider-histo','click',()=>{
+    S.ajout.histo=[];ecrireRepasCache();rendre();
+  });
+  document.querySelectorAll('[data-histo-enr]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const i=Number(b.dataset.histoEnr);
+      const item=(S.ajout.histo||[])[i];
+      if(!item||!item.resultat)return;
+      // on rend ce repas actif pour pouvoir l'enregistrer, l'ancien actif part en historique
+      const A=S.ajout;
+      const actuel=paquetRepas();
+      A.histo=(A.histo||[]).filter((_,k)=>k!==i);
+      if(actuel)A.histo=[actuel].concat(A.histo).slice(0,MAX_HISTO);
+      A.resultat=item.resultat;A.repas=item.repas||A.repas;A.desc='';
+      A.confirm=null;A.message='';A.dateAutre=auj();
+      ecrireRepasCache();rendre();window.scrollTo(0,0);
+    });
   });
   on('#a-desc','input',e=>{
     S.ajout.desc=e.target.value;
@@ -792,12 +856,15 @@ function brancher(){
   on('#a-envoi','click',async()=>{
     const A=S.ajout;
     A.desc=(($('#a-desc')||{}).value)||'';
+    // l'ancien repas analysé bascule en historique (on en garde 2)
+    const precedent=paquetRepas();
     A.etat='envoi';A.resultat=null;rendre();
     try{
       const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
+      if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
       A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
       A.photo=null;A.apercu=null;A.taille=0;A.desc='';
-      ecrireDernierRepas();
+      ecrireRepasCache();
     }catch(e){A.etat='ko';A.message=e.message;}
     rendre();
   });
@@ -811,7 +878,7 @@ function brancher(){
       await rafraichir();
       A.confirm='fait';
       A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.';
-      ecrireDernierRepas();
+      ecrireRepasCache();
     }catch(e){A.confirm='ko';A.message=e.message;}
     rendre();
   }
@@ -934,14 +1001,18 @@ async function demarrer(){
   S.cfg=S.cfg||lireCfg();
   if(!S.cfg||!S.cfg.api||!S.cfg.token){connexion();return;}
   try{S.coach.fil=JSON.parse(localStorage.getItem(S.chat))||[];}catch(e){S.coach.fil=[];}
-  const dr=lireDernierRepas();
-  if(dr&&dr.resultat){
-    S.ajout.repas=dr.repas||S.ajout.repas;
-    S.ajout.desc=dr.desc||'';
-    S.ajout.resultat=dr.resultat;
-    S.ajout.confirm=dr.confirm||null;
-    S.ajout.message=dr.message||'';
-    S.ajout.dateAutre=auj();
+  const cache=lireRepasCache();
+  if(cache){
+    S.ajout.histo=Array.isArray(cache.histo)?cache.histo.slice(0,MAX_HISTO):[];
+    const a=cache.actif;
+    if(a&&a.resultat){
+      S.ajout.repas=a.repas||S.ajout.repas;
+      S.ajout.desc=a.desc||'';
+      S.ajout.resultat=a.resultat;
+      S.ajout.confirm=a.confirm||null;
+      S.ajout.message=a.message||'';
+      S.ajout.dateAutre=auj();
+    }
   }
   const vieux=lireCache();
   if(vieux){S.data=vieux;rendre();}
