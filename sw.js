@@ -1,7 +1,12 @@
 // Suivi — service worker
 // L'app est mise en cache pour s'ouvrir sans réseau. Les appels à l'API
 // ne passent pas par ici : le dernier relevé est gardé par l'app elle-même.
-const VERSION = '10/09/2026 à 12h00';
+//
+// >>> POUR PUBLIER UNE MISE À JOUR : change UNE SEULE ligne, VERSION ci-dessous
+//     (mets la date/heure du jour). Ça suffit à déclencher la bascule
+//     automatique sur l'iPhone : il n'y a JAMAIS à réinstaller l'app.
+const VERSION = '10/09/2026 à 18h30';
+
 const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
 const FILES = ['./', './index.html', './manifest.webmanifest'];
 const OPTIONAL_FILES = ['./icon-192.png', './icon-512.png'];
@@ -22,6 +27,8 @@ self.addEventListener('activate', e => {
     caches.keys()
       .then(ks => Promise.all(ks.map(k => (k === SHELL ? null : caches.delete(k)))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({type: 'window'}))
+      .then(cs => cs.forEach(c => c.postMessage({type: 'VERSION_ACTIVATED', version: VERSION})))
   );
 });
 
