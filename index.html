@@ -69,6 +69,8 @@ main{padding:18px 18px 8px;max-width:640px;margin:0 auto;width:100%;overflow-x:h
 .vue{display:none;min-width:0}.vue.on{display:block}
 section{margin-bottom:26px;min-width:0;max-width:100%;overflow-wrap:anywhere}
 section h2{font-size:14px;font-weight:600;margin-bottom:10px}
+.v-ajout section{margin-bottom:16px}
+.v-ajout section h2{margin-bottom:7px}
 .note{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;line-height:1.4}
 .vide{color:var(--soft);font-size:14px;font-weight:300;padding:8px 0}
 svg{display:block;width:100%;max-width:100%;height:auto}
@@ -109,6 +111,9 @@ td:first-child{text-align:left}
 .zone{margin-top:12px;border:1px solid var(--rule);border-radius:5px;padding:18px;text-align:center;background:var(--card)}
 .zone img{max-width:100%;border-radius:3px;display:block;margin:0 auto 10px}
 .zone .taille{font-size:12px;color:var(--soft);font-weight:400;margin-top:8px}
+.zone.compact-photo{padding:12px;margin-top:8px}
+.zone.compact-photo .taille{margin-top:4px;line-height:1.35}
+.zone.compact-photo>div:first-child{font-size:22px!important;margin-bottom:2px}
 .deux{display:flex;gap:8px;margin-top:12px}
 .deux button{flex:1;padding:11px;border:1px solid var(--ink);border-radius:3px;font-size:14px;font-weight:600}
 .confirme{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
@@ -139,6 +144,7 @@ label{display:block;font-size:13px;font-weight:600;margin:16px 0 5px}
 input,textarea{width:100%;padding:11px 12px;font:inherit;font-size:15px;background:var(--card);
   color:var(--ink);border:1px solid var(--rule);border-radius:3px;-webkit-appearance:none}
 textarea{min-height:78px;resize:vertical}
+#a-desc{min-height:52px}
 input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .primaire{width:100%;margin-top:18px;padding:13px;background:var(--ink);color:var(--paper);
   border-radius:3px;font-weight:600;font-size:15px}
@@ -221,6 +227,25 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .nutri.a{background:#188040}.nutri.b{background:#7ac13c}.nutri.c{background:#f2c200;color:#3a2f00}
 .nutri.d{background:#ea7c1b}.nutri.e{background:#d63636}
 .nutri-lg{width:40px;height:40px;font-size:22px;border-radius:8px}
+/* Bloc distribution Nutri-Score (onglet Courbes) */
+.ns-tete{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.ns-note{flex:none;width:58px;height:58px;border-radius:12px;background:var(--card);border:1px solid var(--rule);
+  display:flex;align-items:baseline;justify-content:center;gap:1px}
+.ns-note b{font-size:26px;font-weight:700;color:var(--ink);line-height:1}
+.ns-note small{font-size:12px;color:var(--soft)}
+.ns-tete-t{display:flex;flex-direction:column;gap:2px}
+.ns-tete-t b{font-size:16px;font-weight:600;color:var(--ink)}
+.ns-tete-t small{font-size:12.5px;color:var(--soft)}
+.ns-barre{display:flex;width:100%;height:40px;border-radius:8px;overflow:hidden;background:var(--creux)}
+.ns-seg{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;
+  color:#fff;min-width:0;transition:width .25s ease}
+.ns-seg b{font-size:13px;font-weight:700}
+.ns-seg small{font-size:10px;opacity:.92;margin-top:1px}
+.ns-leg{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px}
+.ns-leg-i{display:flex;align-items:center;gap:7px}
+.ns-leg-i>div{display:flex;flex-direction:column;line-height:1.15}
+.ns-leg-i b{font-size:14px;font-weight:600;color:var(--ink)}
+.ns-leg-i small{font-size:11.5px;color:var(--soft)}
 /* Panneau produit scanné */
 .prod{border:1px solid var(--rule);border-radius:6px;padding:14px;background:var(--card);margin-top:4px}
 .prod .haut{display:flex;align-items:flex-start;gap:12px}
@@ -255,7 +280,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='11/09/2026 07h00';
+const APP_VERSION='11/09/2026 08h30';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -875,6 +900,50 @@ function progression(d,periode){
      '(7000 kcal = 1 kg). L\'eau et la digestion font varier la balance au jour le jour, c\'est la tendance qui compte.</p>';
   return h;
 }
+function blocNutriscore(d){
+  // Distribution des Nutri-Scores sur les produits scannés/enregistrés.
+  const N={a:0,b:0,c:0,d:0,e:0};
+  let tot=0;
+  (d.journal||[]).forEach(r=>{
+    const s=String(r.nutriscore||'').trim().toLowerCase();
+    if(/^[abcde]$/.test(s)){N[s]++;tot++;}
+  });
+  if(!tot)return '';
+  const ORD=['a','b','c','d','e'];
+  const COUL={a:'#188040',b:'#7ac13c',c:'#f2c200',d:'#ea7c1b',e:'#d63636'};
+  const pct=g=>N[g]/tot*100;
+
+  // Barre empilée : un segment par grade présent, largeur = part.
+  let barre='<div class="ns-barre">';
+  ORD.forEach(g=>{ if(N[g]) barre+='<span class="ns-seg" style="width:'+pct(g).toFixed(2)+'%;background:'+COUL[g]+'"'+
+    ' title="'+g.toUpperCase()+' : '+Math.round(pct(g))+'%">'+
+    (pct(g)>=11?'<b>'+g.toUpperCase()+'</b><small>'+Math.round(pct(g))+'%</small>':'')+'</span>'; });
+  barre+='</div>';
+
+  // Légende : une pastille + part + effectif par grade présent.
+  let leg='<div class="ns-leg">';
+  ORD.forEach(g=>{ if(N[g]) leg+='<div class="ns-leg-i"><span class="nutri '+g+'" style="width:22px;height:22px;font-size:13px">'+g.toUpperCase()+'</span>'+
+    '<div><b>'+Math.round(pct(g))+'%</b><small>'+N[g]+(N[g]>1?' produits':' produit')+'</small></div></div>'; });
+  leg+='</div>';
+
+  // Score de qualité : moyenne pondérée A=5..E=1, sur 5, et lecture.
+  const PTS={a:5,b:4,c:3,d:2,e:1};
+  const moy=ORD.reduce((s,g)=>s+PTS[g]*N[g],0)/tot;
+  const partBonnes=(N.a+N.b)/tot*100;
+  let lecture,cls;
+  if(moy>=4){lecture='Très bon panier : la majorité de tes produits emballés sont bien notés.';cls='bien';}
+  else if(moy>=3){lecture='Panier correct. Viser un peu plus de A et B ferait la différence.';cls='';}
+  else{lecture='Beaucoup de produits mal notés (D et E). C\'est le poste le plus simple à améliorer.';cls='alerte';}
+
+  let h='<section><h2>Qualité des produits scannés</h2>';
+  h+='<div class="ns-tete"><div class="ns-note"><b>'+moy.toFixed(1).replace('.',',')+'</b><small>/5</small></div>'+
+     '<div class="ns-tete-t"><b>'+Math.round(partBonnes)+'% de A ou B</b>'+
+     '<small>sur '+tot+(tot>1?' produits notés':' produit noté')+'</small></div></div>';
+  h+=barre+leg;
+  h+='<p class="note '+cls+'">'+lecture+' Basé sur les produits avec un Nutri-Score officiel Open Food Facts.</p>';
+  h+='</section>';
+  return h;
+}
 function vueCourbes(d){
   const p=d.poids;
   const dernier=p.length?p[p.length-1].poids:(d.reference.poids||80);
@@ -901,6 +970,8 @@ function vueCourbes(d){
        jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+'. La ligne pointillée lisse les variations d\'eau et de digestion.</p>';
   }
   h+='</section>';
+
+  h+=blocNutriscore(d);
 
   const PP=S.periodeProg===undefined?30:S.periodeProg;
   h+='<section><h2>Progression</h2><div class="periode" id="ch-periode-prog">';
@@ -1041,7 +1112,7 @@ function rendre(){
     h+='<div class="vue on">'+vueRéglages(d)+'</div>';
   } else {
     h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
-    h+='<div class="vue'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
+    h+='<div class="vue v-ajout'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
     h+='<div class="vue'+(S.vue==='courbes'?' on':'')+'">'+vueCourbes(d)+'</div>';
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
     h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
