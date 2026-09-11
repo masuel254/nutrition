@@ -117,19 +117,20 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-nav{position:fixed;left:0;right:0;bottom:0;width:100%;display:flex;
+nav{position:fixed;left:0;right:0;bottom:0;width:100vw;
+  box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:stretch;
   height:calc(58px + env(safe-area-inset-bottom));
   min-height:calc(58px + env(safe-area-inset-bottom));
-  background:var(--card);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);
-  z-index:50;box-shadow:0 -3px 12px rgba(23,38,42,.08)}
-nav button{flex:1 1 0;min-width:0;min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
+  max-height:calc(58px + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:var(--card);border-top:1px solid var(--rule);
+  z-index:50;box-shadow:0 -3px 12px rgba(23,38,42,.08);
+  transform:translateZ(0)}
+nav button{flex:1 1 0;min-width:0;width:0;box-sizing:border-box;
+  min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
   border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none}
+nav button svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;fill:none;flex:none}
 nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
-/* Pendant la frappe (clavier iOS ouvert), on masque la barre du bas :
-   elle n'a pas d'usage clavier ouvert et ça évite qu'iOS la déforme. */
-body.clavier-ouvert nav{transform:translateY(120%);pointer-events:none}
-body.clavier-ouvert{padding-bottom:0}
 
 .ecran{max-width:420px;margin:0 auto;padding:40px 22px}
 .ecran h1{font-size:26px;font-weight:300;letter-spacing:-0.02em;margin-bottom:6px}
@@ -254,7 +255,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='11/09/2026 00h15';
+const APP_VERSION='11/09/2026 07h00';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -265,23 +266,10 @@ const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi
 const $=(s,r)=>(r||document).querySelector(s);
 
 /* ---------- clavier iOS ----------
-   Sur iPhone en PWA, le clavier réduit le visualViewport sans changer
-   window.innerHeight. On détecte l'écart pour masquer la nav pendant la
-   frappe, ce qui l'empêche de se déformer ou de passer sous le clavier. */
-(function(){
-  const vv=window.visualViewport;
-  if(!vv)return;
-  let base=vv.height;
-  const maj=()=>{
-    // hauteur de reference = la plus grande vue observee (clavier fermé)
-    base=Math.max(base,vv.height);
-    const clavier=(base-vv.height)>110;
-    document.body.classList.toggle('clavier-ouvert',clavier);
-  };
-  vv.addEventListener('resize',maj);
-  // a l'orientation ou au retour d'arriere-plan, on reprend une base propre
-  window.addEventListener('orientationchange',()=>{setTimeout(()=>{base=vv.height;maj();},300);});
-})();
+   La nav a une géométrie verrouillée en CSS (hauteur fixe, box-sizing,
+   largeurs de boutons bornées), donc le clavier ne peut plus la déformer.
+   On ne masque plus la nav pendant la frappe : c'était la source du bug
+   où elle restait rétrécie/décalée après navigation. Rien à faire ici. */
 const nb=n=>(n===null||n===undefined||isNaN(n))?'\u2014':Math.round(n).toLocaleString('fr-FR');
 const sgn=n=>(n===null||n===undefined||isNaN(n))?'\u2014':(n>0?'+':'')+Math.round(n).toLocaleString('fr-FR');
 const jjmm=d=>d.slice(8,10)+'/'+d.slice(5,7);
