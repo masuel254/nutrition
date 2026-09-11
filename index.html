@@ -280,7 +280,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='11/09/2026 08h30';
+const APP_VERSION='11/09/2026 09h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -901,7 +901,9 @@ function progression(d,periode){
   return h;
 }
 function blocNutriscore(d){
-  // Distribution des Nutri-Scores sur les produits scannés/enregistrés.
+  // Distribution des Nutri-Scores sur les seuls produits CONSOMMÉS.
+  // d.journal ne contient que les repas enregistrés : les estimations
+  // (repas 'estim') ne sont jamais écrites, donc elles sont exclues de fait.
   const N={a:0,b:0,c:0,d:0,e:0};
   let tot=0;
   (d.journal||[]).forEach(r=>{
@@ -929,18 +931,23 @@ function blocNutriscore(d){
   // Score de qualité : moyenne pondérée A=5..E=1, sur 5, et lecture.
   const PTS={a:5,b:4,c:3,d:2,e:1};
   const moy=ORD.reduce((s,g)=>s+PTS[g]*N[g],0)/tot;
-  const partBonnes=(N.a+N.b)/tot*100;
   let lecture,cls;
   if(moy>=4){lecture='Très bon panier : la majorité de tes produits emballés sont bien notés.';cls='bien';}
   else if(moy>=3){lecture='Panier correct. Viser un peu plus de A et B ferait la différence.';cls='';}
   else{lecture='Beaucoup de produits mal notés (D et E). C\'est le poste le plus simple à améliorer.';cls='alerte';}
 
+  // En-tête : part de A et de B affichées séparément (pas regroupées).
+  const tete=[];
+  if(N.a)tete.push('<span class="nutri a" style="width:18px;height:18px;font-size:10px;vertical-align:-3px;margin-right:4px">A</span>'+Math.round(pct('a'))+'%');
+  if(N.b)tete.push('<span class="nutri b" style="width:18px;height:18px;font-size:10px;vertical-align:-3px;margin-right:4px">B</span>'+Math.round(pct('b'))+'%');
+  const teteTxt=tete.length?tete.join('<span style="color:var(--soft);margin:0 6px">·</span>'):'Aucun produit bien noté';
+
   let h='<section><h2>Qualité des produits scannés</h2>';
   h+='<div class="ns-tete"><div class="ns-note"><b>'+moy.toFixed(1).replace('.',',')+'</b><small>/5</small></div>'+
-     '<div class="ns-tete-t"><b>'+Math.round(partBonnes)+'% de A ou B</b>'+
-     '<small>sur '+tot+(tot>1?' produits notés':' produit noté')+'</small></div></div>';
+     '<div class="ns-tete-t"><b>'+teteTxt+'</b>'+
+     '<small>sur '+tot+(tot>1?' produits consommés':' produit consommé')+'</small></div></div>';
   h+=barre+leg;
-  h+='<p class="note '+cls+'">'+lecture+' Basé sur les produits avec un Nutri-Score officiel Open Food Facts.</p>';
+  h+='<p class="note '+cls+'">'+lecture+' Basé uniquement sur les produits que tu as enregistrés dans un repas, avec un Nutri-Score officiel Open Food Facts.</p>';
   h+='</section>';
   return h;
 }
@@ -971,14 +978,14 @@ function vueCourbes(d){
   }
   h+='</section>';
 
-  h+=blocNutriscore(d);
-
   const PP=S.periodeProg===undefined?30:S.periodeProg;
   h+='<section><h2>Progression</h2><div class="periode" id="ch-periode-prog">';
   [[7,'7 jours'],[30,'30 jours'],[0,'Tout']].forEach(x=>{
     h+='<button data-pp="'+x[0]+'" class="'+(PP===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div>'+progression(d,PP)+'</section>';
+
+  h+=blocNutriscore(d);
 
   let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
   const P=S.periode||30;
