@@ -257,6 +257,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .prod .haut .nom{font-size:16px;font-weight:600;line-height:1.25}
 .prod .haut .marque{font-size:13px;color:var(--soft);font-weight:300;margin-top:2px}
 .prod .p100{font-size:12.5px;color:var(--soft);font-weight:300;margin-top:10px;line-height:1.5}
+.micro{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:6px;line-height:1.4}
 .prod .qte-lab{font-size:13px;font-weight:600;margin:14px 0 6px}
 .prod .raccourcis{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
 .prod .raccourcis button{padding:7px 12px;border:1px solid var(--rule);border-radius:999px;
@@ -284,7 +285,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 15h05';
+const APP_VERSION='12/09/2026 16h00';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -492,7 +493,9 @@ function calculProduit(p,grammes){
   const f=(grammes||0)/100;
   return {
     kcal:Math.round(p.per100.kcal*f),prot:Math.round(p.per100.prot*f),
-    lip:Math.round(p.per100.lip*f),gluc:Math.round(p.per100.gluc*f)
+    lip:Math.round(p.per100.lip*f),gluc:Math.round(p.per100.gluc*f),
+    fibres:Math.round((p.per100.fibres||0)*f),sucres:Math.round((p.per100.sucres||0)*f),
+    sodium:Math.round((p.per100.sodium||0)*f)
   };
 }
 
@@ -753,6 +756,17 @@ function repasParHeure(){
   return 'soir';
 }
 
+// ligne discrète fibres / sucres / sodium (sodium en mg, reste en g)
+function ligneMicro(o){
+  if(!o)return '';
+  const f=Math.round(o.fibres||0),s=Math.round(o.sucres||0),so=Math.round(o.sodium||0);
+  if(!f&&!s&&!so)return '';
+  const p=[];
+  p.push('fibres '+nb(f)+' g');
+  p.push('sucres '+nb(s)+' g');
+  p.push('sodium '+nb(so)+' mg');
+  return '<div class="micro">'+p.join(' · ')+'</div>';
+}
 function sectionScan(A){
   const SC=A.scan;
   let h='<section><h2>Code-barres</h2>';
@@ -777,6 +791,7 @@ function sectionScan(A){
     }
     h+='<div class="calc"><div><div class="kc">'+nb(calc.kcal)+' kcal</div>'+
        '<div class="mac">P '+nb(calc.prot)+' · L '+nb(calc.lip)+' · G '+nb(calc.gluc)+' g pour '+nb(g)+' g</div></div></div>';
+    h+=ligneMicro(calc);
     h+='<button class="primaire" id="sc-valide"'+(g<=0?' disabled':'')+'>Utiliser ce produit</button>';
     h+='<button class="lien" id="sc-annule">Annuler</button>';
     h+='</div></section>';
@@ -835,7 +850,7 @@ function vueAjout(d){
   h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
   if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
   h+='</section>';
-  if(A.resultat){const r=A.resultat;h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';if(r.estimation)h+='<p class="note">Estimation seule, rien n’est enregistré.</p>';else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';else{h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';h+='</div>';}h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';}
+  if(A.resultat){const r=A.resultat;h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+ligneMicro(r.total)+'<p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';if(r.estimation)h+='<p class="note">Estimation seule, rien n’est enregistré.</p>';else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';else{h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';h+='</div>';}h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';}
   h+=historiqueRepas(A);
   return h;
 }
@@ -1325,7 +1340,7 @@ function brancher(){
       total:c,incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
       nutriscore:p.nutriscore||'',
-      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,nutriscore:p.nutriscore||''}
+      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
     };
     A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
     SC.etat=null;SC.produit=null;
