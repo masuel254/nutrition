@@ -185,6 +185,10 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .choix{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
 .choix button{padding:8px 13px;border:1px solid var(--rule);border-radius:999px;font-size:14px;color:var(--soft)}
 .choix button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.repart{display:flex;gap:8px;margin-top:5px}
+.repart-i{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.repart-i span{font-size:12px;color:var(--soft)}
+.repart-i input{width:100%;text-align:center;padding:8px 4px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
 .photo{margin-top:14px;border:1px dashed var(--rule);border-radius:4px;padding:22px;text-align:center;
   color:var(--soft);font-size:14px;font-weight:300}
 .photo img{max-width:100%;border-radius:3px;display:block;margin:0 auto}
@@ -280,7 +284,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='11/09/2026 09h15';
+const APP_VERSION='12/09/2026 14h30';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -635,6 +639,22 @@ function barreMacros(a){
 /* ---------- vues ---------- */
 const REPAS=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['autre','Autre']];
 function libelleRepas(r){return {matin:'Matin',midi:'Midi',soir:'Soir',encas:'En-cas',estim:'Estimation'}[r]||r;}
+
+/* Répartition des cibles par repas. Stockée dans Params (colonne repartition)
+   au format "matin/midi/encas/soir" en pourcentages entiers, ex "25/40/5/30".
+   Renvoie des fractions {matin,midi,encas,soir}. Défaut 25/40/5/30. */
+const REPART_DEFAUT={matin:25,midi:40,encas:5,soir:30};
+function repartPct(d){
+  const src=(d&&d.reference&&d.reference.repartition)?String(d.reference.repartition):'';
+  const p=src.split('/').map(x=>parseInt(String(x).replace(/[^0-9]/g,''),10));
+  if(p.length===4&&p.every(n=>!isNaN(n))&&p.reduce((a,b)=>a+b,0)>0)
+    return {matin:p[0],midi:p[1],encas:p[2],soir:p[3]};
+  return {...REPART_DEFAUT};
+}
+function repartFrac(d){
+  const pct=repartPct(d),tot=pct.matin+pct.midi+pct.encas+pct.soir||100;
+  return {matin:pct.matin/tot,midi:pct.midi/tot,encas:pct.encas/tot,soir:pct.soir/tot};
+}
 const ACTIV=[[1.2,'Sédentaire'],[1.375,'Peu actif'],[1.55,'Modérément actif'],[1.725,'Très actif'],[1.9,'Extrêmement actif']];
 
 function couleurMacro(nom,v,t){
@@ -677,14 +697,38 @@ function vueJour(d){
     h+='</tbody></table><p class="note">Les protéines se lisent a l\'envers des autres : être en dessous est un manque, pas une réussite.</p></section>';
   }
 
-  h+='<section><h2>Par repas</h2><table><thead><tr><th>Repas</th><th>Mangées</th><th>Prévu</th><th>Écart</th></tr></thead><tbody>';
+  // Cibles par repas recalculees cote appli a partir du decoupage regle,
+  // pour rester iso avec les Reglages quelle que soit la valeur renvoyee par l'API.
+  const frac=repartFrac(d);
+  const cibleRepas=(champ,r)=>(c[champ]&&frac[r]!==undefined)?Math.round(c[champ]*frac[r]):0;
+
+  h+='<section><h2>Par Repas (Kcal)</h2><table><thead><tr><th>Repas</th><th>Mang\u00e9es</th><th>Pr\u00e9vu</th><th>\u00c9cart</th></tr></thead><tbody>';
   REPAS.forEach(r=>{
     const p=a.parRepas[r[0]];
-    if(!p||(!p.kcal&&!p.cible))return;
-    h+='<tr><td>'+r[1]+'</td><td>'+nb(p.kcal)+'</td><td style="color:var(--soft)">'+(p.cible?nb(p.cible):'\u2014')+'</td>'+
-       '<td class="'+(p.cible&&p.kcal>p.cible?'sur':'sous')+'">'+(p.cible?sgn(p.kcal-p.cible):'\u2014')+'</td></tr>';
+    const ci=(r[0]==='autre')?0:cibleRepas('kcal',r[0]);
+    if(!p||(!p.kcal&&!ci))return;
+    h+='<tr><td>'+r[1]+'</td><td>'+nb(p.kcal)+'</td><td style="color:var(--soft)">'+(ci?nb(ci):'\u2014')+'</td>'+
+       '<td class="'+(ci&&p.kcal>ci?'sur':'sous')+'">'+(ci?sgn(p.kcal-ci):'\u2014')+'</td></tr>';
   });
-  h+='</tbody></table><p class="note">Répartition indicative : 25 % le matin, 40 % le midi, 5 % en-cas, 30 % le soir.</p></section>';
+  const pc=repartPct(d);
+  h+='</tbody></table><p class="note">R\u00e9partition r\u00e9gl\u00e9e : '+pc.matin+' % le matin, '+pc.midi+' % le midi, '+pc.encas+' % en-cas, '+pc.soir+' % le soir. Modifiable dans les R\u00e9glages.</p></section>';
+
+  // Tableau P/L/G par repas (prevu vs consomme, avec ecart) sur le meme decoupage.
+  if(c.prot||c.lip||c.gluc){
+    h+='<section><h2>Par repas (P, L, G)</h2><table><thead><tr><th>Repas</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
+    const cell=(v,ci)=>nb(v)+'<span style="color:var(--soft)">/'+nb(ci)+'</span> <span class="'+(ci&&v>ci?'sur':'sous')+'">'+(ci?sgn(v-ci):'\u2014')+'</span>';
+    REPAS.forEach(r=>{
+      if(r[0]==='autre')return;
+      const p=a.parRepas[r[0]]||{prot:0,lip:0,gluc:0};
+      const cp=cibleRepas('prot',r[0]),cl=cibleRepas('lip',r[0]),cg=cibleRepas('gluc',r[0]);
+      if(!p.prot&&!p.lip&&!p.gluc&&!cp&&!cl&&!cg)return;
+      h+='<tr><td>'+r[1]+'</td><td>'+cell(p.prot||0,cp)+'</td><td>'+cell(p.lip||0,cl)+'</td><td>'+cell(p.gluc||0,cg)+'</td></tr>';
+    });
+    const au=a.parRepas.autre;
+    if(au&&(au.prot||au.lip||au.gluc))
+      h+='<tr><td>Autre</td><td>'+nb(au.prot)+'</td><td>'+nb(au.lip)+'</td><td>'+nb(au.gluc)+'</td></tr>';
+    h+='</tbody></table><p class="note">Chaque cellule : consomm\u00e9 / pr\u00e9vu, puis l\'\u00e9cart. Grammes de prot\u00e9ines (P), lipides (L) et glucides (G), r\u00e9partis selon le m\u00eame d\u00e9coupage que les kcal.</p></section>';
+  }
 
   const m=d.moyennes;
   h+='<section><h2>Moyennes par jour</h2><table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
@@ -822,22 +866,42 @@ function progression(d,periode){
   if(pes.length<2&&cumule.length<2)
     return '<p class="vide">Pas encore assez de données. Ajoute quelques pesées et repas pour voir ta progression.</p>';
 
-  // borne de début selon la période
+  // borne de début selon la période (fenêtre glissante à partir de la dernière pesée)
   const finDate=pes.length?pes[pes.length-1].date:(cumule.length?cumule[cumule.length-1].date:auj());
   let debutISO=null;
   if(periode>0){
     const f=new Date(finDate+'T00:00:00Z');f.setUTCDate(f.getUTCDate()-periode);
     debutISO=f.toISOString().slice(0,10);
   }
-  // pesée de référence : la première >= debutISO (ou la toute première si Tout)
-  function bornePoids(){
+  // Poids estimé à une date donnée : interpolation linéaire entre les deux
+  // pesées qui l'encadrent. Avant la première pesée -> première pesée.
+  // Après la dernière -> dernière pesée. Pile sur une pesée -> sa valeur.
+  const jours=iso=>Math.round((new Date(iso+'T00:00:00Z'))/86400000);
+  function poidsAEstime(iso){
     if(!pes.length)return null;
-    if(!debutISO)return pes[0];
-    let ref=pes[0];
-    for(let i=0;i<pes.length;i++){if(pes[i].date>=debutISO){ref=pes[i];break;}}
-    return ref;
+    if(iso<=pes[0].date)return pes[0].poids;
+    if(iso>=pes[pes.length-1].date)return pes[pes.length-1].poids;
+    for(let i=0;i<pes.length-1;i++){
+      const a=pes[i],b=pes[i+1];
+      if(iso>=a.date&&iso<=b.date){
+        if(iso===a.date)return a.poids;
+        if(iso===b.date)return b.poids;
+        const da=jours(a.date),db=jours(b.date),di=jours(iso);
+        const t=(di-da)/(db-da);
+        return a.poids+(b.poids-a.poids)*t;
+      }
+    }
+    return pes[pes.length-1].poids;
   }
-  const pRef=bornePoids(),pFin=pes.length?pes[pes.length-1]:null;
+  // pesée de référence : réelle si "Tout", sinon poids estimé pile à la borne
+  const pFin=pes.length?pes[pes.length-1]:null;
+  let pRef=null,refDate=null,refEstime=false;
+  if(pes.length){
+    if(!debutISO){ pRef=pes[0]; refDate=pes[0].date; }
+    else if(debutISO<=pes[0].date){ pRef=pes[0]; refDate=pes[0].date; }  // recul avant la 1re pesée
+    else { const w=poidsAEstime(debutISO); pRef={date:debutISO,poids:w}; refDate=debutISO;
+           refEstime=!pes.some(x=>x.date===debutISO); }
+  }
   const reel=(pRef&&pFin)?(pFin.poids-pRef.poids):null; // <0 = perte
 
   // déficit théorique sur la même fenêtre : cumul(fin) - cumul(début)
@@ -856,8 +920,8 @@ function progression(d,periode){
 
   // rythme réel hebdo
   let ryth=null,nbJours=null;
-  if(pRef&&pFin&&pRef.date!==pFin.date){
-    nbJours=Math.round((new Date(pFin.date+'T00:00:00Z')-new Date(pRef.date+'T00:00:00Z'))/86400000);
+  if(pRef&&pFin&&refDate!==pFin.date){
+    nbJours=Math.round((new Date(pFin.date+'T00:00:00Z')-new Date(refDate+'T00:00:00Z'))/86400000);
     if(nbJours>0)ryth=(reel/nbJours)*7;
   }
 
@@ -866,7 +930,7 @@ function progression(d,periode){
   let h='<div class="prog">';
   h+='<div class="col"><div class="lib">Réel · balance</div><div class="big '+cls(reel)+'">'+
      (reel===null?'\u2014':kg(reel)+'<span style="font-size:16px"> kg</span>')+'</div>'+
-     '<div class="sub">'+(pRef&&pFin?jjmm(pRef.date)+' \u2192 '+jjmm(pFin.date):'\u2014')+'</div></div>';
+     '<div class="sub">'+(pRef&&pFin?(refEstime?'~':'')+jjmm(refDate)+' \u2192 '+jjmm(pFin.date):'\u2014')+'</div></div>';
   h+='<div class="col"><div class="lib">Théorique · déficit</div><div class="big '+cls(theoKg)+'">'+
      (theoKg===null?'\u2014':kg(theoKg)+'<span style="font-size:16px"> kg</span>')+'</div>'+
      '<div class="sub">selon tes apports</div></div>';
@@ -980,7 +1044,7 @@ function vueCourbes(d){
 
   const PP=S.periodeProg===undefined?30:S.periodeProg;
   h+='<section><h2>Progression</h2><div class="periode" id="ch-periode-prog">';
-  [[7,'7 jours'],[30,'30 jours'],[0,'Tout']].forEach(x=>{
+  [[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
     h+='<button data-pp="'+x[0]+'" class="'+(PP===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div>'+progression(d,PP)+'</section>';
@@ -1061,6 +1125,16 @@ function vueRéglages(d){
   ACTIV.forEach(x=>{h+='<button data-f="'+x[0]+'" class="'+(Math.abs((r.facteur||1.2)-x[0])<0.001?'on':'')+'">'+x[1]+'</button>';});
   h+='</div>';
   if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu sèches, au-dessus tu prends de la masse. Le niveau d\'activité inclut déjà tes séances : ne compte pas en plus les calories brûlées à la salle.</p>';
+  // Repartition des cibles par repas (matin/midi/en-cas/soir), en %.
+  const rp=repartPct(d);
+  h+='<label style="margin-top:16px">R\u00e9partition par repas (%)</label>'+
+     '<div class="repart" id="ch-repart">';
+  [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']].forEach(x=>{
+    h+='<div class="repart-i"><span>'+x[1]+'</span>'+
+       '<input type="text" inputmode="numeric" data-rp="'+x[0]+'" value="'+rp[x[0]]+'"></div>';
+  });
+  h+='</div><p class="note" id="repart-tot">Total : '+(rp.matin+rp.midi+rp.encas+rp.soir)+' %. La somme doit faire 100. Ce d\u00e9coupage pilote les tableaux \u00ab Par repas \u00bb du jour, dans l\'appli et sur Telegram.</p>';
+
   h+='<button class="primaire" id="g-envoi"'+(S.para.etat==='envoi'?' disabled':'')+'>'+
      (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>';
   if(S.para.etat==='ko')h+='<p class="alerte">'+esc(S.para.message)+'</p>';
@@ -1363,13 +1437,31 @@ function brancher(){
       b.classList.add('on');
     });
   });
+  function lireRepart(){
+    const o={};
+    document.querySelectorAll('#ch-repart input[data-rp]').forEach(i=>{
+      o[i.dataset.rp]=parseInt(String(i.value).replace(/[^0-9]/g,''),10)||0;
+    });
+    return o;
+  }
+  document.querySelectorAll('#ch-repart input[data-rp]').forEach(i=>{
+    i.addEventListener('input',()=>{
+      const o=lireRepart(),t=(o.matin||0)+(o.midi||0)+(o.encas||0)+(o.soir||0);
+      const el=document.getElementById('repart-tot');
+      if(el)el.innerHTML='Total : '+t+' %.'+(t===100?' \u2713':' La somme doit faire 100.')+' Ce d\u00e9coupage pilote les tableaux \u00ab Par repas \u00bb du jour, dans l\'appli et sur Telegram.';
+    });
+  });
   on('#g-envoi','click',async()=>{
     const cible=(($('#g-cible')||{}).value)||'';
     const sel=$('#ch-act button.on');
     const f=sel?sel.dataset.f:'';
+    const o=lireRepart();
+    const t=(o.matin||0)+(o.midi||0)+(o.encas||0)+(o.soir||0);
+    if(t!==100){S.para.etat='ko';S.para.message='La répartition par repas doit totaliser 100 % (actuellement '+t+' %).';rendre();return;}
+    const repartition=o.matin+'/'+o.midi+'/'+o.encas+'/'+o.soir;
     S.para.etat='envoi';rendre();
     try{
-      const r=await appel({action:'params',cible:cible,facteur:f});
+      const r=await appel({action:'params',cible:cible,facteur:f,repartition:repartition});
       await rafraichir();
       S.para.etat='ok';
       S.para.message='Cible '+r.cible+' kcal, '+r.activité+'. Programme en '+String(r.mode).toLowerCase()+
