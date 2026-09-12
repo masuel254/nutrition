@@ -279,7 +279,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .puce-ic{color:var(--soft);font-weight:700;letter-spacing:-1px;margin-right:5px;font-size:12px}
 .puce-r{border-style:dashed}
 /* Anneaux P/L/G (onglet Jour) */
-.anneaux{display:flex;justify-content:space-around;gap:8px;margin:4px 0 2px}
+.anneaux{display:flex;justify-content:space-around;gap:8px;margin:-6px 0 2px}
 .anneaux svg{flex:0 0 auto}
 .anneaux-leg{display:flex;justify-content:space-around;gap:8px;font-size:11.5px;color:var(--soft);font-weight:300;margin-bottom:12px}
 .anneaux-leg span{flex:1;text-align:center}
@@ -339,7 +339,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 21h30';
+const APP_VERSION='12/09/2026 21h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -930,7 +930,7 @@ function vueJour(d){
   h+='</section>';
 
   if(a.kcal){
-    h+='<section><h2>Protéines, lipides, glucides</h2>';
+    h+='<section>';
     h+='<div class="anneaux">'+
        anneau(a.prot,c.prot,'var(--under)','Protéines',96,false)+
        anneau(a.lip,c.lip,'var(--under)','Lipides',96,c.lip&&a.lip>c.lip)+
