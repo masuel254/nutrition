@@ -258,6 +258,17 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .prod .haut .marque{font-size:13px;color:var(--soft);font-weight:300;margin-top:2px}
 .prod .p100{font-size:12.5px;color:var(--soft);font-weight:300;margin-top:10px;line-height:1.5}
 .micro{font-size:11.5px;color:var(--soft);font-weight:300;margin-top:6px;line-height:1.4}
+/* Bloc Recents (historique aliments repliable) */
+.recents{padding:2px 0}
+.recents-tete{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:6px 0;font-size:14px;color:var(--soft);cursor:pointer}
+.recents-n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;font-size:11px;font-weight:600;color:var(--paper);background:var(--nav);border-radius:999px;text-align:center;line-height:16px}
+.recents-chev{color:var(--soft);font-size:16px;transition:transform .15s}
+.recents-chev.o{transform:rotate(90deg)}
+.recents-puces{display:flex;gap:7px;overflow-x:auto;padding:6px 0 2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.recents-puces::-webkit-scrollbar{display:none}
+.puce{flex:0 0 auto;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:7px 12px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:13px}
+.puce-ic{color:var(--soft);font-weight:700;letter-spacing:-1px;margin-right:5px;font-size:12px}
+.puce-r{border-style:dashed}
 /* Anneaux P/L/G (onglet Jour) */
 .anneaux{display:flex;justify-content:space-around;gap:8px;margin:4px 0 2px}
 .anneaux svg{flex:0 0 auto}
@@ -291,6 +302,12 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .prod .qte-saisie{display:flex;align-items:center;gap:8px}
 .prod .qte-saisie input{flex:1}
 .prod .qte-saisie .unite{font-size:14px;color:var(--soft);white-space:nowrap}
+.prod .stepper{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.prod .stepper-lab{font-size:13px;color:var(--soft)}
+.prod .stepper-ctrl{display:flex;align-items:center;gap:2px}
+.prod .stepper-ctrl button{width:40px;height:40px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
+.prod .stepper-ctrl button:disabled{opacity:.35}
+.prod .stepper-val{min-width:34px;text-align:center;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
 .prod .calc{margin-top:12px;padding:11px 13px;border:1px solid var(--rule);border-radius:6px;
   background:var(--paper);display:flex;justify-content:space-between;align-items:baseline}
 .prod .calc .kc{font-size:22px;font-weight:600}
@@ -310,12 +327,13 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 17h00';
+const APP_VERSION='12/09/2026 18h00';
 const VERSION_KEY='suivi.version.installee';
-const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
+const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[],
-    scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0}},
+    scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
+  foods:[],recentsOuv:false,
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -374,6 +392,33 @@ function lireRepasCache(){
     if(raw.resultat)return {actif:raw,histo:[]};
     return {actif:raw.actif||null,histo:Array.isArray(raw.histo)?raw.histo:[]};
   }catch(e){return null;}
+}
+
+/* Historique d'aliments reutilisables, stocke en local.
+   Deux types : 'scan' (produit OFF avec per100, recalculable) et
+   'repas' (analyse IA figee, reinjectable telle quelle). Max 20, plus recent en tete. */
+const MAX_FOODS=20;
+function lireFoods(){try{const a=JSON.parse(localStorage.getItem(S.foods));return Array.isArray(a)?a:[];}catch(e){return [];}}
+function ecrireFoods(){try{localStorage.setItem(S.foods,JSON.stringify((S.foods||[]).slice(0,MAX_FOODS)));}catch(e){}}
+function cleFood(f){
+  if(f.t==='scan')return 'scan:'+String(f.nom||'').toLowerCase().trim()+'|'+String(f.marque||'').toLowerCase().trim();
+  return 'repas:'+String((f.resultat&&f.resultat.repas)||'').toLowerCase()+'|'+
+    ((f.resultat&&f.resultat.aliments)||[]).map(a=>String(a.nom||'').toLowerCase()).join(',');
+}
+function pousserFoodScan(p,g){
+  if(!p||!p.nom)return;
+  const f={t:'scan',nom:p.nom,marque:p.marque||'',per100:p.per100,portion:p.portion||0,
+    paquet:p.paquet||0,nutriscore:p.nutriscore||'',derniereQte:g||p.portion||100,quand:Date.now()};
+  const cle=cleFood(f);
+  S.foods=(S.foods||[]).filter(x=>cleFood(x)!==cle);
+  S.foods.unshift(f);ecrireFoods();
+}
+function pousserFoodRepas(r){
+  if(!r||!r.total||r.estimation)return; // on ne memorise pas les estimations
+  const f={t:'repas',resultat:r,quand:Date.now()};
+  const cle=cleFood(f);
+  S.foods=(S.foods||[]).filter(x=>cleFood(x)!==cle);
+  S.foods.unshift(f);ecrireFoods();
 }
 
 async function appel(corps){
@@ -451,7 +496,7 @@ async function demarrerScan(){
     const hints=new Map();
     const F=ZX.BarcodeFormat, H=ZX.DecodeHintType;
     if(F&&H){
-      hints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E]);
+      hints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128]);
     }
     const reader=new ZX.BrowserMultiFormatReader(hints);
     const onResult=(result,err,controls)=>{
@@ -504,7 +549,7 @@ async function onCodeScanne(code){
       rendre();return;
     }
     const p=r.produit;
-    SC.produit=p;SC.etat='ok';
+    SC.produit=p;SC.etat='ok';SC.mult=1;
     // quantité initiale : portion si dispo, sinon 100
     if(p.portion){SC.mode='portion';SC.qte=p.portion;}
     else{SC.mode='libre';SC.qte=100;}
@@ -820,6 +865,13 @@ function sectionScan(A){
     if(p.portion)h+='<button data-m="portion" class="'+(SC.mode==='portion'?'on':'')+'">Portion '+nb(p.portion)+' g</button>';
     if(p.paquet)h+='<button data-m="paquet" class="'+(SC.mode==='paquet'?'on':'')+'">Tout le paquet '+nb(p.paquet)+' g</button>';
     h+='<button data-m="libre" class="'+(SC.mode==='libre'?'on':'')+'">Autre</button></div>';
+    if(SC.mode==='portion'&&p.portion){
+      const m=Math.max(1,SC.mult||1);
+      h+='<div class="stepper"><span class="stepper-lab">Nombre de portions</span>'+
+         '<div class="stepper-ctrl"><button id="sc-moins" aria-label="Une portion de moins"'+(m<=1?' disabled':'')+'>\u2212</button>'+
+         '<span class="stepper-val" id="sc-mult">'+nb(m)+'</span>'+
+         '<button id="sc-plus" aria-label="Une portion de plus">+</button></div></div>';
+    }
     if(SC.mode==='libre'){
       h+='<div class="qte-saisie"><input id="sc-qte" type="number" inputmode="decimal" min="1" max="5000" step="1" value="'+esc(String(g))+'"><span class="unite">g / ml</span></div>';
     }
@@ -860,6 +912,28 @@ function overlayScan(){
   h+='<div class="scan-bas"><button class="stop" id="scan-fermer">Fermer</button></div></div>';
   return h;
 }
+function blocRecents(){
+  const f=S.foods||[];
+  if(!f.length)return '';
+  const ouv=S.recentsOuv;
+  let h='<section class="recents"><button class="recents-tete" id="rec-tete" aria-expanded="'+(ouv?'true':'false')+'">'+
+    '<span>Récents <span class="recents-n">'+f.length+'</span></span>'+
+    '<span class="recents-chev'+(ouv?' o':'')+'">\u203A</span></button>';
+  if(ouv){
+    h+='<div class="recents-puces">';
+    f.forEach((it,i)=>{
+      if(it.t==='scan'){
+        h+='<button class="puce" data-rec="'+i+'" title="'+esc(it.nom)+'">'+
+           '<span class="puce-ic">|||</span>'+esc(it.nom)+'</button>';
+      }else{
+        const r=it.resultat,nom=(r.aliments||[]).map(a=>a.nom).slice(0,2).join(', ')||r.repas||'Repas';
+        h+='<button class="puce puce-r" data-rec="'+i+'" title="'+esc(nom)+'">'+esc(nom)+'</button>';
+      }
+    });
+    h+='</div><p class="note">Touche un produit scanné pour réajuster la quantité, ou un repas pour le réutiliser tel quel.</p>';
+  }
+  return h+'</section>';
+}
 function vueAjout(d){
   const A=S.ajout;
   let h='<section><h2>Quel repas</h2><div class="choix" id="ch-repas">';
@@ -869,6 +943,8 @@ function vueAjout(d){
   h+='</div>';
   if(A.repas==='estim')h+='<p class="note">L’estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
   h+='</section>';
+
+  h+=blocRecents();
 
   h+=sectionScan(A);
 
@@ -1321,6 +1397,31 @@ function brancher(){
       }
     });
   });
+  on('#rec-tete','click',()=>{S.recentsOuv=!S.recentsOuv;rendre();});
+  document.querySelectorAll('[data-rec]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const it=(S.foods||[])[Number(b.dataset.rec)];
+      if(!it)return;
+      const A=S.ajout,SC=A.scan;
+      if(it.t==='scan'){
+        // recharge le produit dans le panneau quantite, sans reseau
+        SC.produit={nom:it.nom,marque:it.marque,per100:it.per100,portion:it.portion,
+          paquet:it.paquet,nutriscore:it.nutriscore};
+        SC.etat='ok';SC.mult=1;
+        if(it.portion){SC.mode='portion';SC.qte=it.portion;}
+        else{SC.mode='libre';SC.qte=it.derniereQte||100;}
+        SC.ouvert=false;
+      }else{
+        // reinjecte le repas analyse tel quel, pret a enregistrer
+        const precedent=paquetRepas();
+        if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
+        A.resultat=it.resultat;A.confirm=null;A.message='';A.dateAutre=auj();
+        A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+        ecrireRepasCache();
+      }
+      rendre();window.scrollTo(0,0);
+    });
+  });
   ['#a-photo','#a-galerie'].forEach(sel=>on(sel,'change',async e=>{
     const f=e.target.files&&e.target.files[0];
     if(!f)return;
@@ -1352,12 +1453,21 @@ function brancher(){
   document.querySelectorAll('#sc-racc button').forEach(b=>{
     b.addEventListener('click',()=>{
       const SC=S.ajout.scan,p=SC.produit;SC.mode=b.dataset.m;
-      if(SC.mode==='portion')SC.qte=p.portion;
+      if(SC.mode==='portion')SC.qte=Math.round(p.portion*Math.max(1,SC.mult||1));
       else if(SC.mode==='paquet')SC.qte=p.paquet;
       else if(!SC.qte||SC.qte===p.portion||SC.qte===p.paquet)SC.qte=100;
       rendre();
+      if(SC.mode==='libre'){const i=$('#sc-qte');if(i){i.focus();i.select();}}
     });
   });
+  const majMult=(delta)=>{
+    const SC=S.ajout.scan,p=SC.produit;if(!p||!p.portion)return;
+    SC.mult=Math.max(1,(SC.mult||1)+delta);
+    SC.qte=Math.round(p.portion*SC.mult);
+    rendre();
+  };
+  on('#sc-plus','click',()=>majMult(1));
+  on('#sc-moins','click',()=>majMult(-1));
   on('#sc-qte','input',e=>{
     const v=Number(String(e.target.value).replace(',','.'));
     S.ajout.scan.qte=isNaN(v)?0:v;
@@ -1388,6 +1498,7 @@ function brancher(){
       ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
     };
     A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+    pousserFoodScan(p,g);
     SC.etat=null;SC.produit=null;
     ecrireRepasCache();
     rendre();window.scrollTo(0,0);
@@ -1441,6 +1552,7 @@ function brancher(){
       if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
       A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
       A.photo=null;A.apercu=null;A.taille=0;A.desc='';
+      pousserFoodRepas(r);
       ecrireRepasCache();
     }catch(e){A.etat='ko';A.message=e.message;}
     rendre();
@@ -1568,8 +1680,8 @@ function brancher(){
       S.reglages=false;demarrer();
     });
     $('#r-out').addEventListener('click',()=>{
-      [S.cle,S.cache,S.chat,S.repas].forEach(k=>localStorage.removeItem(k));
-      S.cfg=null;S.data=null;connexion();
+      [S.cle,S.cache,S.chat,S.repas,S.foods].forEach(k=>localStorage.removeItem(k));
+      S.cfg=null;S.data=null;S.foods=[];connexion();
     });
   }
 }
@@ -1596,6 +1708,7 @@ async function demarrer(){
   S.cfg=S.cfg||lireCfg();
   if(!S.cfg||!S.cfg.api||!S.cfg.token){connexion();return;}
   try{S.coach.fil=JSON.parse(localStorage.getItem(S.chat))||[];}catch(e){S.coach.fil=[];}
+  S.foods=lireFoods();
   const cache=lireRepasCache();
   if(cache){
     S.ajout.histo=Array.isArray(cache.histo)?cache.histo.slice(0,MAX_HISTO):[];
