@@ -5,18 +5,19 @@
 // >>> POUR PUBLIER UNE MISE À JOUR : change UNE SEULE ligne, VERSION ci-dessous
 //     (mets la date/heure du jour). Ça suffit à déclencher la bascule
 //     automatique sur l'iPhone : il n'y a JAMAIS à réinstaller l'app.
-const VERSION = '12/09/2026 à 19h00';
+const VERSION = '12/09/2026 à 19h30';
 
 const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
 const FILES = ['./', './index.html', './manifest.webmanifest'];
-const OPTIONAL_FILES = ['./icon-192.png', './icon-512.png'];
+const OPTIONAL_FILES = ['./icon-192.png', './icon-512.png',
+  'https://cdn.jsdelivr.net/npm/@zxing/browser@0.2.1/umd/zxing-browser.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(SHELL).then(async c => {
       await c.addAll(FILES);
       await Promise.all(OPTIONAL_FILES.map(url =>
-        fetch(url, {cache: 'reload'}).then(r => r.ok && c.put(url, r)).catch(() => null)
+        fetch(url, {cache: 'reload'}).then(r => (r && (r.ok || r.type === 'opaque')) && c.put(url, r)).catch(() => null)
       ));
     }).then(() => self.skipWaiting())
   );
