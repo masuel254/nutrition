@@ -337,7 +337,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 20h00';
+const APP_VERSION='12/09/2026 20h30';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -488,13 +488,20 @@ async function appel(corps){
   for(let essai=0;essai<=RETRIS;essai++){
     if(essai>0)await new Promise(res=>setTimeout(res,600*Math.pow(2,essai-1)));
     let r;
+    const ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+    const minuteur=ctrl?setTimeout(()=>ctrl.abort(),25000):null;
     try{
       r=await fetch(url,{method:'POST',cache:'no-store',
-        headers:{'Content-Type':'text/plain;charset=UTF-8'},body:body});
+        headers:{'Content-Type':'text/plain;charset=UTF-8'},body:body,
+        signal:ctrl?ctrl.signal:undefined});
     }catch(e){
-      // fetch a echoue (reseau/timeout) : on retente si possible
-      derniere=new Error('Connexion au serveur impossible. Vérifie ton réseau.');
+      // fetch a echoue (reseau, timeout via abort) : on retente si possible
+      derniere=new Error((e&&e.name==='AbortError')
+        ?'Le serveur met trop de temps à répondre. Réessaie dans un instant.'
+        :'Connexion au serveur impossible. Vérifie ton réseau.');
       continue;
+    }finally{
+      if(minuteur)clearTimeout(minuteur);
     }
     if(r.status===429){
       const e=new Error('Trop de requêtes vers Google Sheets. Attends une minute et réessaie.');
@@ -539,8 +546,24 @@ function redim(fichier){
       const x=c.getContext('2d');
       x.fillStyle='#ffffff';x.fillRect(0,0,w,h);
       x.drawImage(img,0,0,w,h);
-      const url=c.toDataURL('image/jpeg',0.8);
-      res({dataUrl:url,b64:url.split(',')[1],octets:Math.round(url.length*0.75)});
+      // taille reelle d'un dataURL jpeg : (longueur du base64) * 3/4, moins le padding
+      const tailleOctets=b64=>{const n=b64.length;const pad=b64.endsWith('==')?2:(b64.endsWith('=')?1:0);return Math.round(n*3/4-pad);};
+      const PLAFOND=400000; // ~400 Ko : au-dela on recompresse pour eviter timeout d'analyse
+      let url=c.toDataURL('image/jpeg',0.8);
+      let b64=url.split(',')[1];
+      if(tailleOctets(b64)>PLAFOND){
+        // 1er palier : qualite plus basse
+        url=c.toDataURL('image/jpeg',0.6);b64=url.split(',')[1];
+      }
+      if(tailleOctets(b64)>PLAFOND&&Math.max(w,h)>800){
+        // 2e palier : on reduit aussi la dimension a 800px
+        const r=800/Math.max(w,h),w2=Math.round(w*r),h2=Math.round(h*r);
+        const c2=document.createElement('canvas');c2.width=w2;c2.height=h2;
+        const x2=c2.getContext('2d');x2.fillStyle='#ffffff';x2.fillRect(0,0,w2,h2);
+        x2.drawImage(img,0,0,w2,h2);
+        url=c2.toDataURL('image/jpeg',0.6);b64=url.split(',')[1];
+      }
+      res({dataUrl:url,b64:b64,octets:tailleOctets(b64)});
     };
     img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Format d image non pris en charge.'));};
     img.src=u;
@@ -612,6 +635,15 @@ async function demarrerScan(){
     if(haut)haut.textContent='Vise le code-barres du produit';
   }catch(e){
     scanEnCours=false;
+    // si la camera s'est allumee avant l'echec, on coupe le flux tout de suite
+    try{
+      const v=document.getElementById('scan-video');
+      if(v&&v.srcObject&&v.srcObject.getTracks){
+        v.srcObject.getTracks().forEach(t=>{try{t.stop();}catch(_){}});
+        v.srcObject=null;
+      }
+    }catch(_){}
+    scanControls=null;
     SC.etat='ko';
     SC.message=/permission|denied|NotAllowed/i.test(e.name+e.message)
       ?'Accès caméra refusé. Autorise la caméra dans les réglages Safari.'
@@ -622,6 +654,16 @@ async function demarrerScan(){
 function arreterScan(){
   try{if(scanControls&&scanControls.stop)scanControls.stop();}catch(e){}
   scanControls=null;
+  // Filet de securite : meme si scanControls n'a jamais ete assigne (erreur en
+  // cours de demarrage), le flux peut etre attache a la video. On coupe toutes
+  // ses pistes pour eteindre la camera (voyant) et liberer la ressource.
+  try{
+    const v=document.getElementById('scan-video');
+    if(v&&v.srcObject&&v.srcObject.getTracks){
+      v.srcObject.getTracks().forEach(t=>{try{t.stop();}catch(e){}});
+      v.srcObject=null;
+    }
+  }catch(e){}
   scanEnCours=false;
 }
 function fermerScan(){
@@ -1041,7 +1083,7 @@ function vueAjout(d){
 
   h+=sectionScan(A);
 
-  h+='<section><h2>Description</h2><textarea id="a-desc" autofocus placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
+  h+='<section><h2>Description</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
   const pret=!!(A.photo||A.desc.trim());
   h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
   if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l’analyse.</p>';
@@ -1594,7 +1636,18 @@ function brancher(){
     const SC=S.ajout.scan,p=SC.produit;if(!p||!p.portion)return;
     SC.mult=Math.max(1,(SC.mult||1)+delta);
     SC.qte=Math.round(p.portion*SC.mult);
-    rendre();
+    // maj ciblee (pas de rendre() global : evite le saut de scroll)
+    const valMult=$('#sc-mult');if(valMult)valMult.textContent=nb(SC.mult);
+    const moins=$('#sc-moins');if(moins)moins.disabled=(SC.mult<=1);
+    const c=calculProduit(p,SC.qte);
+    const box=document.querySelector('.prod .calc');
+    if(box)box.innerHTML='<div><div class="kc">'+nb(c.kcal)+' kcal</div>'+
+      '<div class="mac">P '+nb(c.prot)+' · L '+nb(c.lip)+' · G '+nb(c.gluc)+' g pour '+nb(SC.qte)+' g</div></div>';
+    const micro=document.querySelector('.prod .micro');
+    if(micro){const nv=ligneMicro(c);
+      if(nv)micro.outerHTML=nv; else micro.remove();
+    }
+    const vb=$('#sc-valide');if(vb)vb.disabled=(SC.qte<=0);
   };
   on('#sc-plus','click',()=>majMult(1));
   on('#sc-moins','click',()=>majMult(-1));
