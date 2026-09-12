@@ -284,7 +284,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 14h30';
+const APP_VERSION='12/09/2026 15h05';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1464,7 +1464,7 @@ function brancher(){
       const r=await appel({action:'params',cible:cible,facteur:f,repartition:repartition});
       await rafraichir();
       S.para.etat='ok';
-      S.para.message='Cible '+r.cible+' kcal, '+r.activité+'. Programme en '+String(r.mode).toLowerCase()+
+      S.para.message='Cible '+r.cible+' kcal, '+(r.activite||r.activité||'')+'. Programme en '+String(r.mode).toLowerCase()+
         (r.ecart!==null?' de '+Math.abs(r.ecart)+' kcal par jour.':'.');
     }catch(e){S.para.etat='ko';S.para.message=e.message;}
     rendre();
