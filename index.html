@@ -49,7 +49,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .badge{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:600}
 .badge.sous{background:var(--under);color:var(--paper)}
 .badge.sur{background:var(--over);color:var(--paper)}
-.conso{font-size:14px;color:var(--soft);font-weight:300;margin-top:10px}
+.conso{font-size:14px;color:var(--soft);font-weight:300;margin-top:10px;text-align:center}
 .conso b{font-weight:600;color:var(--ink)}
 .rappel{font-size:13px;margin-top:10px;line-height:1.45}
 .periode{display:flex;gap:6px;margin-bottom:12px}
@@ -76,6 +76,8 @@ section h2{font-size:14px;font-weight:600;margin-bottom:10px}
 svg{display:block;width:100%;max-width:100%;height:auto}
 
 .reste{margin:2px 0 6px}
+.cal-anneau{display:flex;justify-content:center;margin:6px 0 2px}
+.cal-anneau svg{width:200px;height:200px;max-width:64vw;max-height:64vw}
 .reste .val{font-size:56px;font-weight:300;letter-spacing:-0.035em;line-height:1}
 .reste .val.depasse{color:var(--over)}
 .reste .leg{font-size:13.5px;color:var(--soft);font-weight:300;margin-top:2px}
@@ -337,7 +339,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 20h30';
+const APP_VERSION='12/09/2026 21h00';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -815,6 +817,29 @@ function detailJour(d,date){
   return o+'</div>';
 }
 
+// Grand anneau central de calories : mangees en heros au centre, restant en
+// legende. L'arc se remplit selon mangees/cible, vire a --over si depassement.
+function anneauCalories(mange,cible){
+  if(!cible)return '';
+  const t=200,R=t/2-11,C=2*Math.PI*R;
+  const pct=Math.min(mange/cible,1);
+  const off=C*(1-pct);
+  const trop=mange>cible;
+  const reste=cible-mange;
+  const trait=trop?'var(--over)':'var(--under)';
+  const legende=trop?nb(Math.abs(reste))+' kcal au-dessus':nb(reste)+' kcal restantes';
+  let o='<div class="cal-anneau"><svg viewBox="0 0 '+t+' '+t+'" role="img" aria-label="'+nb(mange)+' kcal mangées sur une cible de '+nb(cible)+'">';
+  o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="13"/>';
+  o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="'+trait+
+     '" stroke-width="13" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+
+     '" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 '+t/2+' '+t/2+')"/>';
+  o+='<text x="50%" y="44%" text-anchor="middle" font-size="46" font-weight="300" letter-spacing="-1.5" fill="'+(trop?'var(--over)':'var(--ink)')+'">'+nb(mange)+'</text>';
+  o+='<text x="50%" y="56%" text-anchor="middle" font-size="12.5" fill="var(--soft)" font-weight="300">kcal mangées</text>';
+  o+='<text x="50%" y="67%" text-anchor="middle" font-size="12.5" fill="var(--soft)" font-weight="400">'+legende+'</text>';
+  o+='</svg></div>';
+  return o;
+}
+
 function jauge(conso,cible){
   if(!cible)return '';
   const w=320,h=30,maxi=Math.max(conso,cible)*1.06;
@@ -896,10 +921,8 @@ function vueJour(d){
   const reste=c.kcal?c.kcal-a.kcal:null;
   let h='<section>';
   if(c.kcal){
-    h+='<div class="reste"><div class="val'+(reste<0?' depasse':'')+'">'+nb(Math.abs(reste))+'</div>'+
-       '<div class="leg">'+(reste<0?'kcal au-dessus de ta cible':'kcal encore disponibles aujourd\'hui')+'</div></div>';
-    h+=jauge(a.kcal,c.kcal);
-    h+='<div class="conso"><b>'+nb(a.kcal)+'</b> kcal mangées sur une cible de <b>'+nb(c.kcal)+'</b>'+
+    h+=anneauCalories(a.kcal,c.kcal);
+    h+='<div class="conso">cible <b>'+nb(c.kcal)+'</b> kcal'+
        (a.repas?' \u00b7 '+a.repas+' repas':'')+'</div>';
     const manque=c.prot-a.prot;
     if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de protéines.</span> '+
