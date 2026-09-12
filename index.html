@@ -286,6 +286,9 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .rep-cible{color:var(--soft);font-weight:300}
 .rep-detail{display:none;gap:14px;margin-top:7px;font-size:12.5px;color:var(--soft);font-weight:300}
 .rep-ligne.ouvert .rep-detail{display:flex}
+.rep-micro{display:none}
+.rep-ligne.ouvert .rep-micro{display:block}
+.rep-micro .micro{margin-top:4px}
 .rep-ligne:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
 .rep-detail span{white-space:nowrap}
 /* Accordeon moyennes */
@@ -327,7 +330,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 18h00';
+const APP_VERSION='12/09/2026 18h30';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -788,7 +791,7 @@ function vueJour(d){
     });
     h+='</div>';
     h+=barreMacros(a);
-    h+='<p class="note">Anneau plein = cible atteinte. Lipides et glucides virent à l\'orange s\'ils dépassent ; les protéines sont un plancher, les dépasser n\'est pas un défaut.</p></section>';
+    h+='</section>';
   }
 
   // Cibles par repas recalculees cote appli a partir du decoupage regle,
@@ -808,9 +811,10 @@ function vueJour(d){
        '<span class="rep-nom">'+r[1]+'<span class="rep-chev">\u203A</span></span>'+
        '<span class="rep-kcal">'+nb(p.kcal)+(ci?'<span class="rep-cible"> / '+nb(ci)+'</span> <span class="'+(p.kcal>ci?'sur':'sous')+'">'+sgn(p.kcal-ci)+'</span>':'')+'</span></div>'+
        '<div class="rep-detail"><span>P '+cellPLG(p.prot||0,cp)+'</span><span>L '+cellPLG(p.lip||0,cl)+'</span><span>G '+cellPLG(p.gluc||0,cg)+'</span></div>'+
+       '<div class="rep-micro">'+ligneMicro(p)+'</div>'+
        '</div>';
   });
-  h+='</div><p class="note">Touche un repas pour voir le détail protéines, lipides, glucides. Chiffre : consommé, puis prévu et écart. R\u00e9partition r\u00e9gl\u00e9e '+pc.matin+'/'+pc.midi+'/'+pc.encas+'/'+pc.soir+' %, modifiable dans les R\u00e9glages.</p></section>';
+  h+='</div><p class="note">Touche un repas pour voir le détail P/L/G et les fibres, sucres, sodium. R\u00e9partition r\u00e9gl\u00e9e '+pc.matin+'/'+pc.midi+'/'+pc.encas+'/'+pc.soir+' %, modifiable dans les R\u00e9glages.</p></section>';
 
   const m=d.moyennes;
   h+='<section><details class="accord"><summary><h2>Moyennes par jour</h2></summary><table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
