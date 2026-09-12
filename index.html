@@ -17,11 +17,11 @@
 <style>
 :root{
   --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#5A6B6E; --nav:#7A8A8C;
-  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3;
+  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3; --ambre:#C79A2E;
 }
 @media (prefers-color-scheme: dark){
   :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#9BA8A3; --nav:#AEBDBF;
-         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; }
+         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; }
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;width:100%;overflow-x:hidden;overscroll-behavior-y:none}
@@ -55,6 +55,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .periode{display:flex;gap:6px;margin-bottom:12px}
 .periode button{padding:5px 12px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
 .periode button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.courbe-tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.courbe-tabs button{flex:1;padding:9px 0;font-size:14px;color:var(--soft);background:transparent;border:none;font-weight:400}
+.courbe-tabs button.on{background:var(--ink);color:var(--paper);font-weight:600}
 .detailjour{margin-top:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:4px;
   background:var(--card);font-size:13px;line-height:1.5}
 .detailjour b{font-weight:600}
@@ -339,13 +342,13 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 22h30';
+const APP_VERSION='12/09/2026 23h00';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,file:[],
+  foods:[],recentsOuv:false,file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -706,58 +709,131 @@ function calculProduit(p,grammes){
 }
 
 /* ---------- graphiques ---------- */
+// jours écoulés depuis epoch pour une date ISO (échelle temporelle réelle)
+function jourNum(iso){return Math.round(new Date(iso+'T00:00:00Z')/86400000);}
 function serieCourbe(vals,opt){
   const n=vals.length;
   if(n<2)return '<p class="vide">Deux points sont nécessaires pour tracer une courbe.</p>';
-  const w=320,h=(opt.h||150)+20;           // +20 pour la bande de legende
-  const legH=16,pt=14+legH,pb=24,pl=30,pr=8; // pl elargi pour les labels Y
+  const w=320,h=(opt.h||150)+20;
+  const legH=16,pt=14+legH,pb=24,pl=30,pr=8;
   const dec=opt.dec||0,u=opt.unite||'';
   const col=opt.couleur||'var(--ink)';
-  const colTend='var(--under)';             // tendance en couleur distincte
+  const colTend='var(--under)';
+  const SEUIL=opt.seuilStagne||0.2;         // kg/semaine sous lequel on considère "stagne"
+  // axe X = temps réel
+  const t0=jourNum(vals[0].date),t1=jourNum(vals[n-1].date),span=(t1-t0)||1;
   const vmin=Math.min.apply(null,vals.map(p=>p.v)),vmax=Math.max.apply(null,vals.map(p=>p.v));
-  // graduations "jolies" : pas de 1, 2 ou 5 selon l'amplitude
-  const brut=(vmax-vmin)||1;
-  const cible=4; // ~4 graduations visees
-  const pasBrut=brut/cible;
-  const mag=Math.pow(10,Math.floor(Math.log10(pasBrut)));
-  const norm=pasBrut/mag;
+  const brut=(vmax-vmin)||1,pasBrut=brut/4;
+  const mag=Math.pow(10,Math.floor(Math.log10(pasBrut))),norm=pasBrut/mag;
   const pas=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
-  const bas=Math.floor(vmin/pas)*pas;
-  const haut=Math.ceil(vmax/pas)*pas;
+  const bas=Math.floor(vmin/pas)*pas,haut=Math.ceil(vmax/pas)*pas;
   const mn=bas,mx=(haut===bas?bas+pas:haut);
-  const X=i=>pl+(i/(n-1))*(w-pl-pr);
+  const XT=t=>pl+((t-t0)/span)*(w-pl-pr);   // position selon la date
+  const X=i=>XT(jourNum(vals[i].date));
   const Y=v=>pt+(1-(v-mn)/(mx-mn))*(h-pt-pb);
   let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(opt.titre||'courbe')+'">';
   // --- legende ---
+  const libPrinc=opt.legende||'pesées';
   o+='<line x1="'+pl+'" y1="9" x2="'+(pl+16)+'" y2="9" stroke="'+col+'" stroke-width="1.9"/>';
-  o+='<text x="'+(pl+20)+'" y="12.5" font-size="10" fill="var(--soft)">pesées</text>';
-  o+='<line x1="'+(pl+70)+'" y1="9" x2="'+(pl+86)+'" y2="9" stroke="'+colTend+'" stroke-width="1.6" stroke-dasharray="3 3"/>';
-  o+='<text x="'+(pl+90)+'" y="12.5" font-size="10" fill="var(--soft)">tendance</text>';
-  // --- grille + axe Y ---
+  o+='<text x="'+(pl+20)+'" y="12.5" font-size="10" fill="var(--soft)">'+esc(libPrinc)+'</text>';
+  if(opt.moyenne&&n>=5){
+    o+='<line x1="'+(pl+70)+'" y1="9" x2="'+(pl+86)+'" y2="9" stroke="'+colTend+'" stroke-width="1.6" stroke-dasharray="3 3"/>';
+    o+='<text x="'+(pl+90)+'" y="12.5" font-size="10" fill="var(--soft)">tendance</text>';
+  }
+  // --- grille Y + labels ---
   for(let v=mn;v<=mx+0.001;v+=pas){
     const y=Y(v);
     o+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y.toFixed(1)+'" stroke="var(--rule)" stroke-width="0.7"/>';
     o+='<text x="'+(pl-4)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="var(--soft)">'+v.toFixed(dec)+'</text>';
   }
-  // --- dates sur l'axe X (debut, ~milieux, fin) ---
-  const idx=n<=2?[0,n-1]:[0,Math.round((n-1)/2),n-1];
-  idx.forEach((i,k)=>{
-    const anchor=k===0?'start':(k===idx.length-1?'end':'middle');
-    o+='<text x="'+X(i).toFixed(1)+'" y="'+(h-6)+'" text-anchor="'+anchor+'" font-size="9.5" fill="var(--soft)">'+jjmm(vals[i].date)+'</text>';
+  // --- grille verticale hebdo + labels de dates (alignés sur le lundi) ---
+  const d0=new Date(vals[0].date+'T00:00:00Z');
+  const lundi0=new Date(d0);lundi0.setUTCDate(d0.getUTCDate()-((d0.getUTCDay()+6)%7)); // recule au lundi
+  let semaines=[];
+  for(let t=Math.ceil(lundi0/86400000);t<=t1;t+=7){if(t>=t0)semaines.push(t);}
+  // si trop de semaines pour la largeur, on espace (1 sur 2)
+  const step=semaines.length>6?2:1;
+  semaines.forEach((t,k)=>{
+    const x=XT(t);
+    o+='<line x1="'+x.toFixed(1)+'" y1="'+pt+'" x2="'+x.toFixed(1)+'" y2="'+(h-pb)+'" stroke="var(--rule)" stroke-width="0.5" opacity="0.6"/>';
+    if(k%step===0){
+      const iso=new Date(t*86400000).toISOString().slice(0,10);
+      o+='<text x="'+x.toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+jjmm(iso)+'</text>';
+    }
   });
-  // --- tendance (moyenne mobile 7) ---
+  // --- tendance colorée par segment (vert descend, ambre stagne, orange monte) ---
   if(opt.moyenne&&n>=5){
-    const ms=[];
-    vals.forEach((p,i)=>{const d=vals.slice(Math.max(0,i-6),i+1);ms.push(d.reduce((s,x)=>s+x.v,0)/d.length);});
-    let m='';ms.forEach((v,i)=>{m+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';});
-    o+='<path d="'+m+'" fill="none" stroke="'+colTend+'" stroke-width="1.6" stroke-dasharray="3 3"/>';
+    const ms=vals.map((p,i)=>{const d=vals.slice(Math.max(0,i-6),i+1);return d.reduce((s,x)=>s+x.v,0)/d.length;});
+    for(let i=1;i<n;i++){
+      const dt=(jourNum(vals[i].date)-jourNum(vals[i-1].date))||1;
+      const pente=((ms[i]-ms[i-1])/dt)*7; // variation par semaine sur la tendance
+      let c=colTend;
+      if(pente<-SEUIL)c='var(--under)';        // descend franchement -> vert
+      else if(pente>SEUIL)c='var(--over)';     // monte -> orange
+      else c='var(--ambre)';                   // stagne -> ambre
+      o+='<line x1="'+X(i-1).toFixed(1)+'" y1="'+Y(ms[i-1]).toFixed(1)+'" x2="'+X(i).toFixed(1)+'" y2="'+Y(ms[i]).toFixed(1)+
+         '" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>';
+    }
   }
   // --- courbe reelle ---
   let d='';vals.forEach((p,i)=>{d+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)+' ';});
   o+='<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"/>';
-  if(n<=40)vals.forEach((p,i)=>{o+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.3" fill="'+col+'"/>';});
-  // valeur du dernier point, en evidence
-  o+='<text x="'+(X(n-1)-2).toFixed(1)+'" y="'+(Y(vals[n-1].v)-7).toFixed(1)+'" text-anchor="end" font-size="11.5" font-weight="600" fill="'+col+'">'+vals[n-1].v.toFixed(dec)+u+'</text>';
+  if(n<=60)vals.forEach((p,i)=>{o+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.3" fill="'+col+'"/>';});
+  // --- badge de la valeur actuelle, fixe en haut à droite (plus de chevauchement) ---
+  const bw=opt.badgeW||58,bh=17,bx=w-pr-bw,by=pt+2;
+  o+='<rect x="'+bx.toFixed(1)+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="4" fill="'+col+'"/>';
+  o+='<text x="'+(bx+bw/2).toFixed(1)+'" y="'+(by+12)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--paper)">'+vals[n-1].v.toFixed(dec)+u+'</text>';
+  return o+'</svg>';
+}
+
+// Barres de variation hebdomadaire (Δ kg par semaine), colorées selon perte/stagne/prise.
+function barresHebdo(pes,opt){
+  opt=opt||{};
+  const SEUIL=opt.seuilStagne||0.2;
+  if(pes.length<2)return '<p class="vide">Pas encore assez de pesées pour comparer les semaines.</p>';
+  // regrouper par semaine ISO (lundi). Pour chaque semaine on garde la dernière pesée.
+  function lundiDe(iso){const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
+  const parSem={};
+  pes.forEach(p=>{const k=lundiDe(p.date);if(!parSem[k]||p.date>=parSem[k].date)parSem[k]={date:p.date,poids:p.poids,lundi:k};});
+  const sems=Object.values(parSem).sort((a,b)=>a.lundi.localeCompare(b.lundi));
+  if(sems.length<2)return '<p class="vide">Il faut au moins deux semaines de pesées pour voir les variations.</p>';
+  // Δ de chaque semaine vs la précédente, normalisé par le temps réel écoulé
+  // (évite qu'une pesée très espacée écrase l'échelle).
+  const deltas=[];
+  for(let i=1;i<sems.length;i++){
+    const dj=(jourNum(sems[i].date)-jourNum(sems[i-1].date))||7;
+    const dParSem=(sems[i].poids-sems[i-1].poids)/dj*7;
+    deltas.push({lundi:sems[i].lundi,delta:dParSem});
+  }
+  const n=deltas.length;
+  const w=320,h=(opt.h||150)+20,legH=16,pt=14+legH,pb=24,pl=30,pr=8;
+  const amp=Math.max(0.5,Math.max.apply(null,deltas.map(d=>Math.abs(d.delta))));
+  const zero=pt+(h-pt-pb)*(amp/(2*amp));   // ligne 0 au milieu
+  const ech=((h-pt-pb)/2)/amp;
+  const pasX=(w-pl-pr)/n,lg=Math.max(6,Math.min(26,pasX*0.6));
+  const coul=d=>d<-SEUIL?'var(--under)':(d>SEUIL?'var(--over)':'var(--ambre)');
+  let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Variation hebdomadaire du poids">';
+  // légende
+  o+='<rect x="'+pl+'" y="4" width="10" height="10" rx="2" fill="var(--under)"/><text x="'+(pl+14)+'" y="12.5" font-size="9.5" fill="var(--soft)">perte</text>';
+  o+='<rect x="'+(pl+52)+'" y="4" width="10" height="10" rx="2" fill="var(--ambre)"/><text x="'+(pl+66)+'" y="12.5" font-size="9.5" fill="var(--soft)">stagne</text>';
+  o+='<rect x="'+(pl+108)+'" y="4" width="10" height="10" rx="2" fill="var(--over)"/><text x="'+(pl+122)+'" y="12.5" font-size="9.5" fill="var(--soft)">prise</text>';
+  // axe Y (graduations en kg)
+  const pasY=amp>1?0.5:0.2;
+  for(let v=-Math.floor(amp/pasY)*pasY;v<=amp+0.001;v+=pasY){
+    const y=zero-v*ech;
+    if(y<pt-1||y>h-pb+1)continue;
+    o+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y.toFixed(1)+'" stroke="var(--rule)" stroke-width="'+(Math.abs(v)<0.001?'1':'0.6')+'"/>';
+    o+='<text x="'+(pl-4)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--soft)">'+(v>0?'+':'')+v.toFixed(1)+'</text>';
+  }
+  // barres
+  deltas.forEach((d,i)=>{
+    const cx=pl+pasX*(i+0.5),ht=Math.abs(d.delta)*ech,y=d.delta<0?zero:zero-ht;
+    o+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,ht).toFixed(1)+'" rx="2" fill="'+coul(d.delta)+'"/>';
+    // valeur au-dessus/dessous
+    o+='<text x="'+cx.toFixed(1)+'" y="'+(d.delta<0?zero+ht+11:zero-ht-4).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="600" fill="var(--ink)">'+(d.delta>0?'+':d.delta<0?'\u2212':'')+Math.abs(d.delta).toFixed(1)+'</text>';
+    // label semaine
+    o+='<text x="'+cx.toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+jjmm(d.lundi)+'</text>';
+  });
   return o+'</svg>';
 }
 
@@ -1337,19 +1413,46 @@ function vueCourbes(d){
   if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
   h+='</section>';
 
-  h+='<section><h2>Poids</h2>'+serieCourbe(p.map(r=>({date:r.date,v:r.poids})),
-      {h:150,unite:' kg',dec:1,moyenne:true,titre:'poids'});
-  if(p.length>1){
-    const e=p[p.length-1].poids-p[0].poids;
-    const nbJ=Math.round((new Date(p[p.length-1].date+'T00:00:00Z')-new Date(p[0].date+'T00:00:00Z'))/86400000);
-    const ryth=nbJ>0?(e/nbJ)*7:0;
-    const kcalJour=nbJ>0?Math.abs(e)*7000/nbJ:0;
-    h+='<div class="ryth-poids"><span class="k">Rythme moyen</span>'+
-       '<span class="v" style="color:'+(e<0?'var(--under)':'var(--over)')+'">'+
-       (ryth<0?'\u2212':ryth>0?'+':'')+Math.abs(ryth).toFixed(2)+' kg / semaine</span></div>';
-    h+='<p class="note">'+(e<0?'Perte':'Prise')+' de '+Math.abs(e).toFixed(1)+' kg entre le '+
-       jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+
-       (kcalJour?', soit un '+(e<0?'déficit':'surplus')+' moyen d\'environ '+nb(Math.round(kcalJour/10)*10)+' kcal par jour':'')+'.</p>';
+  const cv=S.courbeVue==='besoins'?'besoins':(S.courbeVue==='regulier'?'regulier':'poids');
+  h+='<section><div class="courbe-tabs" id="ch-courbe">'+
+     '<button data-cv="poids" class="'+(cv==='poids'?'on':'')+'">Poids</button>'+
+     '<button data-cv="besoins" class="'+(cv==='besoins'?'on':'')+'">Besoins</button>'+
+     '<button data-cv="regulier" class="'+(cv==='regulier'?'on':'')+'">Régulier ?</button>'+
+     '</div>';
+  if(cv==='poids'){
+    h+=serieCourbe(p.map(r=>({date:r.date,v:r.poids})),
+        {h:150,unite:' kg',dec:1,moyenne:true,titre:'poids',badgeW:58});
+    if(p.length>1){
+      const e=p[p.length-1].poids-p[0].poids;
+      const nbJ=Math.round((new Date(p[p.length-1].date+'T00:00:00Z')-new Date(p[0].date+'T00:00:00Z'))/86400000);
+      const ryth=nbJ>0?(e/nbJ)*7:0;
+      const kcalJour=nbJ>0?Math.abs(e)*7000/nbJ:0;
+      h+='<div class="ryth-poids"><span class="k">Rythme moyen</span>'+
+         '<span class="v" style="color:'+(e<0?'var(--under)':'var(--over)')+'">'+
+         (ryth<0?'\u2212':ryth>0?'+':'')+Math.abs(ryth).toFixed(2)+' kg / semaine</span></div>';
+      h+='<p class="note">'+(e<0?'Perte':'Prise')+' de '+Math.abs(e).toFixed(1)+' kg entre le '+
+         jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+
+         (kcalJour?', soit un '+(e<0?'déficit':'surplus')+' moyen d\'environ '+nb(Math.round(kcalJour/10)*10)+' kcal par jour':'')+'.</p>';
+    }
+  }else if(cv==='besoins'){
+    // courbe des besoins (TDEE) par pesee : baisse avec le poids
+    const bpts=p.filter(r=>r.tdee).map(r=>({date:r.date,v:r.tdee}));
+    if(bpts.length<2){
+      h+='<p class="vide">Pas encore assez de pesées pour tracer l\'évolution des besoins.</p>';
+    }else{
+      h+=serieCourbe(bpts,{h:150,unite:' kcal',dec:0,moyenne:false,titre:'besoins',couleur:'var(--over)',legende:'besoins',badgeW:66});
+      const eb=bpts[bpts.length-1].v-bpts[0].v;
+      h+='<p class="note">Tes besoins évoluent avec ton poids : chaque kilo perdu réduit un peu ta dépense. '+
+         (Math.abs(eb)>=1?('Depuis le '+jjmm(bpts[0].date)+', ils sont passés de '+nb(bpts[0].v)+' à '+nb(bpts[bpts.length-1].v)+' kcal ('+(eb<0?'\u2212':'+')+nb(Math.abs(Math.round(eb)))+').'):'Ils sont restés quasi stables sur la période.')+
+         ' C\'est la cible à viser pour ta sèche, réévaluée au fil de la perte.</p>';
+    }
+  }else{
+    // Régulier ? : variation de poids semaine par semaine
+    h+=barresHebdo(p.map(r=>({date:r.date,poids:r.poids})),{h:150,seuilStagne:0.2});
+    h+='<p class="note">Chaque barre est la variation de poids d\'une semaine à l\'autre. '+
+       '<span style="color:var(--under)">Vert</span> : tu perds. '+
+       '<span style="color:var(--ambre)">Ambre</span> : tu stagnes (moins de 0,2 kg). '+
+       '<span style="color:var(--over)">Orange</span> : tu reprends. La régularité compte plus que la vitesse.</p>';
   }
   h+='</section>';
 
@@ -1593,6 +1696,9 @@ function brancher(){
       S.inspCal=(S.inspCal&&S.inspCal.date===k)?null:{date:k};
       rendre();
     });
+  });
+  document.querySelectorAll('#ch-courbe button').forEach(b=>{
+    b.addEventListener('click',()=>{S.courbeVue=b.dataset.cv;rendre();});
   });
   document.querySelectorAll('#ch-periode button').forEach(b=>{
     b.addEventListener('click',()=>{S.periode=Number(b.dataset.p);rendre();});
