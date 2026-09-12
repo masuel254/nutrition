@@ -77,7 +77,7 @@ svg{display:block;width:100%;max-width:100%;height:auto}
 
 .reste{margin:2px 0 6px}
 .cal-anneau{display:flex;justify-content:center;margin:6px 0 2px}
-.cal-anneau svg{width:200px;height:200px;max-width:64vw;max-height:64vw}
+.cal-anneau svg{width:160px;height:160px;max-width:52vw;max-height:52vw}
 .reste .val{font-size:56px;font-weight:300;letter-spacing:-0.035em;line-height:1}
 .reste .val.depasse{color:var(--over)}
 .reste .leg{font-size:13.5px;color:var(--soft);font-weight:300;margin-top:2px}
@@ -339,7 +339,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 21h00';
+const APP_VERSION='12/09/2026 21h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -821,7 +821,7 @@ function detailJour(d,date){
 // legende. L'arc se remplit selon mangees/cible, vire a --over si depassement.
 function anneauCalories(mange,cible){
   if(!cible)return '';
-  const t=200,R=t/2-11,C=2*Math.PI*R;
+  const t=200,R=t/2-10,C=2*Math.PI*R;
   const pct=Math.min(mange/cible,1);
   const off=C*(1-pct);
   const trop=mange>cible;
@@ -829,13 +829,13 @@ function anneauCalories(mange,cible){
   const trait=trop?'var(--over)':'var(--under)';
   const legende=trop?nb(Math.abs(reste))+' kcal au-dessus':nb(reste)+' kcal restantes';
   let o='<div class="cal-anneau"><svg viewBox="0 0 '+t+' '+t+'" role="img" aria-label="'+nb(mange)+' kcal mangées sur une cible de '+nb(cible)+'">';
-  o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="13"/>';
+  o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="11"/>';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="'+trait+
-     '" stroke-width="13" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+
+     '" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+
      '" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 '+t/2+' '+t/2+')"/>';
   o+='<text x="50%" y="44%" text-anchor="middle" font-size="46" font-weight="300" letter-spacing="-1.5" fill="'+(trop?'var(--over)':'var(--ink)')+'">'+nb(mange)+'</text>';
   o+='<text x="50%" y="56%" text-anchor="middle" font-size="12.5" fill="var(--soft)" font-weight="300">kcal mangées</text>';
-  o+='<text x="50%" y="67%" text-anchor="middle" font-size="12.5" fill="var(--soft)" font-weight="400">'+legende+'</text>';
+  o+='<text x="50%" y="67%" text-anchor="middle" font-size="13" fill="var(--soft)" font-weight="700">'+legende+'</text>';
   o+='</svg></div>';
   return o;
 }
