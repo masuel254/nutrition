@@ -337,7 +337,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 19h30';
+const APP_VERSION='12/09/2026 20h00';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -479,8 +479,10 @@ async function appel(corps){
   const url=S.cfg.api.trim().replace(/\/+$/,'');
   const body=JSON.stringify(Object.assign({token:S.cfg.token.trim()},corps));
   // 3 tentatives (1 + 2 retries) avec backoff exponentiel, uniquement sur
-  // erreurs transitoires : coupure reseau, timeout, ou 5xx. On ne rejoue jamais
-  // un 429 (il faut attendre) ni un refus applicatif (j.ok===false).
+  // erreurs transitoires : coupure reseau, timeout, ou 5xx. Le 429 n'est pas
+  // rejoue dans la seconde (le serveur demande d'attendre) mais est marque
+  // transitoire (.reseau) pour que la file d'attente le rejoue plus tard, sans
+  // le supprimer. Un refus applicatif (j.ok===false) reste definitif.
   const RETRIS=2;
   let derniere=null;
   for(let essai=0;essai<=RETRIS;essai++){
@@ -494,7 +496,11 @@ async function appel(corps){
       derniere=new Error('Connexion au serveur impossible. Vérifie ton réseau.');
       continue;
     }
-    if(r.status===429)throw new Error('Trop de requêtes vers Google Sheets. Attends une minute et réessaie.');
+    if(r.status===429){
+      const e=new Error('Trop de requêtes vers Google Sheets. Attends une minute et réessaie.');
+      e.reseau=true; // transitoire : a rejouer plus tard, jamais a jeter
+      throw e;
+    }
     if(r.status>=500&&r.status<600){
       // erreur serveur transitoire : on retente
       derniere=new Error('Le serveur a répondu '+r.status+'. Réessaie dans un instant.');
@@ -564,6 +570,15 @@ async function demarrerScan(){
   scanEnCours=true;
   const SC=S.ajout.scan;
   SC.message='';
+  // La camera exige un contexte securise (HTTPS) et l'API getUserMedia.
+  // On teste avant de charger ZXing (250 Ko) pour un message clair si c'est indisponible.
+  if(!navigator.mediaDevices||typeof navigator.mediaDevices.getUserMedia!=='function'){
+    SC.etat='ko';
+    SC.message=(location.protocol!=='https:'&&location.hostname!=='localhost')
+      ?'Le scan nécessite une connexion sécurisée (https). Ouvre l\'app depuis son adresse habituelle.'
+      :'Ton navigateur ne donne pas accès à la caméra. Saisis le produit à la main.';
+    scanEnCours=false;rendre();return;
+  }
   let ZX;
   try{ZX=await chargerZXing();}
   catch(e){SC.etat='ko';SC.message=e.message;scanEnCours=false;rendre();return;}
@@ -1686,10 +1701,10 @@ function brancher(){
       ecrireRepasCache();
     }catch(e){
       if(e&&e.reseau){
-        // pas de reseau : on ne perd pas le repas, on le met en file pour rejeu.
+        // reseau coupe OU rate limit (429) : on ne perd pas le repas, file pour rejeu.
         empilerPending(payload);
         A.confirm='fait';
-        A.message='Hors ligne : repas gardé, il sera enregistré au retour du réseau.';
+        A.message='Repas gardé, il sera enregistré dès que possible.';
         ecrireRepasCache();
       }else{
         A.confirm='ko';A.message=e.message;
@@ -1874,6 +1889,8 @@ document.addEventListener('visibilitychange',()=>{
 setInterval(()=>{
   if(document.hidden||!S.cfg||!S.data)return;
   if(jourChange())rafraichir().then(rendre).catch(()=>{});
+  // relance la file d'attente si elle contient encore des repas (ex. apres un 429)
+  if((S.file||[]).length)rejouerPending();
 },60000);
 // rejeu de la file d'attente hors ligne au retour du reseau
 window.addEventListener('online',()=>{if(S.cfg&&S.data)rejouerPending();});
@@ -1913,6 +1930,5 @@ if('serviceWorker' in navigator){
 if(!localStorage.getItem(VERSION_KEY))localStorage.setItem(VERSION_KEY,APP_VERSION);
 demarrer();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
