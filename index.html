@@ -339,7 +339,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 22h00';
+const APP_VERSION='12/09/2026 22h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1214,7 +1214,7 @@ function progression(d,periode){
      '<div class="sub">'+(pRef&&pFin?(refEstime?'~':'')+jjmm(refDate)+' \u2192 '+jjmm(pFin.date):'\u2014')+'</div></div>';
   h+='<div class="col"><div class="lib">Théorique · déficit</div><div class="big '+cls(theoKg)+'">'+
      (theoKg===null?'\u2014':kg(theoKg)+'<span style="font-size:16px"> kg</span>')+'</div>'+
-     '<div class="sub">'+(theoKg===null?'selon tes apports':(kg(Math.round(theoKg*7000))+' kcal cumul\u00e9es'))+'</div></div>';
+     '<div class="sub">'+(theoKg===null?'selon tes apports':((theoKg*7000>0?'+':theoKg*7000<0?'\u2212':'')+nb(Math.abs(Math.round(theoKg*7000)))+' kcal cumul\u00e9es'))+'</div></div>';
   h+='</div>';
 
   if(ryth!==null){
