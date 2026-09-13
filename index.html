@@ -190,6 +190,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .choix{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
 .choix button{padding:8px 13px;border:1px solid var(--rule);border-radius:999px;font-size:14px;color:var(--soft)}
 .choix button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.choix-repas{margin:2px 0 12px}
 .repart{display:flex;gap:8px;margin-top:5px}
 .repart-i{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .repart-i span{font-size:12px;color:var(--soft)}
@@ -342,7 +343,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='12/09/2026 23h00';
+const APP_VERSION='13/09/2026 00h30';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1215,7 +1216,35 @@ function vueAjout(d){
   h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
   if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
   h+='</section>';
-  if(A.resultat){const r=A.resultat;h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div><ul>';r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+ligneMicro(r.total)+'<p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';if(r.estimation)h+='<p class="note">Estimation seule, rien n’est enregistré.</p>';else if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';else{h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';h+='</div>';}h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';}
+  if(A.resultat){
+    const r=A.resultat;
+    const fige=(A.confirm==='fait'||A.confirm==='envoi');
+    h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div>';
+    // selecteur de repas : dispo tant que non enregistre. Pour une estimation,
+    // choisir un repas la rend enregistrable (on construit la ligne a la volee).
+    if(!fige){
+      h+='<div class="choix choix-repas" id="e-repas">';
+      [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']].forEach(rr=>{
+        const actif=(r.ligne&&r.ligne.repas===libelleRepas(rr[0]));
+        h+='<button data-er="'+rr[0]+'" class="'+(actif?'on':'')+'">'+rr[1]+'</button>';
+      });
+      h+='</div>';
+    }
+    h+='<ul>';
+    r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});
+    h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+ligneMicro(r.total)+'<p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
+    if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';
+    else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';
+    else if(!r.ligne)h+='<p class="note">Choisis un repas ci-dessus pour l\'enregistrer.</p>';
+    else{
+      h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';
+      if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';
+      if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';
+      if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+      h+='</div>';
+    }
+    h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';
+  }
   h+=historiqueRepas(A);
   return h;
 }
@@ -1922,6 +1951,24 @@ function brancher(){
     }
     rendre();
   }
+  document.querySelectorAll('#e-repas button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const A=S.ajout,r=A.resultat;if(!r)return;
+      const lib=libelleRepas(b.dataset.er);
+      A.repas=b.dataset.er;r.repas=lib;
+      if(r.ligne){
+        r.ligne.repas=lib;
+      }else{
+        // estimation : on construit une ligne enregistrable a partir du total
+        const t=r.total||{};
+        const detail=(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', ');
+        r.ligne={repas:lib,detail:detail,kcal:t.kcal||0,prot:t.prot||0,lip:t.lip||0,
+          gluc:t.gluc||0,fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,nutriscore:''};
+        r.estimation=false;
+      }
+      ecrireRepasCache();rendre();
+    });
+  });
   on('#e-auj','click',()=>enregistrer(auj()));
   on('#e-autre','click',()=>{S.ajout.confirm='date';rendre();});
   on('#e-non','click',()=>{S.ajout.confirm='refus';rendre();});
