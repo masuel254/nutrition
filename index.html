@@ -17,11 +17,11 @@
 <style>
 :root{
   --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#5A6B6E; --nav:#7A8A8C;
-  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3; --ambre:#C79A2E;
+  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3; --ambre:#C79A2E; --jaune:#D6A400; --rouge:#C22E2E;
 }
 @media (prefers-color-scheme: dark){
   :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#9BA8A3; --nav:#AEBDBF;
-         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; }
+         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; --jaune:#E5B93A; --rouge:#E05555; }
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;width:100%;overflow-x:hidden;overscroll-behavior-y:none}
@@ -343,7 +343,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/09/2026 00h30';
+const APP_VERSION='13/09/2026 19h21';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -919,6 +919,19 @@ function detailJour(d,date){
 
 // Grand anneau central de calories : mangees en heros au centre, restant en
 // legende. L'arc se remplit selon mangees/cible, vire a --over si depassement.
+// Couleur d'un anneau selon le depassement de la cible :
+//  <= cible          -> vert (--under)
+//  jusqu'a +10%       -> jaune
+//  +10% a +25%        -> orange
+//  au-dela de +25%    -> rouge
+function couleurDepassement(v,cible){
+  if(!cible||v<=cible)return 'var(--under)';
+  const r=v/cible;
+  if(r<=1.10)return 'var(--jaune)';
+  if(r<=1.25)return 'var(--over)';
+  return 'var(--rouge)';
+}
+
 function anneauCalories(mange,cible){
   if(!cible)return '';
   const t=200,R=t/2-10,C=2*Math.PI*R;
@@ -926,14 +939,14 @@ function anneauCalories(mange,cible){
   const off=C*(1-pct);
   const trop=mange>cible;
   const reste=cible-mange;
-  const trait=trop?'var(--over)':'var(--under)';
+  const trait=couleurDepassement(mange,cible);
   const legende=trop?nb(Math.abs(reste))+' kcal au-dessus':nb(reste)+' kcal restantes';
   let o='<div class="cal-anneau"><svg viewBox="0 0 '+t+' '+t+'" role="img" aria-label="'+nb(mange)+' kcal mangées sur une cible de '+nb(cible)+'">';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="11"/>';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="'+trait+
      '" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+
      '" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 '+t/2+' '+t/2+')"/>';
-  o+='<text x="50%" y="44%" text-anchor="middle" font-size="44" font-weight="700" letter-spacing="-1.5" fill="'+(trop?'var(--over)':'var(--ink)')+'">'+nb(mange)+'</text>';
+  o+='<text x="50%" y="44%" text-anchor="middle" font-size="44" font-weight="700" letter-spacing="-1.5" fill="'+(trop?trait:'var(--ink)')+'">'+nb(mange)+'</text>';
   o+='<text x="50%" y="56%" text-anchor="middle" font-size="12.5" fill="var(--soft)" font-weight="300">kcal mangées</text>';
   o+='<text x="50%" y="67%" text-anchor="middle" font-size="13" fill="var(--soft)" font-weight="700">'+legende+'</text>';
   o+='</svg></div>';
@@ -968,13 +981,14 @@ function barreMacros(a){
   return o+'</svg>';
 }
 
-// Anneau de progression pour une macro. coul = couleur de remplissage.
-// depasse=true fait virer l'anneau a --over (utilise pour L/G au-dessus de la cible).
-function anneau(v,cible,coul,label,taille,depasse){
+// Anneau de progression pour une macro. coul = couleur de base (sous cible).
+// coulDep = couleur a utiliser au-dessus de la cible (jaune/orange/rouge selon
+// le depassement). Si absent, on reste sur coul.
+function anneau(v,cible,coul,label,taille,coulDep){
   const t=taille||96,R=t/2-6,C=2*Math.PI*R;
   const pct=cible?Math.min(v/cible,1):0;
   const off=C*(1-pct);
-  const trait=depasse?'var(--over)':coul;
+  const trait=(coulDep&&cible&&v>cible)?coulDep:coul;
   return '<svg viewBox="0 0 '+t+' '+t+'" role="img" aria-label="'+esc(label)+' '+nb(v)+' grammes'+(cible?' sur '+nb(cible):'')+'" style="width:'+t+'px;height:'+t+'px">'+
     '<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="7"/>'+
     '<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="'+trait+
@@ -1032,9 +1046,9 @@ function vueJour(d){
   if(a.kcal){
     h+='<section>';
     h+='<div class="anneaux">'+
-       anneau(a.prot,c.prot,'var(--under)','Protéines',96,false)+
-       anneau(a.lip,c.lip,'var(--under)','Lipides',96,c.lip&&a.lip>c.lip)+
-       anneau(a.gluc,c.gluc,'var(--under)','Glucides',96,c.gluc&&a.gluc>c.gluc)+
+       anneau(a.prot,c.prot,'var(--under)','Protéines',96,null)+
+       anneau(a.lip,c.lip,'var(--under)','Lipides',96,couleurDepassement(a.lip,c.lip))+
+       anneau(a.gluc,c.gluc,'var(--under)','Glucides',96,couleurDepassement(a.gluc,c.gluc))+
        '</div>';
     h+='<div class="anneaux-leg">';
     [['Protéines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
