@@ -211,6 +211,16 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .resu ul{list-style:none;margin:0;padding:0;font-size:14px}
 .resu li{padding:5px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px}
 .resu li span:last-child{color:var(--soft);white-space:nowrap}
+.resu .resu-al li{display:block}
+.al-l{display:flex;align-items:center;gap:8px}
+.al-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-step{display:flex;align-items:center;gap:1px;flex:0 0 auto}
+.al-step button{width:30px;height:30px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center}
+.al-q{min-width:52px;text-align:center;font-size:12.5px;color:var(--soft)}
+.al-q.fixe{min-width:0}
+.al-kc{color:var(--soft);white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.resu-al .al-plg{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
+.resu-al .al-plg span:last-child{color:var(--soft)}
 
 .attente{display:inline-block;width:13px;height:13px;border:2px solid var(--rule);
   border-top-color:currentColor;border-radius:50%;vertical-align:-2px;margin-right:7px}
@@ -343,7 +353,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/09/2026 21h33';
+const APP_VERSION='14/09/2026 08h08';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1214,16 +1224,48 @@ function blocRecents(){
   }
   return h+'</section>';
 }
+// Extrait le nombre d'une quantité texte ("200 g" -> 200, "2 oeufs" -> 2).
+// Renvoie null si aucun nombre exploitable (ex. "une poignée").
+function qteNombre(q){
+  const m=String(q||'').replace(',','.').match(/(\d+(?:\.\d+)?)/);
+  return m?parseFloat(m[1]):null;
+}
+// Reconstruit le texte de quantité en remplaçant le nombre (garde l'unité).
+function qteRemplace(q,val){
+  const s=String(q||'');
+  if(/(\d+(?:[.,]\d+)?)/.test(s))return s.replace(/(\d+(?:[.,]\d+)?)/,nb(val));
+  return nb(val);
+}
+// Pas d'incrément adapté à la quantité (grammes -> 10, unités -> 1).
+function qtePas(q){
+  const n=qteNombre(q);
+  if(n===null)return 1;
+  return n>=20?10:(n>=5?1:1);
+}
+// Ajuste un aliment à une nouvelle quantité, au prorata de l'ancienne.
+function ajusteAliment(al,nouvelleQte){
+  const base=al.__base||al;
+  const q0=qteNombre(base.quantite);
+  if(q0===null||q0<=0)return al;
+  const f=nouvelleQte/q0;
+  const R=x=>Math.round((Number(x)||0)*f);
+  return {nom:base.nom,quantite:qteRemplace(base.quantite,nouvelleQte),
+    kcal:R(base.kcal),prot:R(base.prot),lip:R(base.lip),gluc:R(base.gluc),
+    fibres:R(base.fibres),sucres:R(base.sucres),sodium:R(base.sodium),__base:base};
+}
+// Recalcule le total d'un résultat à partir de ses aliments.
+function recalculeTotal(r){
+  const s={kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0};
+  (r.aliments||[]).forEach(a=>{['kcal','prot','lip','gluc','fibres','sucres','sodium'].forEach(k=>{s[k]+=Number(a[k])||0;});});
+  Object.keys(s).forEach(k=>s[k]=Math.round(s[k]));
+  r.total=s;
+  if(r.ligne){r.ligne.kcal=s.kcal;r.ligne.prot=s.prot;r.ligne.lip=s.lip;r.ligne.gluc=s.gluc;
+    r.ligne.fibres=s.fibres;r.ligne.sucres=s.sucres;r.ligne.sodium=s.sodium;
+    r.ligne.detail=(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', ');}
+}
 function vueAjout(d){
   const A=S.ajout;
-  let h='<section><h2>Quel repas</h2><div class="choix" id="ch-repas">';
-  [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['estim','Estimation']].forEach(r=>{
-    h+='<button data-r="'+r[0]+'" class="'+(A.repas===r[0]?'on':'')+'">'+r[1]+'</button>';
-  });
-  h+='</div>';
-  if(A.repas==='estim')h+='<p class="note">L’estimation analyse le plat sans rien enregistrer dans ton journal.</p>';
-  h+='</section>';
-
+  let h='';
   h+=blocRecents();
 
   h+=sectionScan(A);
@@ -1243,9 +1285,8 @@ function vueAjout(d){
   if(A.resultat){
     const r=A.resultat;
     const fige=(A.confirm==='fait'||A.confirm==='envoi');
-    h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b>'+nb(r.total.kcal)+' kcal</b></div>';
-    // selecteur de repas : dispo tant que non enregistre. Pour une estimation,
-    // choisir un repas la rend enregistrable (on construit la ligne a la volee).
+    h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b id="e-total">'+nb(r.total.kcal)+' kcal</b></div>';
+    // selecteur de repas : dispo tant que non enregistre (defaut = repas selon l'heure)
     if(!fige){
       h+='<div class="choix choix-repas" id="e-repas">';
       [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']].forEach(rr=>{
@@ -1254,14 +1295,33 @@ function vueAjout(d){
       });
       h+='</div>';
     }
-    h+='<ul>';
-    r.aliments.forEach(al=>{h+='<li><span>'+esc(al.nom)+(al.quantite?' <span style="color:var(--soft)">'+esc(al.quantite)+'</span>':'')+'</span><span>'+nb(al.kcal)+' kcal</span></li>';});
-    h+='<li><span>Protéines / lipides / glucides</span><span>'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+ligneMicro(r.total)+'<p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
-    if(A.confirm==='fait')h+='<p class="bien">'+esc(A.message)+'</p>';
-    else if(A.confirm==='refus')h+='<p class="note">Non enregistré.</p>';
+    // liste des aliments, avec stepper -/+ quand la quantite est numerique
+    h+='<ul class="resu-al">';
+    r.aliments.forEach((al,i)=>{
+      const num=qteNombre(al.quantite);
+      h+='<li><div class="al-l"><span class="al-nom">'+esc(al.nom)+'</span>';
+      if(!fige&&num!==null){
+        h+='<span class="al-step"><button data-ai="'+i+'" data-d="-1" aria-label="Moins">\u2212</button>'+
+           '<span class="al-q">'+esc(al.quantite)+'</span>'+
+           '<button data-ai="'+i+'" data-d="1" aria-label="Plus">+</button></span>';
+      }else if(al.quantite){
+        h+='<span class="al-q fixe">'+esc(al.quantite)+'</span>';
+      }
+      h+='<span class="al-kc">'+nb(al.kcal)+' kcal</span></div></li>';
+    });
+    h+='<li class="al-plg"><span>Protéines / lipides / glucides</span><span id="e-plg">'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+
+       '<div id="e-micro">'+ligneMicro(r.total)+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
+    if(A.confirm==='fait'){
+      h+='<p class="bien">'+esc(A.message)+'</p>';
+      h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
+    }
+    else if(A.confirm==='refus'){
+      h+='<p class="note">Non enregistré.</p>';
+      h+='<button class="secondaire" id="e-modif">Reprendre et modifier</button>';
+    }
     else if(!r.ligne)h+='<p class="note">Choisis un repas ci-dessus pour l\'enregistrer.</p>';
     else{
-      h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Non</button></div>';
+      h+='<div class="confirme"><b>Enregistrer ce repas ?</b><div class="trois"><button id="e-auj">Aujourd’hui</button><button id="e-autre">Autre jour</button><button id="e-non">Ne pas enregistrer</button></div>';
       if(A.confirm==='date')h+='<label for="e-date">Quel jour</label><input id="e-date" type="date" max="'+auj()+'" value="'+esc(A.dateAutre||auj())+'"><button class="primaire" id="e-valide">Enregistrer à cette date</button>';
       if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';
       if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
@@ -1742,12 +1802,6 @@ function brancher(){
     rendre();
   });
 
-  document.querySelectorAll('#ch-repas button').forEach(b=>{
-    b.addEventListener('click',()=>{
-      S.ajout.desc=(($('#a-desc')||{}).value)||S.ajout.desc;
-      S.ajout.repas=b.dataset.r;S.ajout.etat=null;rendre();
-    });
-  });
   document.querySelectorAll('[data-jour]').forEach(el=>{
     el.addEventListener('click',()=>{
       const k=el.getAttribute('data-jour');
@@ -1895,12 +1949,13 @@ function brancher(){
     if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
     const detail=p.nom+(p.marque?' ('+p.marque+')':'')+' · '+nb(g)+' g';
     A.resultat={
-      repas:libelleRepas(A.repas),estimation:(A.repas==='estim'),
-      aliments:[{nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal}],
+      repas:libelleRepas(A.repas==='estim'?repasParHeure():A.repas),
+      aliments:[{nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
+        prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium}],
       total:c,incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
       nutriscore:p.nutriscore||'',
-      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
+      ligne:{repas:libelleRepas(A.repas==='estim'?repasParHeure():A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
     };
     A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
     pousserFoodScan(p,g);
@@ -1949,6 +2004,7 @@ function brancher(){
   on('#a-envoi','click',async()=>{
     const A=S.ajout;
     A.desc=(($('#a-desc')||{}).value)||'';
+    if(A.repas==='estim'||!A.repas)A.repas=repasParHeure();
     // l'ancien repas analysé bascule en historique (on en garde 2)
     const precedent=paquetRepas();
     A.etat='envoi';A.resultat=null;rendre();
@@ -1973,6 +2029,8 @@ function brancher(){
       await rafraichir();
       A.confirm='fait';
       A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.';
+      // on garde de quoi supprimer cette ligne si l'utilisateur la Modifie ensuite
+      A.enregistre={date:(r.date||date),repas:l.repas,detail:l.detail,kcal:l.kcal};
       ecrireRepasCache();
     }catch(e){
       if(e&&e.reseau){
@@ -1980,6 +2038,7 @@ function brancher(){
         empilerPending(payload);
         A.confirm='fait';
         A.message='Repas gardé, il sera enregistré dès que possible.';
+        A.enregistre=null; // pas encore réellement dans le journal
         ecrireRepasCache();
       }else{
         A.confirm='ko';A.message=e.message;
@@ -2010,6 +2069,32 @@ function brancher(){
   on('#e-non','click',()=>{S.ajout.confirm='refus';rendre();});
   on('#e-date','change',e=>{S.ajout.dateAutre=e.target.value;});
   on('#e-valide','click',()=>enregistrer(S.ajout.dateAutre||auj()));
+  // steppers -/+ par aliment : ajustent la quantite et recalculent le total
+  document.querySelectorAll('.al-step button[data-ai]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const A=S.ajout,r=A.resultat;if(!r)return;
+      const i=Number(b.dataset.ai),dir=Number(b.dataset.d);
+      const al=r.aliments[i];if(!al)return;
+      const cur=qteNombre(al.quantite);if(cur===null)return;
+      const pas=qtePas(al.quantite);
+      const nv=Math.max(pas,Math.round((cur+dir*pas)*100)/100);
+      r.aliments[i]=ajusteAliment(al,nv);
+      recalculeTotal(r);
+      ecrireRepasCache();rendre();
+    });
+  });
+  // Modifier un repas enregistre (ou repris du cache) : rouvre l'edition.
+  on('#e-modif','click',async()=>{
+    const A=S.ajout,r=A.resultat;if(!r)return;
+    // si le repas a ete reellement enregistre, on supprime l'ancienne ligne du journal
+    if(A.confirm==='fait'&&A.enregistre){
+      try{await appel({action:'suppr',date:A.enregistre.date,repas:A.enregistre.repas,
+        detail:A.enregistre.detail,kcal:A.enregistre.kcal});await rafraichir();}
+      catch(e){/* si la suppression echoue, on previent mais on laisse modifier */await modaleAlert('Impossible de retirer l\'ancien repas : '+e.message+' Modifie puis réenregistre, et supprime le doublon si besoin.');}
+    }
+    A.enregistre=null;A.confirm=null;A.message='';
+    ecrireRepasCache();rendre();window.scrollTo(0,0);
+  });
 
   function litPoids(){
     const e=$('#p-val');
