@@ -354,7 +354,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='14/09/2026 13h45';
+const APP_VERSION='14/09/2026 13h51';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1865,7 +1865,8 @@ function brancher(){
     b.addEventListener('click',async()=>{
       const nom=b.dataset.nom;if(!nom)return;
       const A=S.ajout;
-      if(A.repas==='estim'||!A.repas)A.repas=repasParHeure();
+      // créneau toujours recalculé selon l'heure au moment de l'analyse
+      A.repas=repasParHeure();
       A.desc=nom;
       // l'ancien repas analysé bascule en historique
       const precedent=paquetRepas();
@@ -1955,18 +1956,19 @@ function brancher(){
     if(!p||g<=0)return;
     const c=calculProduit(p,g);
     const A=S.ajout;
+    A.repas=repasParHeure();               // créneau selon l'heure, corrigeable dans le résultat
     // basculer un éventuel repas actif en historique, comme une nouvelle analyse
     const precedent=paquetRepas();
     if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
     const detail=p.nom+(p.marque?' ('+p.marque+')':'')+' · '+nb(g)+' g';
     A.resultat={
-      repas:libelleRepas(A.repas==='estim'?repasParHeure():A.repas),
+      repas:libelleRepas(A.repas),
       aliments:[{nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
         prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium}],
       total:c,incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
       nutriscore:p.nutriscore||'',
-      ligne:{repas:libelleRepas(A.repas==='estim'?repasParHeure():A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
+      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
     };
     A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
     pousserFoodScan(p,g);
@@ -2015,7 +2017,9 @@ function brancher(){
   on('#a-envoi','click',async()=>{
     const A=S.ajout;
     A.desc=(($('#a-desc')||{}).value)||'';
-    if(A.repas==='estim'||!A.repas)A.repas=repasParHeure();
+    // le créneau est toujours recalculé selon l'heure au moment de l'analyse
+    // (plus de choix de repas avant ; corrigeable ensuite dans le résultat)
+    A.repas=repasParHeure();
     // l'ancien repas analysé bascule en historique (on en garde 2)
     const precedent=paquetRepas();
     A.etat='envoi';A.resultat=null;rendre();
