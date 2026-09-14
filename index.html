@@ -354,7 +354,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='14/09/2026 13h51';
+const APP_VERSION='14/09/2026 13h58';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -841,9 +841,12 @@ function barresHebdo(pes,opt){
   deltas.forEach((d,i)=>{
     const cx=pl+pasX*(i+0.5),ht=Math.abs(d.delta)*ech,y=d.delta<0?zero:zero-ht;
     o+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,ht).toFixed(1)+'" rx="2" fill="'+coul(d.delta)+'"/>';
-    // valeur au-dessus/dessous
-    o+='<text x="'+cx.toFixed(1)+'" y="'+(d.delta<0?zero+ht+11:zero-ht-4).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="600" fill="var(--ink)">'+(d.delta>0?'+':d.delta<0?'\u2212':'')+Math.abs(d.delta).toFixed(1)+'</text>';
-    // label semaine
+    // valeur placée dans l'espace vide, du côté OPPOSÉ à la barre par rapport à
+    // zéro (perte -> au-dessus de zéro ; prise -> en dessous). Jamais sur la barre
+    // ni collée à l'axe des dates.
+    const yTxt=d.delta<0?(zero-4):(zero+11);
+    o+='<text x="'+cx.toFixed(1)+'" y="'+yTxt.toFixed(1)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="'+coul(d.delta)+'">'+(d.delta>0?'+':d.delta<0?'\u2212':'')+Math.abs(d.delta).toFixed(1)+'</text>';
+    // label semaine (axe X)
     o+='<text x="'+cx.toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+jjmm(d.lundi)+'</text>';
   });
   return o+'</svg>';
