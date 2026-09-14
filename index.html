@@ -285,6 +285,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .recents{padding:2px 0}
 .recents-tete{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:6px 0;font-size:14px;color:var(--soft);cursor:pointer}
 .recents-n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;font-size:11px;font-weight:600;color:var(--paper);background:var(--nav);border-radius:999px;text-align:center;line-height:16px}
+.recents-cr{color:var(--ink);font-weight:600}
 .recents-chev{color:var(--soft);font-size:16px;transition:transform .15s}
 .recents-chev.o{transform:rotate(90deg)}
 .recents-puces{display:flex;gap:7px;overflow-x:auto;padding:6px 0 2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -353,7 +354,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='14/09/2026 08h08';
+const APP_VERSION='14/09/2026 13h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1202,27 +1203,41 @@ function overlayScan(){
   h+='<div class="scan-bas"><button class="stop" id="scan-fermer">Fermer</button></div></div>';
   return h;
 }
-function blocRecents(){
-  const f=S.foods||[];
-  if(!f.length)return '';
+function blocSuggestions(d){
+  // Suggestions = aliments recurrents du journal (calcules par le workflow),
+  // filtres sur le creneau correspondant a l'heure courante.
+  const sugg=(d&&d.suggestions)||{};
+  const cr=repasParHeure();                    // matin / midi / encas / soir
+  let liste=(sugg[cr]||[]).slice();
+  // repli : si rien pour ce creneau, agreger tous creneaux (dedupe par nom)
+  if(!liste.length){
+    const vus={},all=[];
+    ['matin','midi','encas','soir'].forEach(k=>{(sugg[k]||[]).forEach(s=>{
+      const key=s.nom.toLowerCase();if(!vus[key]){vus[key]=1;all.push(s);}
+    });});
+    liste=all.sort((a,b)=>b.n-a.n).slice(0,8);
+  }
+  if(!liste.length)return '';
   const ouv=S.recentsOuv;
+  const libCr={matin:'ce matin',midi:'ce midi',encas:'en en-cas',soir:'ce soir'}[cr]||'';
   let h='<section class="recents"><button class="recents-tete" id="rec-tete" aria-expanded="'+(ouv?'true':'false')+'">'+
-    '<span>Récents <span class="recents-n">'+f.length+'</span></span>'+
+    '<span>Suggestions '+(libCr?'<span class="recents-cr">'+libCr+'</span> ':'')+'<span class="recents-n">'+liste.length+'</span></span>'+
     '<span class="recents-chev'+(ouv?' o':'')+'">\u203A</span></button>';
   if(ouv){
     h+='<div class="recents-puces">';
-    f.forEach((it,i)=>{
-      if(it.t==='scan'){
-        h+='<button class="puce" data-rec="'+i+'" title="'+esc(it.nom)+'">'+
-           '<span class="puce-ic">|||</span>'+esc(it.nom)+'</button>';
-      }else{
-        const r=it.resultat,nom=(r.aliments||[]).map(a=>a.nom).slice(0,2).join(', ')||r.repas||'Repas';
-        h+='<button class="puce puce-r" data-rec="'+i+'" title="'+esc(nom)+'">'+esc(nom)+'</button>';
-      }
+    liste.forEach((s,i)=>{
+      h+='<button class="puce" data-sug="'+i+'" data-nom="'+esc(s.nom)+'" title="Vu '+s.n+' fois">'+esc(s.nom)+'</button>';
     });
-    h+='</div><p class="note">Touche un produit scanné pour réajuster la quantité, ou un repas pour le réutiliser tel quel.</p>';
+    h+='</div><p class="note">D\'après tes habitudes. Touche un aliment pour l\'analyser, puis ajuste la quantité.</p>';
   }
   return h+'</section>';
+}
+// aliments recurrents du creneau courant, pour le tap-to-analyse
+function suggestionsCourantes(d){
+  const sugg=(d&&d.suggestions)||{};const cr=repasParHeure();
+  let liste=(sugg[cr]||[]).slice();
+  if(!liste.length){const vus={},all=[];['matin','midi','encas','soir'].forEach(k=>{(sugg[k]||[]).forEach(s=>{const key=s.nom.toLowerCase();if(!vus[key]){vus[key]=1;all.push(s);}});});liste=all.sort((a,b)=>b.n-a.n).slice(0,8);}
+  return liste;
 }
 // Extrait le nombre d'une quantité texte ("200 g" -> 200, "2 oeufs" -> 2).
 // Renvoie null si aucun nombre exploitable (ex. "une poignée").
@@ -1266,7 +1281,7 @@ function recalculeTotal(r){
 function vueAjout(d){
   const A=S.ajout;
   let h='';
-  h+=blocRecents();
+  h+=blocSuggestions(d);
 
   h+=sectionScan(A);
 
@@ -1846,28 +1861,24 @@ function brancher(){
     });
   });
   on('#rec-tete','click',()=>{S.recentsOuv=!S.recentsOuv;rendre();});
-  document.querySelectorAll('[data-rec]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      const it=(S.foods||[])[Number(b.dataset.rec)];
-      if(!it)return;
-      const A=S.ajout,SC=A.scan;
-      if(it.t==='scan'){
-        // recharge le produit dans le panneau quantite, sans reseau
-        SC.produit={nom:it.nom,marque:it.marque,per100:it.per100,portion:it.portion,
-          paquet:it.paquet,nutriscore:it.nutriscore};
-        SC.etat='ok';SC.mult=1;
-        if(it.portion){SC.mode='portion';SC.qte=it.portion;}
-        else{SC.mode='libre';SC.qte=it.derniereQte||100;}
-        SC.ouvert=false;
-      }else{
-        // reinjecte le repas analyse tel quel, pret a enregistrer
-        const precedent=paquetRepas();
+  document.querySelectorAll('[data-sug]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const nom=b.dataset.nom;if(!nom)return;
+      const A=S.ajout;
+      if(A.repas==='estim'||!A.repas)A.repas=repasParHeure();
+      A.desc=nom;
+      // l'ancien repas analysé bascule en historique
+      const precedent=paquetRepas();
+      A.etat='envoi';A.resultat=null;rendre();window.scrollTo(0,0);
+      try{
+        const r=await appel({action:'repas',repas:A.repas,description:nom,photo:'',mime:'image/jpeg'});
         if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
-        A.resultat=it.resultat;A.confirm=null;A.message='';A.dateAutre=auj();
-        A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+        A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
+        A.photo=null;A.apercu=null;A.taille=0;A.desc='';
+        pousserFoodRepas(r);
         ecrireRepasCache();
-      }
-      rendre();window.scrollTo(0,0);
+      }catch(e){A.etat='ko';A.message=e.message;}
+      rendre();
     });
   });
   ['#a-photo','#a-galerie'].forEach(sel=>on(sel,'change',async e=>{
