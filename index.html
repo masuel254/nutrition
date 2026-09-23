@@ -53,6 +53,11 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .conso b{font-weight:600;color:var(--ink)}
 .rappel{font-size:13px;margin-top:10px;line-height:1.45}
 .periode{display:flex;gap:6px;margin-bottom:12px}
+.periode-ligne{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.periode-ligne .periode{margin-bottom:0;flex-wrap:wrap}
+.periode-delta{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
+.periode-delta .pd-lib{font-size:10.5px;color:var(--soft);font-weight:300}
+.periode-delta .pd-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .periode button{padding:5px 12px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
 .periode button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
 .courbe-tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
@@ -356,7 +361,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/09/2026 14h15';
+const APP_VERSION='23/09/2026 17h50';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -862,14 +867,14 @@ function barresLigne(items,h){
   const lg=Math.max(2,Math.min(15,pas*0.6));
   let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Écart quotidien">';
   o+='<line x1="0" y1="'+zero+'" x2="'+w+'" y2="'+zero+'" stroke="var(--rule)"/>';
+  let selIt=null,selCx=0;
   items.forEach((it,i)=>{
     const cx=pas*(i+0.5),ht=Math.abs(it.v)*ech,y=it.v<0?zero:zero-ht;
     const sel=(S.insp&&S.insp.date===it.date);
     o+='<rect data-jour="'+it.date+'" x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+
        '" height="'+Math.max(1,ht).toFixed(1)+'" fill="'+(it.v<0?'var(--under)':'var(--over)')+'" rx="1"'+
-       (sel?' stroke="var(--ink)" stroke-width="1.4"':'')+'/>';
-    if(sel)o+='<text x="'+cx.toFixed(1)+'" y="'+(it.v<0?zero+ht+11:zero-ht-4).toFixed(1)+
-       '" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--ink)">'+sgn(it.v)+'</text>';
+       (sel?' stroke="var(--ink)" stroke-width="1.6"':'')+'/>';
+    if(sel){selIt=it;selCx=cx;}
   });
   if(items.length>=5){
     let m='';
@@ -878,11 +883,18 @@ function barresLigne(items,h){
       const v=d.reduce((s,x)=>s+x.v,0)/d.length;
       m+=(i?'L':'M')+(pas*(i+0.5)).toFixed(1)+' '+(zero-v*ech).toFixed(1)+' ';
     });
-    o+='<path d="'+m+'" fill="none" stroke="var(--ink)" stroke-width="1.3" opacity="0.7"/>';
+    o+='<path d="'+m+'" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.75"/>';
   }
-  o+='<text x="0" y="'+(zero-5)+'" font-size="10" fill="var(--soft)" font-weight="300">besoins du jour</text>';
+  // dates aux extrémités
   o+='<text x="0" y="'+(h-4)+'" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[0].date)+'</text>';
   o+='<text x="'+w+'" y="'+(h-4)+'" text-anchor="end" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[items.length-1].date)+'</text>';
+  // badge de la barre sélectionnée, bien lisible (date + écart), en haut
+  if(selIt){
+    const txt=jjmm(selIt.date)+' : '+sgn(selIt.v)+' kcal';
+    const bw=Math.max(104,txt.length*6.8),bx=Math.min(Math.max(2,selCx-bw/2),w-bw-2);
+    o+='<rect x="'+bx.toFixed(1)+'" y="1" width="'+bw.toFixed(1)+'" height="18" rx="4" fill="'+(selIt.v<0?'var(--under)':'var(--over)')+'"/>';
+    o+='<text x="'+(bx+bw/2).toFixed(1)+'" y="13.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--paper)">'+txt+'</text>';
+  }
   return o+'</svg>';
 }
 
@@ -1601,13 +1613,22 @@ function vueCourbes(d){
   let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
   const P=S.periode||30;
   if(P)js=js.slice(-P);
-  h+='<section><h2>Écart quotidien</h2><div class="periode" id="ch-periode">';
-  [[30,'30 jours'],[90,'90 jours'],[0,'Tout']].forEach(x=>{
+  // somme des écarts sur la sélection affichée (déficit cumulé si négatif)
+  const somme=js.reduce((s,j)=>s+(Number(j.ecart)||0),0);
+  h+='<section><h2>Écart quotidien</h2><div class="periode-ligne">'+
+     '<div class="periode" id="ch-periode">';
+  [[7,'7 jours'],[30,'30 jours'],[90,'90 jours'],[0,'Tout']].forEach(x=>{
     h+='<button data-p="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
-  h+='</div>'+barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
+  h+='</div>'+
+     '<div class="periode-delta" title="Somme des écarts sur la sélection">'+
+       '<span class="pd-lib">Δ sélection</span>'+
+       '<span class="pd-val" style="color:'+(somme<0?'var(--under)':somme>0?'var(--over)':'var(--soft)')+'">'+
+       (somme<0?'\u2212':somme>0?'+':'')+nb(Math.abs(Math.round(somme)))+' kcal</span>'+
+     '</div></div>';
+  h+=barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
      detailJour(d,S.insp?S.insp.date:null)+
-     '<p class="note">Chaque barre compare ce que tu as mangé aux besoins réels de ce jour-là. Touche une barre pour voir sa valeur. La ligne continue est la moyenne des sept derniers jours, c\'est elle qui compte.</p></section>';
+     '<p class="note"><b>Chaque barre</b> = ce que tu as mangé moins tes besoins du jour. Vert = déficit (sous tes besoins, tu perds), orange = surplus. Touche une barre pour sa valeur. <b>La courbe blanche</b> lisse ces écarts sur 7 jours glissants : elle gomme les à-coups d\'un repas de fête ou d\'un jour léger, et montre ta tendance de fond. <b>Δ sélection</b> = déficit ou surplus total cumulé sur la période choisie.</p></section>';
 
   h+='<section><h2>Régularité</h2>'+calendrier(d.jours)+
      detailJour(d,S.inspCal?S.inspCal.date:null)+
