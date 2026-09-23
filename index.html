@@ -109,6 +109,8 @@ td:first-child{text-align:left}
 .ligne .kcal{font-size:14px;white-space:nowrap;padding-top:1px}
 .ligne .sup{font-size:18px;color:var(--soft);line-height:1;padding:0 2px 4px 8px;position:relative}
 .ligne .sup::before{content:"";position:absolute;inset:-11px;min-width:44px;min-height:44px}
+.ligne .jmod{font-size:15px;color:var(--soft);line-height:1;padding:0 2px 4px 6px;position:relative;background:none;border:none}
+.ligne .jmod::before{content:"";position:absolute;inset:-11px;min-width:44px;min-height:44px}
 .puces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .puces button{padding:6px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--rule);border-radius:999px;
   font-size:12.5px;color:var(--soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -354,7 +356,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='14/09/2026 13h58';
+const APP_VERSION='23/09/2026 14h04';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1642,6 +1644,7 @@ function vueJournal(d){
            '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
            '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+'</div></div>'+
            '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
+           '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">\u270e</button>'+
            '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
       });
     });
@@ -1854,7 +1857,7 @@ function brancher(){
       } else l.classList.toggle('ouvert');
     };
     l.addEventListener('click',e=>{
-      if(e.target.closest('.sup'))return;
+      if(e.target.closest('.sup')||e.target.closest('.jmod'))return;
       bascule();
     });
     l.addEventListener('keydown',e=>{
@@ -2041,6 +2044,13 @@ function brancher(){
     const A=S.ajout,l=A.resultat&&A.resultat.ligne;
     if(!l)return;
     A.confirm='envoi';rendre();
+    // si ce repas provient d'une Modification (ancienne ligne connue), on retire
+    // d'abord l'ancienne pour la remplacer, sans créer de doublon.
+    const ancien=A.enregistre;
+    if(ancien&&ancien.detail){
+      try{await appel({action:'suppr',date:ancien.date,repas:ancien.repas,detail:ancien.detail,kcal:ancien.kcal});}
+      catch(e){/* si la suppression échoue on continue : on préviendra du doublon éventuel */}
+    }
     const payload=Object.assign({action:'enregistrer',date:date},l);
     try{
       const r=await appel(payload);
@@ -2102,15 +2112,12 @@ function brancher(){
     });
   });
   // Modifier un repas enregistre (ou repris du cache) : rouvre l'edition.
-  on('#e-modif','click',async()=>{
+  on('#e-modif','click',()=>{
     const A=S.ajout,r=A.resultat;if(!r)return;
-    // si le repas a ete reellement enregistre, on supprime l'ancienne ligne du journal
-    if(A.confirm==='fait'&&A.enregistre){
-      try{await appel({action:'suppr',date:A.enregistre.date,repas:A.enregistre.repas,
-        detail:A.enregistre.detail,kcal:A.enregistre.kcal});await rafraichir();}
-      catch(e){/* si la suppression echoue, on previent mais on laisse modifier */await modaleAlert('Impossible de retirer l\'ancien repas : '+e.message+' Modifie puis réenregistre, et supprime le doublon si besoin.');}
-    }
-    A.enregistre=null;A.confirm=null;A.message='';
+    // on rouvre l'édition sans rien supprimer tout de suite : l'ancienne ligne
+    // (A.enregistre) ne sera retirée qu'au moment du réenregistrement, dans
+    // enregistrer(). Ainsi, si l'utilisateur abandonne, rien n'est perdu.
+    A.confirm=null;A.message='';
     ecrireRepasCache();rendre();window.scrollTo(0,0);
   });
 
@@ -2209,6 +2216,31 @@ function brancher(){
         await appel({action:'suppr',date:l.date,repas:l.repas,detail:l.detail,kcal:l.kcal});
         await rafraichir();
       }catch(e){await modaleAlert(e.message);}
+      rendre();
+    });
+  });
+  // Modifier un repas depuis le journal : on le ré-analyse à partir de son texte
+  // (le journal ne garde pas les aliments séparés), puis l'utilisateur ajuste et
+  // réenregistre ; l'ancienne ligne est supprimée pour éviter le doublon.
+  document.querySelectorAll('[data-jmod]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const l=S.data.journal[Number(b.dataset.jmod)];
+      if(!l)return;
+      const A=S.ajout;
+      // créneau et jour du repas d'origine
+      const cle={matin:'matin',midi:'midi','en-cas':'encas',encas:'encas',soir:'soir'};
+      A.repas=cle[String(l.repas||'').toLowerCase()]||repasParHeure();
+      A.desc=l.detail||'';
+      A.dateAutre=l.date||auj();
+      // on retient la ligne d'origine pour la retirer une fois la version corrigée enregistrée
+      A.enregistre={date:l.date,repas:l.repas,detail:l.detail,kcal:l.kcal};
+      A.resultat=null;A.confirm=null;A.message='';A.photo=null;A.apercu=null;A.taille=0;
+      S.vue='ajout';A.etat='envoi';rendre();window.scrollTo(0,0);
+      try{
+        const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:'',mime:'image/jpeg'});
+        A.etat=null;A.resultat=r;A.confirm=null;A.desc='';
+        ecrireRepasCache();
+      }catch(e){A.etat='ko';A.message=e.message;A.enregistre=null;}
       rendre();
     });
   });
