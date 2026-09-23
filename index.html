@@ -356,11 +356,11 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/09/2026 14h04';
+const APP_VERSION='23/09/2026 14h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
-  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,histo:[],
+  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
@@ -1871,6 +1871,7 @@ function brancher(){
     b.addEventListener('click',async()=>{
       const nom=b.dataset.nom;if(!nom)return;
       const A=S.ajout;
+      A.enregistre=null; // nouveau repas : pas une modification
       // créneau toujours recalculé selon l'heure au moment de l'analyse
       A.repas=repasParHeure();
       A.desc=nom;
@@ -1962,6 +1963,7 @@ function brancher(){
     if(!p||g<=0)return;
     const c=calculProduit(p,g);
     const A=S.ajout;
+    A.enregistre=null; // nouveau repas : pas une modification
     A.repas=repasParHeure();               // créneau selon l'heure, corrigeable dans le résultat
     // basculer un éventuel repas actif en historique, comme une nouvelle analyse
     const precedent=paquetRepas();
@@ -1988,6 +1990,7 @@ function brancher(){
     const actuel=paquetRepas();
     if(actuel)A.histo=[actuel].concat(A.histo||[]).slice(0,MAX_HISTO);
     A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
+    A.enregistre=null; // nouveau repas : pas une modification
     A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
     ecrireRepasCache();
     rendre();window.scrollTo(0,0);
@@ -2022,6 +2025,7 @@ function brancher(){
   });
   on('#a-envoi','click',async()=>{
     const A=S.ajout;
+    A.enregistre=null; // nouveau repas : pas une modification
     A.desc=(($('#a-desc')||{}).value)||'';
     // le créneau est toujours recalculé selon l'heure au moment de l'analyse
     // (plus de choix de repas avant ; corrigeable ensuite dans le résultat)
