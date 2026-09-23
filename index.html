@@ -361,7 +361,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/09/2026 18h00';
+const APP_VERSION='23/09/2026 19h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -502,18 +502,23 @@ async function rejouerPending(silencieux){
 async function appel(corps){
   const url=S.cfg.api.trim().replace(/\/+$/,'');
   const body=JSON.stringify(Object.assign({token:S.cfg.token.trim()},corps));
+  // l'analyse IA d'un repas (surtout avec photo) est lente par nature : on lui
+  // laisse 90 s. Les autres appels (data, enregistrer, suppr, params) : 25 s.
+  const DELAI=(corps&&corps.action==='repas')?90000:25000;
   // 3 tentatives (1 + 2 retries) avec backoff exponentiel, uniquement sur
   // erreurs transitoires : coupure reseau, timeout, ou 5xx. Le 429 n'est pas
   // rejoue dans la seconde (le serveur demande d'attendre) mais est marque
   // transitoire (.reseau) pour que la file d'attente le rejoue plus tard, sans
   // le supprimer. Un refus applicatif (j.ok===false) reste definitif.
-  const RETRIS=2;
+  // pas de retry pour l'analyse : si l'IA est lente, relancer ne fait que doubler
+  // le travail. Une seule tentative de 90 s. Les autres appels gardent 2 retries.
+  const RETRIS=(corps&&corps.action==='repas')?0:2;
   let derniere=null;
   for(let essai=0;essai<=RETRIS;essai++){
     if(essai>0)await new Promise(res=>setTimeout(res,600*Math.pow(2,essai-1)));
     let r;
     const ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
-    const minuteur=ctrl?setTimeout(()=>ctrl.abort(),25000):null;
+    const minuteur=ctrl?setTimeout(()=>ctrl.abort(),DELAI):null;
     try{
       r=await fetch(url,{method:'POST',cache:'no-store',
         headers:{'Content-Type':'text/plain;charset=UTF-8'},body:body,
