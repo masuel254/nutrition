@@ -361,7 +361,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/09/2026 17h50';
+const APP_VERSION='23/09/2026 18h00';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1617,7 +1617,7 @@ function vueCourbes(d){
   const somme=js.reduce((s,j)=>s+(Number(j.ecart)||0),0);
   h+='<section><h2>Écart quotidien</h2><div class="periode-ligne">'+
      '<div class="periode" id="ch-periode">';
-  [[7,'7 jours'],[30,'30 jours'],[90,'90 jours'],[0,'Tout']].forEach(x=>{
+  [[7,'7j'],[14,'14j'],[30,'30j'],[90,'90j'],[0,'Tout']].forEach(x=>{
     h+='<button data-p="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div>'+
