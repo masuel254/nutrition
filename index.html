@@ -226,6 +226,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .al-q{min-width:52px;text-align:center;font-size:12.5px;color:var(--soft)}
 .al-q.fixe{min-width:0}
 .al-kc{color:var(--soft);white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.al-sup{flex:0 0 auto;background:none;border:none;color:var(--soft);font-size:17px;line-height:1;padding:0 0 2px 4px}
 .resu-al .al-plg{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
 .resu-al .al-plg span:last-child{color:var(--soft)}
 
@@ -361,11 +362,11 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/09/2026 19h15';
+const APP_VERSION='24/09/2026 11h47';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
-  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,histo:[],
+  ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
@@ -1303,23 +1304,30 @@ function recalculeTotal(r){
 function vueAjout(d){
   const A=S.ajout;
   let h='';
-  h+=blocSuggestions(d);
-
-  h+=sectionScan(A);
-
-  h+='<section><h2>Description</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
-  const pret=!!(A.photo||A.desc.trim());
-  h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':'Analyser')+'</button>';
-  if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l’analyse.</p>';
-  if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
-  h+='</section>';
-  h+='<section><h2>Photo</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none"><div class="zone compact-photo">';
-  if(A.apercu)h+='<img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div>';
-  else h+='<div style="font-size:30px;line-height:1">📷</div><div class="taille">Aucune photo. Tu peux aussi décrire ton repas plus bas, l’analyse marche sans image.</div>';
-  h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
-  if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
-  h+='</section>';
-  if(A.resultat){
+  // La saisie (scan + description + photo) s'affiche quand il n'y a pas encore de
+  // résultat, OU pendant un ajout d'aliment à un repas existant (A.ajoutEnCours).
+  const saisieVisible=!A.resultat||A.ajoutEnCours;
+  if(saisieVisible){
+    if(!A.ajoutEnCours)h+=blocSuggestions(d);
+    if(A.ajoutEnCours)h+='<section class="ajout-entete"><h2>Ajouter un aliment</h2>'+
+      '<p class="note">Décris, photographie ou scanne l\'aliment à ajouter au repas. Il s\'ajoutera sans toucher au reste.</p>'+
+      '<button class="lien" id="aj-annule">Annuler l\'ajout</button></section>';
+    h+=sectionScan(A);
+    h+='<section><h2>Description</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
+    const pret=!!(A.photo||A.desc.trim());
+    const lbl=A.ajoutEnCours?'Analyser et ajouter':'Analyser';
+    h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':lbl)+'</button>';
+    if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l’analyse.</p>';
+    if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+    h+='</section>';
+    h+='<section><h2>Photo</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none"><div class="zone compact-photo">';
+    if(A.apercu)h+='<img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div>';
+    else h+='<div style="font-size:30px;line-height:1">📷</div><div class="taille">Aucune photo. Tu peux aussi décrire ton repas plus bas, l’analyse marche sans image.</div>';
+    h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
+    if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
+    h+='</section>';
+  }
+  if(A.resultat&&!A.ajoutEnCours){
     const r=A.resultat;
     const fige=(A.confirm==='fait'||A.confirm==='envoi');
     h+='<section><div class="resu"><div class="tt"><span>'+esc(r.repas)+'</span><b id="e-total">'+nb(r.total.kcal)+' kcal</b></div>';
@@ -1344,7 +1352,9 @@ function vueAjout(d){
       }else if(al.quantite){
         h+='<span class="al-q fixe">'+esc(al.quantite)+'</span>';
       }
-      h+='<span class="al-kc">'+nb(al.kcal)+' kcal</span></div></li>';
+      h+='<span class="al-kc">'+nb(al.kcal)+' kcal</span>';
+      if(!fige)h+='<button class="al-sup" data-alsup="'+i+'" aria-label="Retirer cet aliment">\u00d7</button>';
+      h+='</div></li>';
     });
     h+='<li class="al-plg"><span>Protéines / lipides / glucides</span><span id="e-plg">'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+
        '<div id="e-micro">'+ligneMicro(r.total)+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
@@ -1363,6 +1373,7 @@ function vueAjout(d){
       if(A.confirm==='envoi')h+='<p class="note"><span class="attente"></span>Enregistrement en cours</p>';
       if(A.confirm==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
       h+='</div>';
+      h+='<button class="secondaire" id="e-ajout-al">+ Ajouter un aliment</button>';
     }
     h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';
   }
@@ -1989,6 +2000,18 @@ function brancher(){
     if(!p||g<=0)return;
     const c=calculProduit(p,g);
     const A=S.ajout;
+    const alScan={nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
+      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium};
+    // --- MODE AJOUT : on greffe le produit scanné sur le repas en cours ---
+    if(A.ajoutEnCours&&A.resultat){
+      A.resultat.aliments.push(alScan);
+      recalculeTotal(A.resultat);
+      pousserFoodScan(p,g);
+      A.ajoutEnCours=false;SC.etat=null;SC.produit=null;
+      A.confirm=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+      ecrireRepasCache();rendre();window.scrollTo(0,0);
+      return;
+    }
     A.enregistre=null; // nouveau repas : pas une modification
     A.repas=repasParHeure();               // créneau selon l'heure, corrigeable dans le résultat
     // basculer un éventuel repas actif en historique, comme une nouvelle analyse
@@ -1997,8 +2020,7 @@ function brancher(){
     const detail=p.nom+(p.marque?' ('+p.marque+')':'')+' · '+nb(g)+' g';
     A.resultat={
       repas:libelleRepas(A.repas),
-      aliments:[{nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
-        prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium}],
+      aliments:[alScan],
       total:c,incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
       nutriscore:p.nutriscore||'',
@@ -2016,7 +2038,7 @@ function brancher(){
     const actuel=paquetRepas();
     if(actuel)A.histo=[actuel].concat(A.histo||[]).slice(0,MAX_HISTO);
     A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
-    A.enregistre=null; // nouveau repas : pas une modification
+    A.enregistre=null;A.ajoutEnCours=false; // nouveau repas : pas une modification
     A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
     ecrireRepasCache();
     rendre();window.scrollTo(0,0);
@@ -2025,7 +2047,7 @@ function brancher(){
     if(!await modaleConfirm('Effacer le repas en cours et tout l\'historique ?',{ok:'Effacer',danger:true}))return;
     const A=S.ajout;
     A.histo=[];A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
-    A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
+    A.ajoutEnCours=false;A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
     localStorage.removeItem(S.repas);
     rendre();window.scrollTo(0,0);
   });
@@ -2051,8 +2073,23 @@ function brancher(){
   });
   on('#a-envoi','click',async()=>{
     const A=S.ajout;
-    A.enregistre=null; // nouveau repas : pas une modification
     A.desc=(($('#a-desc')||{}).value)||'';
+    // --- MODE AJOUT : on analyse le nouvel aliment et on le fusionne au repas en cours ---
+    if(A.ajoutEnCours&&A.resultat){
+      A.etat='envoi';rendre();
+      try{
+        const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
+        // on greffe les aliments analysés sur le repas existant, sans écraser le reste
+        (r.aliments||[]).forEach(a=>A.resultat.aliments.push(a));
+        recalculeTotal(A.resultat);
+        A.ajoutEnCours=false;A.etat=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+        ecrireRepasCache();
+      }catch(e){A.etat='ko';A.message=e.message;}
+      rendre();window.scrollTo(0,0);
+      return;
+    }
+    // --- MODE NORMAL : nouvelle analyse ---
+    A.enregistre=null; // nouveau repas : pas une modification
     // le créneau est toujours recalculé selon l'heure au moment de l'analyse
     // (plus de choix de repas avant ; corrigeable ensuite dans le résultat)
     A.repas=repasParHeure();
@@ -2140,6 +2177,30 @@ function brancher(){
       recalculeTotal(r);
       ecrireRepasCache();rendre();
     });
+  });
+  // suppression d'un aliment de la liste du résultat
+  document.querySelectorAll('[data-alsup]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const A=S.ajout,r=A.resultat;if(!r)return;
+      const i=Number(b.dataset.alsup);
+      if(!r.aliments||i<0||i>=r.aliments.length)return;
+      if(r.aliments.length<=1)return; // on ne vide pas complètement le repas
+      r.aliments.splice(i,1);
+      recalculeTotal(r);
+      ecrireRepasCache();rendre();
+    });
+  });
+  // ouvrir l'écran d'ajout d'un aliment
+  on('#e-ajout-al','click',()=>{
+    const A=S.ajout;
+    A.ajoutEnCours=true;A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;A.message='';
+    ecrireRepasCache();rendre();window.scrollTo(0,0);
+  });
+  // annuler l'ajout en cours
+  on('#aj-annule','click',()=>{
+    const A=S.ajout;
+    A.ajoutEnCours=false;A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;A.message='';
+    ecrireRepasCache();rendre();window.scrollTo(0,0);
   });
   // Modifier un repas enregistre (ou repris du cache) : rouvre l'edition.
   on('#e-modif','click',()=>{
