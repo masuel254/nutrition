@@ -363,7 +363,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='24/09/2026 11h56';
+const APP_VERSION='24/09/2026 12h04';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1630,8 +1630,17 @@ function vueCourbes(d){
   h+=blocNutriscore(d);
 
   let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
-  const P=S.periode||30;
-  if(P)js=js.slice(-P);
+  // P peut valoir 0 (= "Tout") : ne pas utiliser || qui écraserait 0 en 30
+  const P=(S.periode===undefined?30:S.periode);
+  // fenêtre CALENDAIRE (comme Progression) : on garde les jours dont la date
+  // tombe dans les P derniers jours avant le dernier jour enregistré, plutôt
+  // que "les P derniers jours enregistrés".
+  if(P&&js.length){
+    const finJ=new Date(js[js.length-1].date+'T00:00:00Z');
+    const borne=new Date(finJ);borne.setUTCDate(finJ.getUTCDate()-(P-1));
+    const borneISO=borne.toISOString().slice(0,10);
+    js=js.filter(j=>j.date>=borneISO);
+  }
   // somme des écarts sur la sélection affichée (déficit cumulé si négatif)
   const somme=js.reduce((s,j)=>s+(Number(j.ecart)||0),0);
   h+='<section><h2>Écart quotidien</h2><div class="periode-ligne">'+
