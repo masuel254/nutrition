@@ -219,14 +219,15 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .resu li{padding:5px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px}
 .resu li span:last-child{color:var(--soft);white-space:nowrap}
 .resu .resu-al li{display:block}
-.al-l{display:flex;align-items:center;gap:8px}
-.al-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.al-step{display:flex;align-items:center;gap:1px;flex:0 0 auto}
-.al-step button{width:30px;height:30px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center}
-.al-q{min-width:52px;text-align:center;font-size:12.5px;color:var(--soft)}
-.al-q.fixe{min-width:0}
+/* Aliment sur deux lignes : nom (entier) + kcal + croix ; puis stepper dessous */
+.al-tete{display:flex;align-items:baseline;gap:8px}
+.al-nom{flex:1;min-width:0;line-height:1.3}
 .al-kc{color:var(--soft);white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
-.al-sup{flex:0 0 auto;background:none;border:none;color:var(--soft);font-size:17px;line-height:1;padding:0 0 2px 4px}
+.al-sup{flex:0 0 auto;background:none;border:none;color:var(--soft);font-size:18px;line-height:1;padding:0 0 0 4px;align-self:center}
+.al-ctrl{display:flex;align-items:center;gap:8px;margin-top:5px}
+.al-ctrl .al-mm{width:30px;height:30px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.al-q{font-size:13px;color:var(--soft);min-width:0}
+.al-q.fixe{margin-top:2px}
 .resu-al .al-plg{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
 .resu-al .al-plg span:last-child{color:var(--soft)}
 
@@ -362,7 +363,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='24/09/2026 11h47';
+const APP_VERSION='24/09/2026 11h56';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1344,17 +1345,19 @@ function vueAjout(d){
     h+='<ul class="resu-al">';
     r.aliments.forEach((al,i)=>{
       const num=qteNombre(al.quantite);
-      h+='<li><div class="al-l"><span class="al-nom">'+esc(al.nom)+'</span>';
-      if(!fige&&num!==null){
-        h+='<span class="al-step"><button data-ai="'+i+'" data-d="-1" aria-label="Moins">\u2212</button>'+
-           '<span class="al-q">'+esc(al.quantite)+'</span>'+
-           '<button data-ai="'+i+'" data-d="1" aria-label="Plus">+</button></span>';
-      }else if(al.quantite){
-        h+='<span class="al-q fixe">'+esc(al.quantite)+'</span>';
-      }
-      h+='<span class="al-kc">'+nb(al.kcal)+' kcal</span>';
+      // ligne 1 : nom en entier + kcal (+ croix). ligne 2 : quantité / stepper.
+      h+='<li><div class="al-tete"><span class="al-nom">'+esc(al.nom)+'</span>'+
+         '<span class="al-kc">'+nb(al.kcal)+' kcal</span>';
       if(!fige)h+='<button class="al-sup" data-alsup="'+i+'" aria-label="Retirer cet aliment">\u00d7</button>';
-      h+='</div></li>';
+      h+='</div>';
+      if(!fige&&num!==null){
+        h+='<div class="al-ctrl"><button class="al-mm" data-ai="'+i+'" data-d="-1" aria-label="Moins">\u2212</button>'+
+           '<span class="al-q">'+esc(al.quantite)+'</span>'+
+           '<button class="al-mm" data-ai="'+i+'" data-d="1" aria-label="Plus">+</button></div>';
+      }else if(al.quantite){
+        h+='<div class="al-ctrl"><span class="al-q fixe">'+esc(al.quantite)+'</span></div>';
+      }
+      h+='</li>';
     });
     h+='<li class="al-plg"><span>Protéines / lipides / glucides</span><span id="e-plg">'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+
        '<div id="e-micro">'+ligneMicro(r.total)+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
@@ -2165,7 +2168,7 @@ function brancher(){
   on('#e-date','change',e=>{S.ajout.dateAutre=e.target.value;});
   on('#e-valide','click',()=>enregistrer(S.ajout.dateAutre||auj()));
   // steppers -/+ par aliment : ajustent la quantite et recalculent le total
-  document.querySelectorAll('.al-step button[data-ai]').forEach(b=>{
+  document.querySelectorAll('.al-ctrl button[data-ai]').forEach(b=>{
     b.addEventListener('click',()=>{
       const A=S.ajout,r=A.resultat;if(!r)return;
       const i=Number(b.dataset.ai),dir=Number(b.dataset.d);
