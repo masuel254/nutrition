@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Suivi</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#F2F3F1" media="(prefers-color-scheme: light)">
@@ -28,7 +28,11 @@
    est un élément normal en bas d'une colonne flex. Sur iOS en mode écran d'accueil, un
    position:fixed dépend du défilement du document et WebKit finit par le décaler
    (bug connu, non corrigeable côté CSS de la barre) : on supprime donc la cause. */
-html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* iOS zoome sur tout champ de saisie dont le texte fait moins de 16 px, et ne dézoome pas
+   toujours ensuite : l'écran reste agrandi et décalé sur le côté. Tous les champs à 16 px mini. */
+input:not([type=range]),textarea,select{font-size:max(16px,1em)}
 #racine{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}
 #defile{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
@@ -158,7 +162,7 @@ nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
 .ecran h1{font-size:26px;font-weight:300;letter-spacing:-0.02em;margin-bottom:6px}
 .ecran p{color:var(--soft);font-size:14px;font-weight:300;margin:0 0 22px}
 label{display:block;font-size:13px;font-weight:600;margin:16px 0 5px}
-input,textarea{width:100%;padding:11px 12px;font:inherit;font-size:15px;background:var(--card);
+input,textarea{width:100%;padding:11px 12px;font:inherit;font-size:16px;background:var(--card);
   color:var(--ink);border:1px solid var(--rule);border-radius:3px;-webkit-appearance:none}
 textarea{min-height:78px;resize:vertical}
 #a-desc{min-height:52px}
@@ -206,7 +210,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .repart{display:flex;gap:8px;margin-top:5px}
 .repart-i{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .repart-i span{font-size:12px;color:var(--soft)}
-.repart-i input{width:100%;text-align:center;padding:8px 4px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
+.repart-i input{width:100%;text-align:center;padding:8px 4px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);font-size:16px;font-variant-numeric:tabular-nums}
 .photo{margin-top:14px;border:1px dashed var(--rule);border-radius:4px;padding:22px;text-align:center;
   color:var(--soft);font-size:14px;font-weight:300}
 .photo img{max-width:100%;border-radius:3px;display:block;margin:0 auto}
@@ -362,6 +366,10 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .pur-tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px;font-size:15px}
 .pur-tete b{font-size:22px;font-weight:600}
 .pur-lib{font-size:12.5px;color:var(--soft)}
+.goutte{border:1px solid var(--over);border-left-width:4px;border-radius:6px;padding:10px 13px;background:color-mix(in srgb,var(--over) 8%,var(--card))}
+.goutte-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--over);margin-bottom:4px}
+.goutte p{margin:6px 0 0;font-size:13.5px;line-height:1.45}
+.goutte p:first-of-type{margin-top:0}
 .pur-top{margin-top:12px;border:1px solid var(--rule);border-radius:6px;background:var(--card);padding:9px 12px}
 .pur-top-t{font-size:12px;color:var(--soft);font-weight:600;margin-bottom:4px}
 .pur-top-l{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-top:1px solid var(--rule)}
@@ -375,7 +383,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .mes-saisie{margin-top:14px}
 .cmp-dates{display:flex;gap:10px;margin-top:10px}
 .cmp-dates label{flex:1;margin:0;font-size:12px;color:var(--soft);font-weight:600;display:flex;flex-direction:column;gap:4px}
-.cmp-dates select{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);-webkit-appearance:none}
+.cmp-dates select{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);-webkit-appearance:none}
 .cmp{position:relative;width:100%;aspect-ratio:3/4;margin-top:10px;border-radius:8px;overflow:hidden;background:var(--creux)}
 .cmp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .cmp-avant{position:absolute;inset:0}
@@ -407,7 +415,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='25/09/2026 12h06';
+const APP_VERSION='25/09/2026 13h46';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -999,7 +1007,7 @@ function detailJour(d,date){
   let o='<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 '+nb(j.kcal)+' kcal';
   if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+(j.ecart>0?'sur':'sous')+'">'+sgn(j.ecart)+'</span>';
   o+='<br><span style="color:var(--soft)">P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc)+
-     ' \u00b7 '+j.repas+' repas'+(j.purines?' \u00b7 purines '+nb(j.purines_risque||0)+' mg animales / '+nb(j.purines)+' mg':'')+'</span>';
+     ' \u00b7 '+j.repas+' repas'+(j.purines?' \u00b7 purines à risque '+nb(j.purines_risque||0)+' mg':'')+'</span>';
   lignes.forEach(r=>{o+='<br>'+esc(r.repas)+' \u00b7 '+esc((r.detail||'').slice(0,60))+' \u00b7 '+nb(r.kcal)+' kcal';});
   if(!lignes.length)o+='<br><span style="color:var(--soft)">Détail hors des 100 dernières saisies.</span>';
   return o+'</div>';
@@ -1131,7 +1139,7 @@ function couleurMacro(nom,v,t){
 function vueJour(d){
   const c=d.cibles,a=d.aujourdhui;
   const reste=c.kcal?c.kcal-a.kcal:null;
-  let h='<section>';
+  let h=alertesGoutte(d)+'<section>';
   if(c.kcal){
     h+=anneauCalories(a.kcal,c.kcal);
     const manque=c.prot-a.prot;
@@ -1763,7 +1771,7 @@ function vueJournal(d){
         h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
            '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
            '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+
-           (r.purines?' \u00b7 <span'+((r.purines_risque||0)>=200?' class="sur"':'')+'>purines '+nb(r.purines)+' mg</span>':'')+'</div></div>'+
+           ((r.purines_risque||0)>0?' \u00b7 <span'+((r.purines_risque||0)>=150?' class="sur"':'')+'>purines '+nb(r.purines_risque)+' mg</span>':'')+'</div></div>'+
            '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
            '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">\u270e</button>'+
            '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
@@ -1844,24 +1852,26 @@ function vueRéglages(d){
 // Plafond de purines "à risque" (animales + bière) en mg/jour, réglable dans les Réglages.
 function purMax(d){const v=Number(d&&d.reference&&d.reference.purines_max);return v>0?v:400;}
 // Niveau d'un aliment : f(aible) / m(odéré) / e(levé). Absent si l'analyse est antérieure au suivi.
+// Seules comptent les purines animales, de la bière et de la levure : ce sont les seules
+// associées aux crises de goutte. Un aliment végétal ou sans purines n'a pas de pastille.
 function niveauPurines(al){
   if(!al||al.purines===undefined)return '';
-  const r=Number(al.purines_risque)||0,t=Number(al.purines)||0;
-  if(r>=150||t>=250)return 'e';
-  if(r>=50||t>=100)return 'm';
+  const r=Number(al.purines_risque)||0;
+  if(r<=0)return '';
+  if(r>=150)return 'e';
+  if(r>=50)return 'm';
   return 'f';
 }
 function pastillePurines(al){
   const n=niveauPurines(al);if(!n)return '';
   const lib={f:'purines faibles',m:'purines modérées',e:'purines élevées'}[n];
-  return '<span class="pur p-'+n+'" title="'+lib+'">'+nb(al.purines)+' mg</span>';
+  return '<span class="pur p-'+n+'" title="'+lib+'">'+nb(al.purines_risque)+' mg</span>';
 }
 // Ligne discrète purines / alcool pour un total (repas, produit scanné).
 function lignePurines(o,max,id){
   if(!o||o.purines===undefined)return '';
   const t=Math.round(o.purines||0),r=Math.round(o.purines_risque||0),alc=Number(o.alcool)||0;
-  let s='purines '+nb(t)+' mg';
-  if(t)s+=' dont '+nb(r)+' animales ou bière';
+  let s='purines à risque '+nb(r)+' mg';
   if(max&&r)s+=' ('+Math.round(r/max*100)+' % du plafond)';
   if(alc>0)s+=' · alcool '+String(Math.round(alc*10)/10).replace('.',',')+' g';
   if(o.sucree||o.boissons_sucrees)s+=' · boisson sucrée';
@@ -1874,8 +1884,8 @@ function sept(d){
 }
 function blocPurinesJour(d){
   const a=d.aujourdhui||{},max=purMax(d);
-  const r=Math.round(a.purines_risque||0),t=Math.round(a.purines||0);
-  const aDesDonnees=(d.jours||[]).some(j=>j.purines>0)||t>0;
+  const r=Math.round(a.purines_risque||0);
+  const aDesDonnees=(d.jours||[]).some(j=>j.purines>0)||(a.purines||0)>0;
   if(!aDesDonnees)return '';
   const coul=couleurDepassement(r,max);
   const w=320,h=26,maxi=Math.max(r,max)*1.08,lx=(max/maxi)*w,cx=Math.min((r/maxi)*w,w);
@@ -1889,15 +1899,39 @@ function blocPurinesJour(d){
   const s7=sept(d).concat([a]);
   const alc=s7.reduce((s,j)=>s+(Number(j.alcool)||0),0);
   const suc=s7.reduce((s,j)=>s+(Number(j.boissons_sucrees)||0),0);
-  o+='<div class="micro">Toutes origines : '+nb(t)+' mg · sur 7 jours : alcool '+nb(alc)+' g, '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
-  // déficit trop brutal : fait monter l'acide urique (et coûte du muscle)
+  o+='<div class="micro">Sur 7 jours : alcool '+nb(alc)+' g · '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
+  o+='<p class="note">Seules comptent les purines des viandes, abats, charcuteries, poissons, fruits de mer, bouillons et de la bière : ce sont celles qui favorisent les crises de goutte. Les purines végétales (lentilles, épinards, champignons) n\'augmentent pas ce risque et ne sont pas comptées. Valeurs estimées par famille d\'aliments : une tendance, pas une mesure au milligramme.</p>';
+  return o+'</section>';
+}
+// Alertes acide urique, en tête de l'écran Jour, affichées seulement si elles se déclenchent.
+function alertesGoutte(d){
+  const a=d.aujourdhui||{},max=purMax(d),ajd=auj(),al=[];
+  if(!(d.jours||[]).some(j=>j.purines>0)&&!(a.purines>0))return '';
+  const r=Math.round(a.purines_risque||0);
+  if(r>max){
+    const top=(d.journal||[]).filter(x=>x.date===ajd&&(x.purines_risque||0)>0).sort((x,y)=>(y.purines_risque||0)-(x.purines_risque||0))[0];
+    al.push('<b>Plafond dépassé aujourd\'hui</b> : '+nb(r)+' mg pour '+nb(max)+' mg.'+
+      (top?' Le plus chargé : '+esc(top.repas)+', '+esc(String(top.detail||'').slice(0,60))+' ('+nb(top.purines_risque)+' mg).':'')+
+      ' Pour le reste de la journée : œufs, laitages, légumes, féculents.');
+  }
+  // jours consécutifs au-dessus du plafond, en remontant depuis aujourd'hui (ou hier si rien aujourd'hui)
+  const par={};(d.jours||[]).forEach(j=>{par[j.date]=j;});
+  let n=0;const x=new Date();x.setHours(12,0,0,0);
+  if(!(r>max))x.setDate(x.getDate()-1);
+  for(let i=0;i<30;i++){const j=par[isoLocal(x)];if(j&&(j.purines_risque||0)>max){n++;x.setDate(x.getDate()-1);}else break;}
+  if(n>=3)al.push('<b>'+n+' jours d\'affilée au-dessus du plafond.</b> C\'est la répétition qui fait monter l\'acide urique : prévois une journée sans viande ni poisson.');
+  const s7=sept(d).concat([a]);
+  const jAlc=s7.filter(j=>(Number(j.alcool)||0)>0).length,gAlc=s7.reduce((t,j)=>t+(Number(j.alcool)||0),0);
+  if(jAlc>=3||gAlc>=70)al.push('<b>Alcool '+jAlc+' jour'+(jAlc>1?'s':'')+' sur 7</b> ('+nb(gAlc)+' g). La bière et les alcools forts freinent l\'élimination de l\'acide urique, la bière apporte en plus ses propres purines.');
+  const suc=s7.reduce((t,j)=>t+(Number(j.boissons_sucrees)||0),0);
+  if(suc>3)al.push('<b>'+suc+' boissons sucrées sur 7 jours.</b> Le fructose des sodas et des jus fait monter l\'acide urique, même sans purines.');
   const v=sept(d).filter(j=>j.valide&&j.ecart!==null);
   if(v.length>=5){
-    const m=v.reduce((s,j)=>s+j.ecart,0)/v.length;
-    if(m<-900)o+='<p class="alerte">Déficit moyen de '+nb(Math.abs(m))+' kcal par jour sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.</p>';
+    const m=v.reduce((t,j)=>t+j.ecart,0)/v.length;
+    if(m<-900)al.push('<b>Déficit moyen de '+nb(Math.abs(m))+' kcal par jour</b> sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.');
   }
-  o+='<p class="note">La jauge ne compte que les purines animales et celles de la bière, les seules liées au risque. Celles des lentilles, épinards ou champignons sont comptées à part. Valeurs estimées par famille d\'aliments : c\'est une tendance, pas une mesure au milligramme.</p>';
-  return o+'</section>';
+  if(!al.length)return '';
+  return '<section><div class="goutte"><div class="goutte-t">Vigilance acide urique</div>'+al.map(t=>'<p>'+t+'</p>').join('')+'</div></section>';
 }
 // Barres journalières avec un seuil (plafond de purines, objectif de pas).
 // bonSiHaut : vert au-dessus du seuil (pas) ; sinon vert en dessous (purines).
@@ -1946,7 +1980,7 @@ function blocPurinesCourbes(d){
     top.forEach(r=>{h+='<div class="pur-top-l"><span>'+jjmm(r.date)+' · '+esc(r.repas)+' · '+esc(String(r.detail||'').slice(0,70))+'</span><b>'+nb(r.purines_risque)+' mg</b></div>';});
     h+='</div>';
   }
-  h+='<p class="note">Chaque barre : purines animales et bière du jour. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>';
+  h+='<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>';
   return h+'</section>';
 }
 
@@ -2191,7 +2225,9 @@ function dessinerCamera(){
   const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener('click',fn);};
   on('cam-fermer',fermerCamera);
   on('cam-tourner',()=>{Cm.facing=Cm.facing==='user'?'environment':'user';Cm.etat='demarrage';dessinerCamera();camDemarrerFlux();});
-  on('cam-minuteur',()=>{Cm.minuteur=Cm.minuteur===0?5:(Cm.minuteur===5?10:0);try{localStorage.setItem('suivi.cam',JSON.stringify({facing:Cm.facing,minuteur:Cm.minuteur}));}catch(e){}dessinerCamera();});
+  on('cam-minuteur',e=>{Cm.minuteur=Cm.minuteur===0?5:(Cm.minuteur===5?10:0);try{localStorage.setItem('suivi.cam',JSON.stringify({facing:Cm.facing,minuteur:Cm.minuteur}));}catch(er){}
+    // mise à jour du seul libellé : redessiner recréerait la vidéo et la rendrait indisponible un instant
+    e.currentTarget.textContent=Cm.minuteur+' s';});
   on('cam-declencher',()=>{
     if(Cm.minuteurId)return;
     let n=Cm.minuteur;
@@ -2205,8 +2241,10 @@ function dessinerCamera(){
   on('cam-reprendre',()=>{Cm.capture=null;Cm.etat=camFlux?'pret':'demarrage';dessinerCamera();if(!camFlux)camDemarrerFlux();});
   on('cam-garder',envoyerPhotoCorps);
 }
-function camCapturer(){
+function camCapturer(essai){
   const v=document.getElementById('cam-video');
+  // flux pas encore prêt (juste après ouverture ou changement de caméra) : on attend jusqu'à 2 s
+  if(v&&!v.videoWidth&&(essai||0)<20){setTimeout(()=>camCapturer((essai||0)+1),100);return;}
   if(!v||!v.videoWidth){S.cam.alerte=true;S.cam.message='Image pas encore prête, réessaie.';dessinerCamera();return;}
   S.cam.alerte=false;
   const MAX=1080,w0=v.videoWidth,h0=v.videoHeight,r=Math.min(1,MAX/Math.max(w0,h0));
@@ -2334,6 +2372,18 @@ function recaler(){
   if(window.scrollY||window.scrollX||de.scrollTop||document.body.scrollTop){
     window.scrollTo(0,0);de.scrollTop=0;document.body.scrollTop=0;
   }
+  ['racine','defile'].forEach(id=>{const e=document.getElementById(id);if(e&&e.scrollLeft)e.scrollLeft=0;});
+  dezoomer();
+}
+// Si iOS a malgré tout zoomé (champ tiers, double tap), on réapplique la balise viewport :
+// WebKit revient alors à l'échelle 1 sans recharger la page.
+function dezoomer(){
+  const vv=window.visualViewport;
+  if(!vv||vv.scale<=1.01)return;
+  const m=document.querySelector('meta[name=viewport]');if(!m)return;
+  const c=m.getAttribute('content');
+  m.setAttribute('content',c.replace(/,?\s*maximum-scale=[^,]*/,'')+', maximum-scale=1.0001');
+  setTimeout(()=>m.setAttribute('content',c),60);
 }
 (function(){
   const tard=()=>setTimeout(recaler,60);
