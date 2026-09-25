@@ -415,7 +415,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='25/09/2026 13h46';
+const APP_VERSION='25/09/2026 14h55';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -2002,6 +2002,28 @@ function masseGrasse(sexe,stature,taille,cou,hanches){
   return (v>3&&v<70)?v:null;
 }
 const fr1=v=>(Math.round(v*10)/10).toFixed(1).replace('.',',');
+function kcalParPas(d){
+  const p=Number(d&&d.reference&&d.reference.poids)||0;
+  const t=Number(d&&d.profil&&d.profil.taille)||0;
+  if(!p||!t)return 0;
+  return 0.5*p*(t*0.415/100000);   // kcal/kg/km × kg × km par pas
+}
+// Repères de pas par jour (Tudor-Locke abaissés de 1 000 pas, choix de Samuel) rapprochés des niveaux d'activité des Réglages.
+// La salle ne fait presque pas de pas : elle se rajoute à ce niveau, d'où la prudence du texte.
+function conseilActivite(d,moy){
+  const f=Number(d.reference&&d.reference.facteur)||1.2;
+  const actuel=(ACTIV.filter(x=>Math.abs(x[0]-f)<0.001)[0]||[f,'?'])[1];
+  let sug;
+  if(moy<4000)sug='Sédentaire';
+  else if(moy<6500)sug='Très peu actif';
+  else if(moy<9000)sug='Peu actif';
+  else if(moy<11500)sug='Modérément actif';
+  else sug='Très actif';
+  const txt=sug===actuel
+    ?'Avec '+nb(moy)+' pas par jour en moyenne, ton réglage « '+actuel+' » est cohérent.'
+    :'Avec '+nb(moy)+' pas par jour en moyenne, ta marche seule correspond plutôt au niveau « '+sug+' ». Ton réglage actuel : « '+actuel+' ».';
+  return '<p class="note">'+txt+' Si tu fais aussi de la musculation 3 fois par semaine ou plus, monte d\'un cran. Le niveau se change dans les Réglages, les calories de la marche ne s\'ajoutent jamais en plus.</p>';
+}
 function sectionPas(d){
   const act=d.activite||[];
   const par={};act.forEach(a=>{par[a.date]=a.pas;});
@@ -2012,7 +2034,17 @@ function sectionPas(d){
   let h='<section><h2>Pas</h2>';
   h+='<div class="prog"><div class="col"><div class="lib">Aujourd\'hui</div><div class="big'+(ajd>=OBJECTIF_PAS?' pos':'')+'">'+nb(ajd)+'</div><div class="sub">objectif '+nb(OBJECTIF_PAS)+'</div></div>'+
      '<div class="col"><div class="lib">Moyenne 7 j</div><div class="big">'+(moy===null?'—':nb(moy))+'</div><div class="sub">'+(prec.length?prec.length+' jour'+(prec.length>1?'s':''):'aucune donnée')+'</div></div></div>';
+  // Dépense de la marche : ~0,5 kcal par kg et par km au-dessus du repos ; foulée ≈ 0,415 × taille.
+  const kpp=kcalParPas(d);
+  if(kpp&&(ajd||moy)){
+    h+='<div class="ryth-poids"><span class="k">Marche, dépense estimée</span><span class="v">'+
+       (ajd?'≈ '+nb(ajd*kpp)+' kcal':'\u2014')+'</span></div>'+
+       '<div class="micro">'+(moy!==null?'Moyenne 7 jours : ≈ '+nb(moy*kpp)+' kcal par jour · ':'')+
+       'environ '+nb(1000*kpp)+' kcal pour 1 000 pas à ton poids actuel.</div>';
+  }
   if(act.length)h+=barresSeuil(joursCalendaires(14,par),{seuil:OBJECTIF_PAS,bonSiHaut:true,libSeuil:nb(OBJECTIF_PAS)+' pas',titre:'Pas par jour'});
+  // aide au réglage manuel du niveau d'activité, sur au moins 5 jours de pas
+  if(prec.length>=5)h+=conseilActivite(d,moy);
   const der=act.length?act[act.length-1].date:null;
   h+='<p class="note">'+(der?'Dernière synchronisation : '+jjmmJour(der)+'. ':'Aucun pas reçu pour l\'instant. ')+
      'Les pas arrivent tout seuls depuis ton Raccourci iPhone. En cas de besoin, corrige le total du jour ici.</p>';
