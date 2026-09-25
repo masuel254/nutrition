@@ -353,6 +353,45 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
   background:var(--paper);display:flex;justify-content:space-between;align-items:baseline}
 .prod .calc .kc{font-size:22px;font-weight:600}
 .prod .calc .mac{font-size:12px;color:var(--soft);font-weight:300}
+/* Purines */
+.pur{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:11.5px;color:var(--soft);white-space:nowrap}
+.pur::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--under);flex:none}
+.pur.p-m::before{background:var(--ambre)}
+.pur.p-e::before{background:var(--over)}
+.pur.p-e{color:var(--over);font-weight:600}
+.pur-tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px;font-size:15px}
+.pur-tete b{font-size:22px;font-weight:600}
+.pur-lib{font-size:12.5px;color:var(--soft)}
+.pur-top{margin-top:12px;border:1px solid var(--rule);border-radius:6px;background:var(--card);padding:9px 12px}
+.pur-top-t{font-size:12px;color:var(--soft);font-weight:600;margin-bottom:4px}
+.pur-top-l{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-top:1px solid var(--rule)}
+.pur-top-l:first-of-type{border-top:none}
+.pur-top-l span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--soft)}
+.pur-top-l b{white-space:nowrap;color:var(--over)}
+/* Corps */
+.pas-saisie{margin-top:8px;display:flex;gap:8px;align-items:stretch}
+.pas-saisie input{flex:1;min-width:0}
+.pas-saisie .secondaire{width:auto;margin:0;padding:11px 16px;flex:none}
+.mes-saisie{margin-top:14px}
+.cmp-dates{display:flex;gap:10px;margin-top:10px}
+.cmp-dates label{flex:1;margin:0;font-size:12px;color:var(--soft);font-weight:600;display:flex;flex-direction:column;gap:4px}
+.cmp-dates select{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);-webkit-appearance:none}
+.cmp{position:relative;width:100%;aspect-ratio:3/4;margin-top:10px;border-radius:8px;overflow:hidden;background:var(--creux)}
+.cmp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cmp-avant{position:absolute;inset:0}
+.cmp-trait{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.5);pointer-events:none}
+.cmp-eti{position:absolute;top:8px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:600}
+.cmp-eti.g{left:8px}.cmp-eti.d{right:8px}
+#k-cmp-r{width:100%;margin-top:10px;padding:0;border:none;background:none;height:30px;-webkit-appearance:auto;appearance:auto;accent-color:var(--ink)}
+.cmp-info{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--soft);margin-top:2px}
+/* Appareil photo d'évolution */
+.cam .scan-video.miroir{transform:scaleX(-1)}
+.cam-fantome{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;pointer-events:none}
+.cam-apercu{flex:1;width:100%;height:100%;object-fit:contain;background:#000}
+.cam-compte{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:120px;font-weight:300;color:#fff;
+  text-shadow:0 2px 12px rgba(0,0,0,.6);pointer-events:none}
+.cam .scan-bas button{padding:13px 6px;font-size:14px}
+.cam .scan-bas button:disabled{opacity:.45}
 @media (prefers-reduced-motion: no-preference){
   .attente{animation:tourne .7s linear infinite}
   @keyframes tourne{to{transform:rotate(360deg)}}
@@ -368,14 +407,16 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='25/09/2026 08h37';
+const APP_VERSION='25/09/2026 12h06';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,file:[],courbeVue:'poids',
-  pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null}};
+  pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null},
+  corps:{pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
+  cam:{ouvert:false}};
 
 const $=(s,r)=>(r||document).querySelector(s);
 
@@ -513,7 +554,7 @@ async function appel(corps){
   // laisse 90 s. Les autres appels (data, enregistrer, suppr, params) : 25 s.
   // appels IA (analyse de repas, coach) : lents par nature, 90 s ; le serveur
   // est calibré pour répondre avant (pire cas ~81 s). Autres appels : 25 s.
-  const IA=!!(corps&&(corps.action==='repas'||corps.action==='conseil'));
+  const IA=!!(corps&&(corps.action==='repas'||corps.action==='conseil'||corps.action==='photo'));
   const DELAI=IA?90000:25000;
   // 3 tentatives (1 + 2 retries) avec backoff exponentiel, uniquement sur
   // erreurs transitoires : coupure reseau, timeout, ou 5xx. Le 429 n'est pas
@@ -738,7 +779,11 @@ function calculProduit(p,grammes){
     kcal:Math.round(p.per100.kcal*f),prot:Math.round(p.per100.prot*f),
     lip:Math.round(p.per100.lip*f),gluc:Math.round(p.per100.gluc*f),
     fibres:Math.round((p.per100.fibres||0)*f),sucres:Math.round((p.per100.sucres||0)*f),
-    sodium:Math.round((p.per100.sodium||0)*f)
+    sodium:Math.round((p.per100.sodium||0)*f),
+    // purines/alcool : absents des produits mémorisés avant ce suivi -> on ne les invente pas
+    ...(p.per100.purines!==undefined?{purines:Math.round((p.per100.purines||0)*f),
+      purines_risque:Math.round((p.per100.purines_risque||0)*f),
+      alcool:Math.round((p.per100.alcool||0)*f*10)/10,sucree:p.sucree?1:0}:{})
   };
 }
 
@@ -954,7 +999,7 @@ function detailJour(d,date){
   let o='<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 '+nb(j.kcal)+' kcal';
   if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+(j.ecart>0?'sur':'sous')+'">'+sgn(j.ecart)+'</span>';
   o+='<br><span style="color:var(--soft)">P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc)+
-     ' \u00b7 '+j.repas+' repas</span>';
+     ' \u00b7 '+j.repas+' repas'+(j.purines?' \u00b7 purines '+nb(j.purines_risque||0)+' mg animales / '+nb(j.purines)+' mg':'')+'</span>';
   lignes.forEach(r=>{o+='<br>'+esc(r.repas)+' \u00b7 '+esc((r.detail||'').slice(0,60))+' \u00b7 '+nb(r.kcal)+' kcal';});
   if(!lignes.length)o+='<br><span style="color:var(--soft)">Détail hors des 100 dernières saisies.</span>';
   return o+'</div>';
@@ -1113,6 +1158,8 @@ function vueJour(d){
     h+='</section>';
   }
 
+  h+=blocPurinesJour(d);
+
   // Cibles par repas recalculees cote appli a partir du decoupage regle,
   // pour rester iso avec les Reglages quelle que soit la valeur renvoyee par l'API.
   const frac=repartFrac(d);
@@ -1201,6 +1248,7 @@ function sectionScan(A){
     h+='<div class="calc"><div><div class="kc">'+nb(calc.kcal)+' kcal</div>'+
        '<div class="mac">P '+nb(calc.prot)+' · L '+nb(calc.lip)+' · G '+nb(calc.gluc)+' g pour '+nb(g)+' g</div></div></div>';
     h+=ligneMicro(calc);
+    h+=lignePurines(calc,purMax(S.data),'sc-pur');
     h+='<button class="primaire" id="sc-valide"'+(g<=0?' disabled':'')+'>Utiliser ce produit</button>';
     h+='<button class="lien" id="sc-annule">Annuler</button>';
     h+='</div></section>';
@@ -1296,18 +1344,32 @@ function ajusteAliment(al,nouvelleQte){
   if(q0===null||q0<=0)return al;
   const f=nouvelleQte/q0;
   const R=x=>Math.round((Number(x)||0)*f);
-  return {nom:base.nom,quantite:qteRemplace(base.quantite,nouvelleQte),
+  const o={nom:base.nom,quantite:qteRemplace(base.quantite,nouvelleQte),
     kcal:R(base.kcal),prot:R(base.prot),lip:R(base.lip),gluc:R(base.gluc),
     fibres:R(base.fibres),sucres:R(base.sucres),sodium:R(base.sodium),__base:base};
+  if(base.purines!==undefined){
+    o.purines=R(base.purines);o.purines_risque=R(base.purines_risque);
+    o.alcool=Math.round((Number(base.alcool)||0)*f*10)/10;o.sucree=base.sucree||0;
+    o.famille=base.famille||'';o.grammes=R(base.grammes);
+  }
+  return o;
 }
 // Recalcule le total d'un résultat à partir de ses aliments.
 function recalculeTotal(r){
   const s={kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0};
   (r.aliments||[]).forEach(a=>{['kcal','prot','lip','gluc','fibres','sucres','sodium'].forEach(k=>{s[k]+=Number(a[k])||0;});});
   Object.keys(s).forEach(k=>s[k]=Math.round(s[k]));
+  // purines / alcool / boissons sucrées, dès qu'un aliment les porte
+  if((r.aliments||[]).some(a=>a.purines!==undefined)){
+    const som=k=>(r.aliments||[]).reduce((t,a)=>t+(Number(a[k])||0),0);
+    s.purines=Math.round(som('purines'));s.purines_risque=Math.round(som('purines_risque'));
+    s.alcool=Math.round(som('alcool')*10)/10;s.boissons_sucrees=Math.round(som('sucree'));
+  }
   r.total=s;
   if(r.ligne){r.ligne.kcal=s.kcal;r.ligne.prot=s.prot;r.ligne.lip=s.lip;r.ligne.gluc=s.gluc;
     r.ligne.fibres=s.fibres;r.ligne.sucres=s.sucres;r.ligne.sodium=s.sodium;
+    if(s.purines!==undefined){r.ligne.purines=s.purines;r.ligne.purines_risque=s.purines_risque;
+      r.ligne.alcool=s.alcool;r.ligne.boissons_sucrees=s.boissons_sucrees;}
     r.ligne.detail=(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', ');}
 }
 function vueAjout(d){
@@ -1361,14 +1423,14 @@ function vueAjout(d){
       if(!fige&&num!==null){
         h+='<div class="al-ctrl"><button class="al-mm" data-ai="'+i+'" data-d="-1" aria-label="Moins">\u2212</button>'+
            '<span class="al-q">'+esc(al.quantite)+'</span>'+
-           '<button class="al-mm" data-ai="'+i+'" data-d="1" aria-label="Plus">+</button></div>';
-      }else if(al.quantite){
-        h+='<div class="al-ctrl"><span class="al-q fixe">'+esc(al.quantite)+'</span></div>';
+           '<button class="al-mm" data-ai="'+i+'" data-d="1" aria-label="Plus">+</button>'+pastillePurines(al)+'</div>';
+      }else if(al.quantite||niveauPurines(al)){
+        h+='<div class="al-ctrl"><span class="al-q fixe">'+esc(al.quantite)+'</span>'+pastillePurines(al)+'</div>';
       }
       h+='</li>';
     });
     h+='<li class="al-plg"><span>Protéines / lipides / glucides</span><span id="e-plg">'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+
-       '<div id="e-micro">'+ligneMicro(r.total)+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
+       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
       h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
@@ -1636,6 +1698,7 @@ function vueCourbes(d){
   h+='</div>'+progression(d,PP)+'</section>';
 
   h+=blocNutriscore(d);
+  h+=blocPurinesCourbes(d);
 
   let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
   // P peut valoir 0 (= "Tout") : ne pas utiliser || qui écraserait 0 en 30
@@ -1699,7 +1762,8 @@ function vueJournal(d){
         const pastille=/^[abcde]$/.test(ns)?'<span class="nutri '+ns+'" style="width:20px;height:20px;font-size:12px;vertical-align:-4px;margin-right:6px">'+ns+'</span>':'';
         h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
            '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
-           '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+'</div></div>'+
+           '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+
+           (r.purines?' \u00b7 <span'+((r.purines_risque||0)>=200?' class="sur"':'')+'>purines '+nb(r.purines)+' mg</span>':'')+'</div></div>'+
            '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
            '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">\u270e</button>'+
            '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
@@ -1752,6 +1816,9 @@ function vueRéglages(d){
   h+='</div><p class="note" id="macros-tot">Total : '+(mp.prot+mp.lip+mp.gluc)+' %. La somme doit faire 100. '+
      'Aujourd\'hui : '+Math.round(cibleNum*mp.prot/100/4)+' g de protéines, '+Math.round(cibleNum*mp.lip/100/9)+' g de lipides, '+Math.round(cibleNum*mp.gluc/100/4)+' g de glucides.</p>';
 
+  h+='<label for="g-purmax" style="margin-top:16px">Plafond de purines (mg par jour)</label>'+
+     '<input id="g-purmax" type="text" inputmode="numeric" value="'+purMax(d)+'">'+
+     '<p class="note">Purines animales et bière seulement. 400 mg est le repère courant d\'une alimentation pauvre en purines, 300 en période de crise. À valider avec ton médecin.</p>';
   h+='<button class="primaire" id="g-envoi"'+(S.para.etat==='envoi'?' disabled':'')+'>'+
      (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>';
   if(S.para.etat==='ko')h+='<p class="alerte">'+esc(S.para.message)+'</p>';
@@ -1771,6 +1838,421 @@ function vueRéglages(d){
     '<button class="lien" id="r-out">Oublier ce téléphone</button>'+
     '<p class="note">Le code vient du bot Telegram, menu Application. Le régénérer là-bas invalide celui-ci.</p></section>';
   return h;
+}
+
+/* ---------- purines ---------- */
+// Plafond de purines "à risque" (animales + bière) en mg/jour, réglable dans les Réglages.
+function purMax(d){const v=Number(d&&d.reference&&d.reference.purines_max);return v>0?v:400;}
+// Niveau d'un aliment : f(aible) / m(odéré) / e(levé). Absent si l'analyse est antérieure au suivi.
+function niveauPurines(al){
+  if(!al||al.purines===undefined)return '';
+  const r=Number(al.purines_risque)||0,t=Number(al.purines)||0;
+  if(r>=150||t>=250)return 'e';
+  if(r>=50||t>=100)return 'm';
+  return 'f';
+}
+function pastillePurines(al){
+  const n=niveauPurines(al);if(!n)return '';
+  const lib={f:'purines faibles',m:'purines modérées',e:'purines élevées'}[n];
+  return '<span class="pur p-'+n+'" title="'+lib+'">'+nb(al.purines)+' mg</span>';
+}
+// Ligne discrète purines / alcool pour un total (repas, produit scanné).
+function lignePurines(o,max,id){
+  if(!o||o.purines===undefined)return '';
+  const t=Math.round(o.purines||0),r=Math.round(o.purines_risque||0),alc=Number(o.alcool)||0;
+  let s='purines '+nb(t)+' mg';
+  if(t)s+=' dont '+nb(r)+' animales ou bière';
+  if(max&&r)s+=' ('+Math.round(r/max*100)+' % du plafond)';
+  if(alc>0)s+=' · alcool '+String(Math.round(alc*10)/10).replace('.',',')+' g';
+  if(o.sucree||o.boissons_sucrees)s+=' · boisson sucrée';
+  return '<div class="micro"'+(id?' id="'+id+'"':'')+'>'+s+'</div>';
+}
+// Jours pleins des 7 derniers jours (hors aujourd'hui), du plus récent au plus ancien.
+function sept(d){
+  const a=auj();
+  return (d.jours||[]).filter(j=>j.date<a).slice(-7);
+}
+function blocPurinesJour(d){
+  const a=d.aujourdhui||{},max=purMax(d);
+  const r=Math.round(a.purines_risque||0),t=Math.round(a.purines||0);
+  const aDesDonnees=(d.jours||[]).some(j=>j.purines>0)||t>0;
+  if(!aDesDonnees)return '';
+  const coul=couleurDepassement(r,max);
+  const w=320,h=26,maxi=Math.max(r,max)*1.08,lx=(max/maxi)*w,cx=Math.min((r/maxi)*w,w);
+  let o='<section><h2>Purines</h2>';
+  o+='<div class="pur-tete"><span><b style="color:'+(r>max?coul:'var(--ink)')+'">'+nb(r)+'</b> / '+nb(max)+' mg</span>'+
+     '<span class="pur-lib">animales et bière</span></div>';
+  o+='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Purines à risque : '+nb(r)+' mg sur un plafond de '+nb(max)+'">'+
+     '<rect x="0" y="5" width="'+w+'" height="12" rx="6" fill="var(--creux)"/>'+
+     '<rect x="0" y="5" width="'+cx.toFixed(1)+'" height="12" rx="6" fill="'+coul+'"/>'+
+     '<line x1="'+lx.toFixed(1)+'" y1="1" x2="'+lx.toFixed(1)+'" y2="22" stroke="var(--ink)" stroke-width="1.5"/></svg>';
+  const s7=sept(d).concat([a]);
+  const alc=s7.reduce((s,j)=>s+(Number(j.alcool)||0),0);
+  const suc=s7.reduce((s,j)=>s+(Number(j.boissons_sucrees)||0),0);
+  o+='<div class="micro">Toutes origines : '+nb(t)+' mg · sur 7 jours : alcool '+nb(alc)+' g, '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
+  // déficit trop brutal : fait monter l'acide urique (et coûte du muscle)
+  const v=sept(d).filter(j=>j.valide&&j.ecart!==null);
+  if(v.length>=5){
+    const m=v.reduce((s,j)=>s+j.ecart,0)/v.length;
+    if(m<-900)o+='<p class="alerte">Déficit moyen de '+nb(Math.abs(m))+' kcal par jour sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.</p>';
+  }
+  o+='<p class="note">La jauge ne compte que les purines animales et celles de la bière, les seules liées au risque. Celles des lentilles, épinards ou champignons sont comptées à part. Valeurs estimées par famille d\'aliments : c\'est une tendance, pas une mesure au milligramme.</p>';
+  return o+'</section>';
+}
+// Barres journalières avec un seuil (plafond de purines, objectif de pas).
+// bonSiHaut : vert au-dessus du seuil (pas) ; sinon vert en dessous (purines).
+function barresSeuil(items,o){
+  if(!items.length)return '<p class="vide">Pas encore de données.</p>';
+  const w=320,h=o.h||140,pt=18,pb=18,pl=2,pr=2;
+  const vmax=Math.max(o.seuil*1.25,Math.max.apply(null,items.map(i=>i.v)))||1;
+  const Y=v=>pt+(1-v/vmax)*(h-pt-pb);
+  const pas=(w-pl-pr)/items.length,lg=Math.max(3,Math.min(16,pas*0.62));
+  let s='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(o.titre||'barres')+'">';
+  items.forEach((it,i)=>{
+    const bon=o.bonSiHaut?it.v>=o.seuil:it.v<=o.seuil;
+    const cx=pl+pas*(i+0.5),y=Y(it.v);
+    s+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,(h-pb)-y).toFixed(1)+'" rx="2" fill="'+(bon?'var(--under)':'var(--over)')+'"'+(it.vide?' opacity="0.25"':'')+'/>';
+  });
+  const ys=Y(o.seuil);
+  s+='<line x1="0" y1="'+ys.toFixed(1)+'" x2="'+w+'" y2="'+ys.toFixed(1)+'" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 3"/>';
+  s+='<text x="'+(w-2)+'" y="'+Math.max(11,ys-5).toFixed(1)+'" text-anchor="end" font-size="10.5" font-weight="600" fill="var(--ink)" stroke="var(--paper)" stroke-width="3.5" paint-order="stroke">'+esc(o.libSeuil||'')+'</text>';
+  s+='<text x="0" y="'+(h-4)+'" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[0].date)+'</text>';
+  s+='<text x="'+w+'" y="'+(h-4)+'" text-anchor="end" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[items.length-1].date)+'</text>';
+  return s+'</svg>';
+}
+// n derniers jours calendaires jusqu'à aujourd'hui, valeur 0 si absente
+function joursCalendaires(n,parDate){
+  const out=[];const d=new Date();d.setHours(12,0,0,0);
+  for(let i=n-1;i>=0;i--){const x=new Date(d);x.setDate(d.getDate()-i);const k=isoLocal(x);
+    out.push({date:k,v:parDate[k]!==undefined?parDate[k]:0,vide:parDate[k]===undefined});}
+  return out;
+}
+function blocPurinesCourbes(d){
+  const js=(d.jours||[]).filter(j=>j.repas>0);
+  if(!js.some(j=>j.purines>0))return '<section><h2>Purines</h2><p class="note">Les purines s\'afficheront ici au fil des nouveaux repas analysés (les repas enregistrés avant ce suivi n\'en ont pas).</p></section>';
+  const max=purMax(d),par={};
+  js.forEach(j=>{par[j.date]=Math.round(j.purines_risque||0);});
+  const items=joursCalendaires(30,par);
+  const pleins=items.filter(i=>!i.vide);
+  const dessus=pleins.filter(i=>i.v>max).length;
+  const m7=sept(d).filter(j=>j.repas>0);
+  const moy7=m7.length?Math.round(m7.reduce((s,j)=>s+(j.purines_risque||0),0)/m7.length):null;
+  let h='<section><h2>Purines</h2>';
+  h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour'});
+  h+='<div class="micro">'+(moy7!==null?'Moyenne 7 jours : <b>'+nb(moy7)+' mg</b> par jour · ':'')+dessus+' jour'+(dessus>1?'s':'')+' au-dessus du plafond sur 30 jours</div>';
+  const top=(d.journal||[]).filter(r=>(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
+  if(top.length){
+    h+='<div class="pur-top"><div class="pur-top-t">Repas les plus chargés (100 dernières saisies)</div>';
+    top.forEach(r=>{h+='<div class="pur-top-l"><span>'+jjmm(r.date)+' · '+esc(r.repas)+' · '+esc(String(r.detail||'').slice(0,70))+'</span><b>'+nb(r.purines_risque)+' mg</b></div>';});
+    h+='</div>';
+  }
+  h+='<p class="note">Chaque barre : purines animales et bière du jour. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>';
+  return h+'</section>';
+}
+
+/* ---------- corps : pas, mensurations, photos ---------- */
+const OBJECTIF_PAS=8000;
+function poidsA(d,date){
+  const p=(d.poids||[]).filter(x=>x.date<=date);
+  if(p.length)return p[p.length-1].poids;
+  return (d.poids&&d.poids.length)?d.poids[0].poids:(d.reference&&d.reference.poids)||0;
+}
+// Estimation de la masse grasse, méthode US Navy (cm). Homme : taille + cou ; femme : + hanches.
+function masseGrasse(sexe,stature,taille,cou,hanches){
+  if(!stature||!taille||!cou)return null;
+  let v;
+  if(sexe==='F'){if(!hanches||taille+hanches-cou<=0)return null;
+    v=495/(1.29579-0.35004*Math.log10(taille+hanches-cou)+0.22100*Math.log10(stature))-450;}
+  else{if(taille-cou<=0)return null;
+    v=495/(1.0324-0.19077*Math.log10(taille-cou)+0.15456*Math.log10(stature))-450;}
+  return (v>3&&v<70)?v:null;
+}
+const fr1=v=>(Math.round(v*10)/10).toFixed(1).replace('.',',');
+function sectionPas(d){
+  const act=d.activite||[];
+  const par={};act.forEach(a=>{par[a.date]=a.pas;});
+  const a=auj(),ajd=par[a]||0;
+  const prec=act.filter(x=>x.date<a).slice(-7);
+  const moy=prec.length?Math.round(prec.reduce((s,x)=>s+x.pas,0)/prec.length):null;
+  const C=S.corps;
+  let h='<section><h2>Pas</h2>';
+  h+='<div class="prog"><div class="col"><div class="lib">Aujourd\'hui</div><div class="big'+(ajd>=OBJECTIF_PAS?' pos':'')+'">'+nb(ajd)+'</div><div class="sub">objectif '+nb(OBJECTIF_PAS)+'</div></div>'+
+     '<div class="col"><div class="lib">Moyenne 7 j</div><div class="big">'+(moy===null?'—':nb(moy))+'</div><div class="sub">'+(prec.length?prec.length+' jour'+(prec.length>1?'s':''):'aucune donnée')+'</div></div></div>';
+  if(act.length)h+=barresSeuil(joursCalendaires(14,par),{seuil:OBJECTIF_PAS,bonSiHaut:true,libSeuil:nb(OBJECTIF_PAS)+' pas',titre:'Pas par jour'});
+  const der=act.length?act[act.length-1].date:null;
+  h+='<p class="note">'+(der?'Dernière synchronisation : '+jjmmJour(der)+'. ':'Aucun pas reçu pour l\'instant. ')+
+     'Les pas arrivent tout seuls depuis ton Raccourci iPhone. En cas de besoin, corrige le total du jour ici.</p>';
+  h+='<div class="qte-saisie pas-saisie"><input id="k-pas" type="number" inputmode="numeric" min="0" max="150000" placeholder="Pas du jour" value="'+(ajd||'')+'"><button class="secondaire" id="k-pas-ok"'+(C.pasEtat==='envoi'?' disabled':'')+'>'+(C.pasEtat==='envoi'?'<span class="attente"></span>':'Enregistrer')+'</button></div>';
+  if(C.pasEtat==='ko')h+='<p class="alerte">'+esc(C.pasMsg)+'</p>';
+  if(C.pasEtat==='ok')h+='<p class="bien">'+esc(C.pasMsg)+'</p>';
+  return h+'</section>';
+}
+function sectionMesures(d){
+  const M=d.mesures||[],C=S.corps;
+  const der=M.length?M[M.length-1]:null,prem=M.length?M[0]:null;
+  const stature=Number(d.profil&&d.profil.taille)||0,sexe=String((d.profil&&d.profil.sexe)||'H').toUpperCase().charAt(0);
+  let h='<section><h2>Mensurations</h2>';
+  if(der){
+    const rt=stature?der.taille_cm/stature:null;
+    const mg=masseGrasse(sexe,stature,der.taille_cm,der.cou_cm,der.hanches_cm);
+    const p=poidsA(d,der.date);
+    h+='<div class="prog"><div class="col"><div class="lib">Tour de taille</div><div class="big">'+fr1(der.taille_cm)+'</div><div class="sub">cm le '+jjmm(der.date)+
+       (M.length>1?' · <span class="'+(der.taille_cm<=prem.taille_cm?'sous':'sur')+'">'+(der.taille_cm-prem.taille_cm<=0?'−':'+')+fr1(Math.abs(der.taille_cm-prem.taille_cm))+'</span>':'')+'</div></div>';
+    if(mg!==null)h+='<div class="col"><div class="lib">Masse grasse</div><div class="big">'+fr1(mg)+' %</div><div class="sub">'+(p?'soit '+fr1(p*mg/100)+' kg · maigre '+fr1(p*(1-mg/100))+' kg':'estimation')+'</div></div>';
+    h+='</div>';
+    if(rt){
+      const cl=rt<0.5?'sous':(rt<0.6?'':'sur');
+      h+='<div class="ryth-poids"><span class="k">Rapport taille / stature</span><span class="v '+cl+'">'+rt.toFixed(2).replace('.',',')+'</span></div>'+
+         '<p class="note">Repère santé : sous 0,5, soit un tour de taille de '+fr1(stature*0.5)+' cm pour toi.'+(mg!==null?' Masse grasse estimée par la méthode US Navy (tour de taille, cou, stature), précise à ±3 % environ : suis la tendance plutôt que la valeur.':'')+'</p>';
+    }
+    // courbes
+    const cv=C.courbe==='mg'&&M.some(m=>m.cou_cm)?'mg':'taille';
+    if(M.length>=2){
+      h+='<div class="courbe-tabs" id="k-courbe"><button data-kc="taille" class="'+(cv==='taille'?'on':'')+'">Tour de taille</button>'+
+         (M.some(m=>m.cou_cm)?'<button data-kc="mg" class="'+(cv==='mg'?'on':'')+'">Masse grasse / maigre</button>':'')+'</div>';
+      if(cv==='taille')h+=serieCourbe(M.map(m=>({date:m.date,v:m.taille_cm})),{h:130,unite:' cm',dec:1,moyenne:false,titre:'tour de taille',legende:'tour de taille',badgeW:62});
+      else{
+        const pts=M.map(m=>{const g=masseGrasse(sexe,stature,m.taille_cm,m.cou_cm,m.hanches_cm);const p=poidsA(d,m.date);return (g!==null&&p)?{date:m.date,g:p*g/100,m:p*(1-g/100)}:null;}).filter(Boolean);
+        if(pts.length>=2){
+          h+=serieCourbe(pts.map(x=>({date:x.date,v:x.m})),{h:110,unite:' kg',dec:1,moyenne:false,titre:'masse maigre',legende:'masse maigre (kg)',couleur:'var(--under)',badgeW:62});
+          h+=serieCourbe(pts.map(x=>({date:x.date,v:x.g})),{h:110,unite:' kg',dec:1,moyenne:false,titre:'masse grasse',legende:'masse grasse (kg)',couleur:'var(--over)',badgeW:62});
+          h+='<p class="note">En sèche, la masse maigre doit rester à peu près stable pendant que la masse grasse baisse. Si la maigre chute, remonte les protéines et garde la musculation.</p>';
+        }else h+='<p class="vide">Il faut deux relevés avec le tour de cou pour tracer cette courbe.</p>';
+      }
+    }
+  }
+  const v=k=>der&&der[k]?String(der[k]).replace('.',','):'';
+  h+='<div class="repart mes-saisie">'+
+     '<div class="repart-i"><span>Taille (cm)</span><input type="text" inputmode="decimal" id="k-taille" value="'+esc(v('taille_cm'))+'"></div>'+
+     '<div class="repart-i"><span>Cou (cm)</span><input type="text" inputmode="decimal" id="k-cou" value="'+esc(v('cou_cm'))+'"></div>'+
+     '<div class="repart-i"><span>Hanches</span><input type="text" inputmode="decimal" id="k-hanches" placeholder="option" value="'+esc(v('hanches_cm'))+'"></div></div>'+
+     '<button class="primaire" id="k-mes-ok"'+(C.mesEtat==='envoi'?' disabled':'')+'>'+(C.mesEtat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer les mensurations du jour')+'</button>';
+  if(C.mesEtat==='ko')h+='<p class="alerte">'+esc(C.mesMsg)+'</p>';
+  if(C.mesEtat==='ok')h+='<p class="bien">'+esc(C.mesMsg)+'</p>';
+  h+='<p class="note">Une fois par mois, le matin à jeun, mètre ruban à plat. Taille : au niveau du nombril, en fin d\'expiration, sans rentrer le ventre. Cou : juste sous la pomme d\'Adam.</p>';
+  return h+'</section>';
+}
+function libType(t){return t==='profil'?'profil':'face';}
+function sectionPhotos(d){
+  const P=d.photos||[],C=S.corps;
+  let h='<section><h2>Photos d\'évolution</h2>';
+  h+='<div class="deux"><button id="k-ph-face">Photo de face</button><button id="k-ph-profil">Photo de profil</button></div>';
+  if(C.photoMsg)h+='<p class="bien">'+esc(C.photoMsg)+'</p>';
+  const type=C.cmpType==='profil'?'profil':'face';
+  const liste=P.filter(p=>p.type===type);
+  h+='<div class="choix" id="k-cmp-type" style="margin-top:14px"><button data-kt="face" class="'+(type==='face'?'on':'')+'">Face</button><button data-kt="profil" class="'+(type==='profil'?'on':'')+'">Profil</button></div>';
+  if(!liste.length){
+    h+='<p class="note">Aucune photo de '+libType(type)+' pour l\'instant. Une par mois suffit : même lumière, même heure, même tenue. La photo précédente s\'affiche en transparence pour te placer exactement pareil.</p>';
+    return h+'</section>';
+  }
+  const dates=liste.map(p=>p.date);
+  let a=dates.indexOf(C.cmpA)>=0?C.cmpA:dates[0];
+  let b=dates.indexOf(C.cmpB)>=0?C.cmpB:dates[dates.length-1];
+  const fa=liste.filter(p=>p.date===a)[0].fichier,fb=liste.filter(p=>p.date===b)[0].fichier;
+  if(liste.length>1){
+    const opts=sel=>dates.map(x=>'<option value="'+x+'"'+(x===sel?' selected':'')+'>'+jjmm(x)+' '+x.slice(0,4)+'</option>').join('');
+    h+='<div class="cmp-dates"><label>Avant<select id="k-cmp-a">'+opts(a)+'</select></label><label>Après<select id="k-cmp-b">'+opts(b)+'</select></label></div>';
+    h+='<div class="cmp" id="k-cmp"><img class="cmp-img" data-fichier="'+esc(fb)+'" alt="Après, '+jjmm(b)+'">'+
+       '<div class="cmp-avant" id="k-cmp-avant" style="clip-path:inset(0 50% 0 0)"><img class="cmp-img" data-fichier="'+esc(fa)+'" alt="Avant, '+jjmm(a)+'"></div>'+
+       '<div class="cmp-trait" id="k-cmp-trait" style="left:50%"></div>'+
+       '<span class="cmp-eti g">'+jjmm(a)+'</span><span class="cmp-eti d">'+jjmm(b)+'</span></div>'+
+       '<input type="range" id="k-cmp-r" min="0" max="100" value="50" aria-label="Glisser pour comparer avant et après">';
+    const info=x=>{const p=poidsA(d,x);const m=(d.mesures||[]).filter(z=>z.date<=x);const t=m.length?m[m.length-1].taille_cm:null;
+      return (p?fr1(p)+' kg':'')+(t?' · taille '+fr1(t)+' cm':'');};
+    h+='<div class="cmp-info"><span>'+esc(info(a))+'</span><span>'+esc(info(b))+'</span></div>';
+  }else{
+    h+='<div class="cmp"><img class="cmp-img" data-fichier="'+esc(fa)+'" alt="Photo du '+jjmm(a)+'"><span class="cmp-eti g">'+jjmm(a)+'</span></div>'+
+       '<p class="note">Reprends une photo dans un mois pour pouvoir comparer.</p>';
+  }
+  h+='<p class="note">Tes photos sont gardées dans l\'appli et archivées par ton bot dans ta conversation Telegram, sans notification. Personne d\'autre n\'y a accès.</p>';
+  return h+'</section>';
+}
+function vueCorps(d){
+  return sectionPas(d)+sectionMesures(d)+sectionPhotos(d);
+}
+
+/* ---------- photos : stockage local (IndexedDB) + récupération serveur ---------- */
+const PHOTO_DB='suivi-photos';
+let photoDbP=null;
+const photoMem=new Map();
+function photoDb(){
+  if(photoDbP)return photoDbP;
+  photoDbP=new Promise(res=>{
+    try{
+      const rq=indexedDB.open(PHOTO_DB,1);
+      rq.onupgradeneeded=()=>{try{rq.result.createObjectStore('photos');}catch(e){}};
+      rq.onsuccess=()=>res(rq.result);
+      rq.onerror=()=>res(null);
+      rq.onblocked=()=>res(null);
+    }catch(e){res(null);}
+  });
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+  return photoDbP;
+}
+async function idbGet(k){
+  const db=await photoDb();if(!db)return null;
+  return new Promise(res=>{try{const q=db.transaction('photos','readonly').objectStore('photos').get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);}catch(e){res(null);}});
+}
+async function idbPut(k,v){
+  const db=await photoDb();if(!db)return;
+  return new Promise(res=>{try{const t=db.transaction('photos','readwrite');t.objectStore('photos').put(v,k);t.oncomplete=()=>res();t.onerror=()=>res();}catch(e){res();}});
+}
+async function photoUrl(fichier){
+  if(!fichier)return null;
+  if(photoMem.has(fichier))return photoMem.get(fichier);
+  let u=await idbGet(fichier);
+  if(!u){
+    const r=await appel({action:'photo_get',fichier:fichier});
+    if(!r||!r.photo)return null;
+    u='data:'+(r.mime||'image/jpeg')+';base64,'+r.photo;
+    idbPut(fichier,u);
+  }
+  photoMem.set(fichier,u);
+  return u;
+}
+let hydratationEnCours=false;
+// Remplit les <img data-fichier> encore vides, une photo à la fois (pas de rafale vers le serveur).
+async function hydraterPhotos(){
+  if(hydratationEnCours)return;
+  hydratationEnCours=true;
+  try{
+    for(let tour=0;tour<12;tour++){
+      const img=[...document.querySelectorAll('img[data-fichier]')].filter(i=>!i.getAttribute('src')&&!i.dataset.ko)[0];
+      if(!img)break;
+      const f=img.dataset.fichier;
+      let u=null;
+      try{u=await photoUrl(f);}catch(e){u=null;}
+      document.querySelectorAll('img[data-fichier="'+(window.CSS&&CSS.escape?CSS.escape(f):f)+'"]').forEach(i=>{
+        if(u)i.src=u;else{i.dataset.ko='1';i.alt='Photo indisponible';}
+      });
+    }
+  }finally{hydratationEnCours=false;}
+}
+
+/* ---------- appareil photo avec silhouette fantôme ---------- */
+let camFlux=null;
+function camArreterFlux(){
+  try{if(camFlux)camFlux.getTracks().forEach(t=>{try{t.stop();}catch(e){}});}catch(e){}
+  camFlux=null;
+}
+function fermerCamera(){
+  camArreterFlux();
+  if(S.cam.minuteurId){clearInterval(S.cam.minuteurId);S.cam.minuteurId=null;}
+  S.cam.ouvert=false;S.cam.capture=null;S.cam.etat=null;
+  const h=document.getElementById('cam-hote');if(h)h.remove();
+}
+async function camDemarrerFlux(){
+  const Cm=S.cam;
+  if(!navigator.mediaDevices||typeof navigator.mediaDevices.getUserMedia!=='function'){
+    Cm.etat='ko';Cm.message='Caméra indisponible dans ce navigateur.';dessinerCamera();return;
+  }
+  camArreterFlux();
+  try{
+    camFlux=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:Cm.facing},width:{ideal:1920},height:{ideal:1920}}});
+    if(!S.cam.ouvert){camArreterFlux();return;}
+    Cm.etat='pret';dessinerCamera();
+  }catch(e){
+    Cm.etat='ko';
+    Cm.message=/permission|denied|NotAllowed/i.test((e&&e.name||'')+(e&&e.message||''))
+      ?'Accès caméra refusé. Autorise la caméra pour cette appli dans les réglages de l\'iPhone.'
+      :'Caméra indisponible. '+((e&&e.message)||'');
+    dessinerCamera();
+  }
+}
+function dessinerCamera(){
+  const Cm=S.cam;
+  let hote=document.getElementById('cam-hote');
+  if(!Cm.ouvert){if(hote)hote.remove();return;}
+  if(!hote){hote=document.createElement('div');hote.id='cam-hote';document.body.appendChild(hote);}
+  const miroir=Cm.facing==='user';
+  let h='<div class="scan-overlay cam">';
+  if(Cm.capture){
+    h+='<img class="cam-apercu" src="'+Cm.capture.url+'" alt="Photo prise">'+
+       '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':'Photo de '+libType(Cm.type)+' : on la garde ?')+'</div>';
+    if(Cm.etat==='ko')h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
+    h+='<div class="scan-bas"><button id="cam-reprendre"'+(Cm.etat==='envoi'?' disabled':'')+'>Reprendre</button>'+
+       '<button class="stop" id="cam-garder"'+(Cm.etat==='envoi'?' disabled':'')+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';
+  }else{
+    h+='<video id="cam-video" class="scan-video'+(miroir?' miroir':'')+'" playsinline muted autoplay></video>';
+    // la photo précédente est déjà enregistrée telle qu'affichée (miroir compris) : pas de retournement
+    if(Cm.fantome)h+='<img class="cam-fantome" src="'+Cm.fantome+'" alt="">';
+    h+='<div class="scan-haut">'+(Cm.etat==='demarrage'?'Démarrage de la caméra…':'Photo de '+libType(Cm.type)+(Cm.fantome?' · place-toi sur la photo précédente':''))+'</div>'+
+       '<div class="cam-compte" id="cam-compte"></div>';
+    if(Cm.etat==='ko'||Cm.alerte)h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
+    h+='<div class="scan-bas"><button id="cam-fermer">Fermer</button>'+
+       '<button id="cam-tourner" aria-label="Changer de caméra">'+(Cm.facing==='user'?'Arrière':'Avant')+'</button>'+
+       '<button id="cam-minuteur" aria-label="Retardateur">'+(Cm.minuteur?Cm.minuteur+' s':'0 s')+'</button>'+
+       '<button class="stop" id="cam-declencher"'+(Cm.etat!=='pret'?' disabled':'')+'>Prendre</button></div>';
+  }
+  h+='</div>';
+  hote.innerHTML=h;
+  const v=document.getElementById('cam-video');
+  if(v&&camFlux){v.srcObject=camFlux;const pl=v.play();if(pl&&pl.catch)pl.catch(()=>{});}
+  const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener('click',fn);};
+  on('cam-fermer',fermerCamera);
+  on('cam-tourner',()=>{Cm.facing=Cm.facing==='user'?'environment':'user';Cm.etat='demarrage';dessinerCamera();camDemarrerFlux();});
+  on('cam-minuteur',()=>{Cm.minuteur=Cm.minuteur===0?5:(Cm.minuteur===5?10:0);try{localStorage.setItem('suivi.cam',JSON.stringify({facing:Cm.facing,minuteur:Cm.minuteur}));}catch(e){}dessinerCamera();});
+  on('cam-declencher',()=>{
+    if(Cm.minuteurId)return;
+    let n=Cm.minuteur;
+    if(!n){camCapturer();return;}
+    const el=document.getElementById('cam-compte');if(el)el.textContent=n;
+    Cm.minuteurId=setInterval(()=>{
+      n--;const e2=document.getElementById('cam-compte');if(e2)e2.textContent=n>0?n:'';
+      if(n<=0){clearInterval(Cm.minuteurId);Cm.minuteurId=null;camCapturer();}
+    },1000);
+  });
+  on('cam-reprendre',()=>{Cm.capture=null;Cm.etat=camFlux?'pret':'demarrage';dessinerCamera();if(!camFlux)camDemarrerFlux();});
+  on('cam-garder',envoyerPhotoCorps);
+}
+function camCapturer(){
+  const v=document.getElementById('cam-video');
+  if(!v||!v.videoWidth){S.cam.alerte=true;S.cam.message='Image pas encore prête, réessaie.';dessinerCamera();return;}
+  S.cam.alerte=false;
+  const MAX=1080,w0=v.videoWidth,h0=v.videoHeight,r=Math.min(1,MAX/Math.max(w0,h0));
+  const c=document.createElement('canvas');c.width=Math.round(w0*r);c.height=Math.round(h0*r);
+  const x=c.getContext('2d');
+  // même orientation que l'aperçu : miroir avec la caméra avant, pour que la silhouette
+  // fantôme de la prochaine fois tombe exactement au même endroit
+  if(S.cam.facing==='user'){x.translate(c.width,0);x.scale(-1,1);}
+  x.drawImage(v,0,0,c.width,c.height);
+  let url=c.toDataURL('image/jpeg',0.82);
+  if(url.length>900000)url=c.toDataURL('image/jpeg',0.7);
+  vibrer(40);
+  S.cam.capture={url:url,b64:url.split(',')[1]};
+  S.cam.etat=null;
+  dessinerCamera();
+}
+async function envoyerPhotoCorps(){
+  const Cm=S.cam;if(!Cm.capture)return;
+  Cm.etat='envoi';dessinerCamera();
+  try{
+    const r=await appel({action:'photo',type:Cm.type,photo:Cm.capture.b64,date:auj()});
+    if(r.fichier){photoMem.set(r.fichier,Cm.capture.url);await idbPut(r.fichier,Cm.capture.url);}
+    S.corps.photoMsg='Photo de '+libType(Cm.type)+' enregistrée.';
+    S.corps.cmpType=Cm.type;S.corps.cmpB=null;
+    fermerCamera();
+    try{await rafraichir();}catch(e){}
+    rendre();
+  }catch(e){
+    Cm.etat='ko';Cm.message=e.message||'Envoi impossible.';dessinerCamera();
+  }
+}
+async function ouvrirCamera(type){
+  let pref={};try{pref=JSON.parse(localStorage.getItem('suivi.cam'))||{};}catch(e){pref={};}
+  S.cam={ouvert:true,type:type,facing:pref.facing==='environment'?'environment':'user',
+    minuteur:[0,5,10].indexOf(pref.minuteur)>=0?pref.minuteur:5,capture:null,etat:'demarrage',message:'',fantome:null,minuteurId:null};
+  S.corps.photoMsg='';
+  dessinerCamera();
+  camDemarrerFlux();
+  // silhouette fantôme : dernière photo du même type
+  const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===type);
+  if(P.length){
+    try{
+      const u=await photoUrl(P[P.length-1].fichier);
+      if(u&&S.cam.ouvert&&S.cam.type===type){S.cam.fantome=u;if(!S.cam.capture)dessinerCamera();}
+    }catch(e){}
+  }
 }
 
 /* ---------- rendu ---------- */
@@ -1799,6 +2281,7 @@ const VUES=[
  ['jour','Jour','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 12l4-4"/><path d="M7 18h10"/></svg>'],
  ['ajout','Ajouter','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'],
  ['courbes','Courbes','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3-8 5-8 8-3s5 5 10-7"/></svg>'],
+ ['corps','Corps','<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.4"/><path d="M12 8.5v6.5M7 11h10M9 21l3-6 3 6"/></svg>'],
  ['journal','Journal','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>'],
  ['coach','Coach','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg>']
 ];
@@ -1872,6 +2355,7 @@ function rendre(){
     h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
     h+='<div class="vue v-ajout'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
     h+='<div class="vue'+(S.vue==='courbes'?' on':'')+'">'+vueCourbes(d)+'</div>';
+    h+='<div class="vue'+(S.vue==='corps'?' on':'')+'">'+vueCorps(d)+'</div>';
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
     h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
   }
@@ -1880,6 +2364,7 @@ function rendre(){
   r.innerHTML=h+'</nav>'+overlayScan();
   const nd=$('#defile');if(nd&&y)nd.scrollTop=y;
   brancher();
+  hydraterPhotos();
 }
 
 function brancher(){
@@ -2019,10 +2504,11 @@ function brancher(){
     const box=document.querySelector('.prod .calc');
     if(box)box.innerHTML='<div><div class="kc">'+nb(c.kcal)+' kcal</div>'+
       '<div class="mac">P '+nb(c.prot)+' · L '+nb(c.lip)+' · G '+nb(c.gluc)+' g pour '+nb(SC.qte)+' g</div></div>';
-    const micro=document.querySelector('.prod .micro');
+    const micro=document.querySelector('.prod .micro:not(#sc-pur)');
     if(micro){const nv=ligneMicro(c);
       if(nv)micro.outerHTML=nv; else micro.remove();
     }
+    const lp=$('#sc-pur');if(lp){const nv=lignePurines(c,purMax(S.data),'sc-pur');if(nv)lp.outerHTML=nv;}
     const vb=$('#sc-valide');if(vb)vb.disabled=(SC.qte<=0);
   };
   on('#sc-plus','click',()=>majMult(1));
@@ -2036,6 +2522,7 @@ function brancher(){
       const box=document.querySelector('.prod .calc');
       if(box)box.innerHTML='<div><div class="kc">'+nb(c.kcal)+' kcal</div>'+
         '<div class="mac">P '+nb(c.prot)+' · L '+nb(c.lip)+' · G '+nb(c.gluc)+' g pour '+nb(S.ajout.scan.qte)+' g</div></div>';
+      const lp=$('#sc-pur');if(lp){const nv=lignePurines(c,purMax(S.data),'sc-pur');if(nv)lp.outerHTML=nv;}
       const vb=$('#sc-valide');if(vb)vb.disabled=(S.ajout.scan.qte<=0);
     }
   });
@@ -2045,7 +2532,8 @@ function brancher(){
     const c=calculProduit(p,g);
     const A=S.ajout;
     const alScan={nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
-      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium};
+      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,
+      ...(c.purines!==undefined?{purines:c.purines,purines_risque:c.purines_risque,alcool:c.alcool,sucree:c.sucree,famille:p.famille||''}:{})};
     // --- MODE AJOUT : on greffe le produit scanné sur le repas en cours ---
     if(A.ajoutEnCours&&A.resultat){
       A.resultat.aliments.push(alScan);
@@ -2065,10 +2553,11 @@ function brancher(){
     A.resultat={
       repas:libelleRepas(A.repas),
       aliments:[alScan],
-      total:c,incertitude:'faible',
+      total:Object.assign({},c,c.purines!==undefined?{boissons_sucrees:c.sucree||0}:{}),incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
       nutriscore:p.nutriscore||'',
-      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||''}
+      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||'',
+        purines:c.purines||0,purines_risque:c.purines_risque||0,alcool:c.alcool||0,boissons_sucrees:c.sucree||0}
     };
     A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
     pousserFoodScan(p,g);
@@ -2330,9 +2819,11 @@ function brancher(){
     const tm=(om.prot||0)+(om.lip||0)+(om.gluc||0);
     if(tm!==100){S.para.etat='ko';S.para.message='La répartition des macros doit totaliser 100 % (actuellement '+tm+' %).';rendre();return;}
     const macros=om.prot+'/'+om.lip+'/'+om.gluc;
+    const pmx=parseInt(String((($('#g-purmax')||{}).value)||'').replace(/[^0-9]/g,''),10);
+    if(isNaN(pmx)||pmx<150||pmx>1500){S.para.etat='ko';S.para.message='Plafond de purines attendu entre 150 et 1500 mg.';rendre();return;}
     S.para.etat='envoi';rendre();
     try{
-      const r=await appel({action:'params',cible:cible,facteur:f,repartition:repartition,macros:macros});
+      const r=await appel({action:'params',cible:cible,facteur:f,repartition:repartition,macros:macros,purines_max:pmx});
       await rafraichir();
       S.para.etat='ok';
       S.para.message='Cible '+r.cible+' kcal, '+(r.activite||r.activité||'')+'. Programme en '+String(r.mode).toLowerCase()+
@@ -2397,6 +2888,45 @@ function brancher(){
   });
   on('#c-vider','click',()=>{S.coach.fil=[];localStorage.removeItem(S.chat);rendre();});
 
+  // --- Corps : pas, mensurations, photos ---
+  on('#k-pas-ok','click',async()=>{
+    const C=S.corps;
+    const v=Math.round(Number(String((($('#k-pas')||{}).value)||'').replace(/\s/g,'').replace(',','.')));
+    if(!(v>0&&v<=150000)){C.pasEtat='ko';C.pasMsg='Saisis un nombre de pas entre 1 et 150 000.';rendre();return;}
+    C.pasEtat='envoi';rendre();
+    try{
+      await appel({action:'activite',date:auj(),pas:v,force:true});
+      await rafraichir();
+      C.pasEtat='ok';C.pasMsg=nb(v)+' pas enregistrés pour aujourd\'hui.';
+    }catch(e){C.pasEtat='ko';C.pasMsg=e.message;}
+    rendre();
+  });
+  on('#k-mes-ok','click',async()=>{
+    const C=S.corps;
+    const lit=sel=>String((($(sel)||{}).value)||'').trim().replace(',','.');
+    const t=lit('#k-taille'),co=lit('#k-cou'),ha=lit('#k-hanches');
+    if(!t){C.mesEtat='ko';C.mesMsg='Le tour de taille est obligatoire.';rendre();return;}
+    C.mesEtat='envoi';rendre();
+    try{
+      await appel({action:'mesure',date:auj(),taille_cm:t,cou_cm:co,hanches_cm:ha});
+      await rafraichir();
+      C.mesEtat='ok';C.mesMsg='Mensurations du '+jjmm(auj())+' enregistrées.';
+    }catch(e){C.mesEtat='ko';C.mesMsg=e.message;}
+    rendre();
+  });
+  document.querySelectorAll('#k-courbe button').forEach(b=>b.addEventListener('click',()=>{S.corps.courbe=b.dataset.kc;rendre();}));
+  on('#k-ph-face','click',()=>ouvrirCamera('face'));
+  on('#k-ph-profil','click',()=>ouvrirCamera('profil'));
+  document.querySelectorAll('#k-cmp-type button').forEach(b=>b.addEventListener('click',()=>{
+    S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;rendre();}));
+  on('#k-cmp-a','change',e=>{S.corps.cmpA=e.target.value;rendre();});
+  on('#k-cmp-b','change',e=>{S.corps.cmpB=e.target.value;rendre();});
+  on('#k-cmp-r','input',e=>{
+    const v=Number(e.target.value)||0;
+    const a=$('#k-cmp-avant');if(a)a.style.clipPath='inset(0 '+(100-v)+'% 0 0)';
+    const t=$('#k-cmp-trait');if(t)t.style.left=v+'%';
+  });
+
   const ok=$('#r-ok');
   if(ok){
     ok.addEventListener('click',()=>{
@@ -2404,7 +2934,9 @@ function brancher(){
       S.reglages=false;demarrer();
     });
     $('#r-out').addEventListener('click',()=>{
-      [S.cle,S.cache,S.chat,S.repas,S.foods,S.pending].forEach(k=>localStorage.removeItem(k));
+      [S.cle,S.cache,S.chat,S.repas,S.foods,S.pending,'suivi.cam'].forEach(k=>localStorage.removeItem(k));
+      // photos d'évolution gardées sur ce téléphone : effacées aussi
+      try{photoMem.clear();indexedDB.deleteDatabase(PHOTO_DB);photoDbP=null;}catch(e){}
       S.cfg=null;S.data=null;S.foods=[];S.file=[];connexion();
     });
   }
@@ -2461,7 +2993,11 @@ function jourChange(){
   return !!(S.data&&S.data.reference&&S.data.reference.date&&S.data.reference.date!==auj());
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;rendre();}return;}
+  if(document.hidden){
+    if(S.cam.ouvert){if(S.cam.capture)camArreterFlux();else fermerCamera();}
+    if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;rendre();}
+    return;
+  }
   if(!S.cfg||!S.data||S.reglages)return;
   rejouerPending();
   // on force le rafraichissement si on a changé de jour, sinon un par minute au plus
