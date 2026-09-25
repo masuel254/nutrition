@@ -24,13 +24,19 @@
          --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; --jaune:#E5B93A; --rouge:#E05555; }
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;width:100%;overflow-x:hidden;overscroll-behavior-y:none}
+/* Coquille d'application : le document ne défile JAMAIS. Seul #defile défile, la barre
+   est un élément normal en bas d'une colonne flex. Sur iOS en mode écran d'accueil, un
+   position:fixed dépend du défilement du document et WebKit finit par le décaler
+   (bug connu, non corrigeable côté CSS de la barre) : on supprime donc la cause. */
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+#racine{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}
+#defile{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
 body{
   background:var(--paper); color:var(--ink);
   font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.45; font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
-  padding-bottom:calc(58px + env(safe-area-inset-bottom));
 }
 h1,h2{font-weight:600;margin:0}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
@@ -134,15 +140,14 @@ td:first-child{text-align:left}
 .trois button#e-non{border-color:var(--rule);color:var(--soft);font-weight:400}
 .aide{font-size:12.5px;color:var(--soft);font-weight:400;margin-top:8px;text-align:center}
 
-nav{position:fixed;left:0;right:0;bottom:0;width:100vw;
+nav{position:relative;flex:none;width:100%;
   box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:stretch;
   height:calc(58px + env(safe-area-inset-bottom));
   min-height:calc(58px + env(safe-area-inset-bottom));
   max-height:calc(58px + env(safe-area-inset-bottom));
   padding-bottom:env(safe-area-inset-bottom);
   background:var(--card);border-top:1px solid var(--rule);
-  z-index:50;box-shadow:0 -3px 12px rgba(23,38,42,.08);
-  transform:translateZ(0)}
+  z-index:50;box-shadow:0 -3px 12px rgba(23,38,42,.08)}
 nav button{flex:1 1 0;min-width:0;width:0;box-sizing:border-box;
   min-height:44px;padding:5px 2px 6px;font-size:11px;font-weight:500;color:var(--nav);
   border-top:3px solid transparent;margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
@@ -363,7 +368,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='24/09/2026 16h18';
+const APP_VERSION='25/09/2026 08h37';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -709,7 +714,7 @@ async function onCodeScanne(code){
   vibrer(70);
   const SC=S.ajout.scan;
   SC.ouvert=false;SC.etat='recherche';SC.message='';SC.produit=null;
-  rendre();window.scrollTo(0,0);
+  rendre();hautPage();
   try{
     const r=await appel({action:'barcode',code:code});
     if(r.trouve===false){
@@ -721,7 +726,7 @@ async function onCodeScanne(code){
     // quantité initiale : portion si dispo, sinon 100
     if(p.portion){SC.mode='portion';SC.qte=p.portion;}
     else{SC.mode='libre';SC.qte=100;}
-    rendre();window.scrollTo(0,0);
+    rendre();hautPage();
   }catch(e){
     SC.etat='ko';SC.message=e.message;rendre();
   }
@@ -1835,9 +1840,32 @@ function modaleAlert(message){
     hote.addEventListener('click',e=>{if(e.target===hote)fin();});
   });
 }
+/* Défilement : uniquement dans #defile. recaler() remet le document à 0 si iOS l'a
+   décalé (clavier, focus) — sans toucher pendant la saisie, pour ne pas masquer le champ. */
+function hautPage(){const d=$('#defile');if(d)d.scrollTop=0;recaler();}
+function basPage(){const d=$('#defile');if(d)d.scrollTop=d.scrollHeight;recaler();}
+function saisieActive(){const a=document.activeElement;return !!(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable));}
+function recaler(){
+  if(saisieActive())return;
+  const de=document.documentElement;
+  if(window.scrollY||window.scrollX||de.scrollTop||document.body.scrollTop){
+    window.scrollTo(0,0);de.scrollTop=0;document.body.scrollTop=0;
+  }
+}
+(function(){
+  const tard=()=>setTimeout(recaler,60);
+  window.addEventListener('scroll',tard,{passive:true});
+  document.addEventListener('focusout',()=>setTimeout(recaler,120));
+  window.addEventListener('pageshow',tard);
+  window.addEventListener('resize',tard);
+  window.addEventListener('orientationchange',()=>setTimeout(recaler,300));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)tard();});
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',tard);
+})();
 function rendre(){
   const d=S.data,r=$('#racine');
-  let h=bandeau(d)+'<main>';
+  const ancien=$('#defile'),y=ancien?ancien.scrollTop:0;
+  let h='<div id="defile">'+bandeau(d)+'<main>';
   if(S.reglages){
     h+='<div class="vue on">'+vueRéglages(d)+'</div>';
   } else {
@@ -1847,9 +1875,10 @@ function rendre(){
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
     h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
   }
-  h+='</main><nav>';
+  h+='</main></div><nav>';
   VUES.forEach(v=>{h+='<button data-vue="'+v[0]+'" class="'+(!S.reglages&&S.vue===v[0]?'on':'')+'" aria-label="'+v[1]+'">'+v[2]+v[1]+'</button>';});
   r.innerHTML=h+'</nav>'+overlayScan();
+  const nd=$('#defile');if(nd&&y)nd.scrollTop=y;
   brancher();
 }
 
@@ -1858,7 +1887,7 @@ function brancher(){
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{
       if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;}
-      S.vue=b.dataset.vue;S.reglages=false;rendre();window.scrollTo(0,0);
+      S.vue=b.dataset.vue;S.reglages=false;rendre();hautPage();
     });
   });
   on('#b-maj','click',async e=>{
@@ -1867,7 +1896,7 @@ function brancher(){
     catch(err){await modaleAlert(err.message||'Impossible de mettre à jour l’application.');}
     rendre();
   });
-  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();window.scrollTo(0,0);});
+  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
     e.target.disabled=true;e.target.textContent='Actualisation…';
     try{await actualiserApplication();await rafraichir();}
@@ -1898,7 +1927,7 @@ function brancher(){
   document.querySelectorAll('#ch-periode-prog button').forEach(b=>{
     b.addEventListener('click',()=>{S.periodeProg=Number(b.dataset.pp);rendre();});
   });
-  on('#j-ajout','click',()=>{S.vue='ajout';rendre();window.scrollTo(0,0);});
+  on('#j-ajout','click',()=>{S.vue='ajout';rendre();hautPage();});
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
   document.querySelectorAll('[data-ouvre]').forEach(l=>{
@@ -1929,7 +1958,7 @@ function brancher(){
       A.desc=nom;
       // l'ancien repas analysé bascule en historique
       const precedent=paquetRepas();
-      A.etat='envoi';A.resultat=null;rendre();window.scrollTo(0,0);
+      A.etat='envoi';A.resultat=null;rendre();hautPage();
       try{
         const r=await appel({action:'repas',repas:A.repas,description:nom,photo:'',mime:'image/jpeg'});
         if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
@@ -2024,7 +2053,7 @@ function brancher(){
       pousserFoodScan(p,g);
       A.ajoutEnCours=false;SC.etat=null;SC.produit=null;
       A.confirm=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;
-      ecrireRepasCache();rendre();window.scrollTo(0,0);
+      ecrireRepasCache();rendre();hautPage();
       return;
     }
     A.enregistre=null; // nouveau repas : pas une modification
@@ -2045,7 +2074,7 @@ function brancher(){
     pousserFoodScan(p,g);
     SC.etat=null;SC.produit=null;
     ecrireRepasCache();
-    rendre();window.scrollTo(0,0);
+    rendre();hautPage();
   });
 
   on('#a-nouveau','click',()=>{
@@ -2056,7 +2085,7 @@ function brancher(){
     A.enregistre=null;A.ajoutEnCours=false; // nouveau repas : pas une modification
     A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
     ecrireRepasCache();
-    rendre();window.scrollTo(0,0);
+    rendre();hautPage();
   });
   on('#a-vider-histo','click',async()=>{
     if(!await modaleConfirm('Effacer le repas en cours et tout l\'historique ?',{ok:'Effacer',danger:true}))return;
@@ -2064,7 +2093,7 @@ function brancher(){
     A.histo=[];A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
     A.ajoutEnCours=false;A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
     localStorage.removeItem(S.repas);
-    rendre();window.scrollTo(0,0);
+    rendre();hautPage();
   });
   document.querySelectorAll('[data-histo-enr]').forEach(b=>{
     b.addEventListener('click',()=>{
@@ -2078,7 +2107,7 @@ function brancher(){
       if(actuel)A.histo=[actuel].concat(A.histo).slice(0,MAX_HISTO);
       A.resultat=item.resultat;A.repas=item.repas||A.repas;A.desc='';
       A.confirm=null;A.message='';A.dateAutre=auj();
-      ecrireRepasCache();rendre();window.scrollTo(0,0);
+      ecrireRepasCache();rendre();hautPage();
     });
   });
   on('#a-desc','input',e=>{
@@ -2100,7 +2129,7 @@ function brancher(){
         A.ajoutEnCours=false;A.etat=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;
         ecrireRepasCache();
       }catch(e){A.etat='ko';A.message=e.message;}
-      rendre();window.scrollTo(0,0);
+      rendre();hautPage();
       return;
     }
     // --- MODE NORMAL : nouvelle analyse ---
@@ -2209,13 +2238,13 @@ function brancher(){
   on('#e-ajout-al','click',()=>{
     const A=S.ajout;
     A.ajoutEnCours=true;A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;A.message='';
-    ecrireRepasCache();rendre();window.scrollTo(0,0);
+    ecrireRepasCache();rendre();hautPage();
   });
   // annuler l'ajout en cours
   on('#aj-annule','click',()=>{
     const A=S.ajout;
     A.ajoutEnCours=false;A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;A.message='';
-    ecrireRepasCache();rendre();window.scrollTo(0,0);
+    ecrireRepasCache();rendre();hautPage();
   });
   // Modifier un repas enregistre (ou repris du cache) : rouvre l'edition.
   on('#e-modif','click',()=>{
@@ -2224,7 +2253,7 @@ function brancher(){
     // (A.enregistre) ne sera retirée qu'au moment du réenregistrement, dans
     // enregistrer(). Ainsi, si l'utilisateur abandonne, rien n'est perdu.
     A.confirm=null;A.message='';
-    ecrireRepasCache();rendre();window.scrollTo(0,0);
+    ecrireRepasCache();rendre();hautPage();
   });
 
   function litPoids(){
@@ -2341,7 +2370,7 @@ function brancher(){
       // on retient la ligne d'origine pour la retirer une fois la version corrigée enregistrée
       A.enregistre={date:l.date,repas:l.repas,detail:l.detail,kcal:l.kcal};
       A.resultat=null;A.confirm=null;A.message='';A.photo=null;A.apercu=null;A.taille=0;
-      S.vue='ajout';A.etat='envoi';rendre();window.scrollTo(0,0);
+      S.vue='ajout';A.etat='envoi';rendre();hautPage();
       try{
         const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:'',mime:'image/jpeg'});
         A.etat=null;A.resultat=r;A.confirm=null;A.desc='';
@@ -2364,7 +2393,7 @@ function brancher(){
     S.coach.etat=null;
     localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));
     rendre();
-    window.scrollTo(0,document.body.scrollHeight);
+    basPage();
   });
   on('#c-vider','click',()=>{S.coach.fil=[];localStorage.removeItem(S.chat);rendre();});
 
@@ -2383,14 +2412,14 @@ function brancher(){
 
 function connexion(msg){
   $('#racine').innerHTML=
-    '<div class="ecran"><h1>Suivi</h1>'+
+    '<div id="defile"><div class="ecran"><h1>Suivi</h1>'+
     '<p>Colle l\'adresse de ton serveur et le code fourni par le bot, menu Application. Une seule fois.</p>'+
     '<label for="c-api">Adresse de l\'API</label>'+
     '<input id="c-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://\u2026/webhook/nutrition/api">'+
     '<label for="c-token">Code d\'accès</label>'+
     '<input id="c-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="24 caractères">'+
     '<button class="primaire" id="c-ok">Se connecter</button>'+
-    (msg?'<p class="alerte">'+esc(msg)+'</p>':'')+'</div>';
+    (msg?'<p class="alerte">'+esc(msg)+'</p>':'')+'</div></div>';
   $('#c-ok').addEventListener('click',()=>{
     const api=$('#c-api').value.trim(),token=$('#c-token').value.trim();
     if(!api||!token){connexion('Renseigne les deux champs.');return;}
