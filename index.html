@@ -366,6 +366,8 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .pur-tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px;font-size:15px}
 .pur-tete b{font-size:22px;font-weight:600}
 .pur-lib{font-size:12.5px;color:var(--soft)}
+.mes-aide p{margin:6px 0 0}
+.mes-aide b{color:var(--ink);font-weight:600}
 .goutte{border:1px solid var(--over);border-left-width:4px;border-radius:6px;padding:10px 13px;background:color-mix(in srgb,var(--over) 8%,var(--card))}
 .goutte-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--over);margin-bottom:4px}
 .goutte p{margin:6px 0 0;font-size:13.5px;line-height:1.45}
@@ -415,7 +417,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='25/09/2026 14h55';
+const APP_VERSION='25/09/2026 20h06';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -423,7 +425,7 @@ const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null},
-  corps:{pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
+  corps:{periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
   cam:{ouvert:false}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -1942,16 +1944,27 @@ function barresSeuil(items,o){
   const Y=v=>pt+(1-v/vmax)*(h-pt-pb);
   const pas=(w-pl-pr)/items.length,lg=Math.max(3,Math.min(16,pas*0.62));
   let s='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(o.titre||'barres')+'">';
+  const sel=o.cle?(S.corps.selBar||{})[o.cle]:null;
+  let selIt=null,selCx=0;
   items.forEach((it,i)=>{
     const bon=o.bonSiHaut?it.v>=o.seuil:it.v<=o.seuil;
-    const cx=pl+pas*(i+0.5),y=Y(it.v);
-    s+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,(h-pb)-y).toFixed(1)+'" rx="2" fill="'+(bon?'var(--under)':'var(--over)')+'"'+(it.vide?' opacity="0.25"':'')+'/>';
+    const cx=pl+pas*(i+0.5),y=Y(it.v),estSel=(sel===it.date);
+    s+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,(h-pb)-y).toFixed(1)+'" rx="2" fill="'+(bon?'var(--under)':'var(--over)')+'"'+(it.vide&&!estSel?' opacity="0.25"':'')+(estSel?' stroke="var(--ink)" stroke-width="1.6"':'')+'/>';
+    // zone de toucher pleine hauteur, plus large que la barre (les barres fines sont difficiles à viser)
+    if(o.cle)s+='<rect data-bar="'+o.cle+'|'+it.date+'" x="'+(pl+pas*i).toFixed(1)+'" y="0" width="'+pas.toFixed(1)+'" height="'+h+'" fill="transparent"/>';
+    if(estSel){selIt=it;selCx=cx;}
   });
   const ys=Y(o.seuil);
   s+='<line x1="0" y1="'+ys.toFixed(1)+'" x2="'+w+'" y2="'+ys.toFixed(1)+'" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 3"/>';
   s+='<text x="'+(w-2)+'" y="'+Math.max(11,ys-5).toFixed(1)+'" text-anchor="end" font-size="10.5" font-weight="600" fill="var(--ink)" stroke="var(--paper)" stroke-width="3.5" paint-order="stroke">'+esc(o.libSeuil||'')+'</text>';
   s+='<text x="0" y="'+(h-4)+'" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[0].date)+'</text>';
   s+='<text x="'+w+'" y="'+(h-4)+'" text-anchor="end" font-size="10.5" fill="var(--soft)" font-weight="300">'+jjmm(items[items.length-1].date)+'</text>';
+  if(selIt){
+    const txt=jjmm(selIt.date)+' : '+(selIt.vide?'aucune donnée':(o.fmt?o.fmt(selIt.v):nb(selIt.v)));
+    const bw=Math.max(96,txt.length*6.6),bx=Math.min(Math.max(2,selCx-bw/2),w-bw-2);
+    s+='<rect x="'+bx.toFixed(1)+'" y="0" width="'+bw.toFixed(1)+'" height="18" rx="4" fill="var(--ink)" pointer-events="none"/>'+
+       '<text x="'+(bx+bw/2).toFixed(1)+'" y="12.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--paper)" pointer-events="none">'+esc(txt)+'</text>';
+  }
   return s+'</svg>';
 }
 // n derniers jours calendaires jusqu'à aujourd'hui, valeur 0 si absente
@@ -1972,7 +1985,7 @@ function blocPurinesCourbes(d){
   const m7=sept(d).filter(j=>j.repas>0);
   const moy7=m7.length?Math.round(m7.reduce((s,j)=>s+(j.purines_risque||0),0)/m7.length):null;
   let h='<section><h2>Purines</h2>';
-  h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour'});
+  h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour',cle:'pur',fmt:v=>nb(v)+' mg'});
   h+='<div class="micro">'+(moy7!==null?'Moyenne 7 jours : <b>'+nb(moy7)+' mg</b> par jour · ':'')+dessus+' jour'+(dessus>1?'s':'')+' au-dessus du plafond sur 30 jours</div>';
   const top=(d.journal||[]).filter(r=>(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
   if(top.length){
@@ -2037,12 +2050,27 @@ function sectionPas(d){
   // Dépense de la marche : ~0,5 kcal par kg et par km au-dessus du repos ; foulée ≈ 0,415 × taille.
   const kpp=kcalParPas(d);
   if(kpp&&(ajd||moy)){
+    // fourchette : le bas = pas comptés ; le haut = +20 % (pas faits sans téléphone, pentes, escaliers)
+    const fk=v=>nb(v*kpp)+' à '+nb(v*kpp*1.2)+' kcal';
     h+='<div class="ryth-poids"><span class="k">Marche, dépense estimée</span><span class="v">'+
-       (ajd?'≈ '+nb(ajd*kpp)+' kcal':'\u2014')+'</span></div>'+
-       '<div class="micro">'+(moy!==null?'Moyenne 7 jours : ≈ '+nb(moy*kpp)+' kcal par jour · ':'')+
-       'environ '+nb(1000*kpp)+' kcal pour 1 000 pas à ton poids actuel.</div>';
+       (ajd?fk(ajd):'\u2014')+'</span></div>'+
+       '<div class="micro">'+(moy!==null?'Moyenne 7 jours : '+fk(moy)+' par jour · ':'')+
+       'environ '+nb(1000*kpp)+' kcal pour 1 000 pas comptés. Le bas de la fourchette ne compte que les pas enregistrés par l\'iPhone, le haut ajoute la marge probable des pas faits sans téléphone.</div>';
   }
-  if(act.length)h+=barresSeuil(joursCalendaires(14,par),{seuil:OBJECTIF_PAS,bonSiHaut:true,libSeuil:nb(OBJECTIF_PAS)+' pas',titre:'Pas par jour'});
+  if(act.length){
+    const P=C.periodePas===undefined?14:C.periodePas;
+    let n=P;
+    if(!P){const d0=new Date(act[0].date+'T12:00:00');const d1=new Date();d1.setHours(12,0,0,0);n=Math.max(1,Math.round((d1-d0)/86400000)+1);}
+    const items=joursCalendaires(n,par);
+    const pleins=items.filter(i=>!i.vide);
+    const moyP=pleins.length?Math.round(pleins.reduce((t,i)=>t+i.v,0)/pleins.length):null;
+    h+='<div class="periode-ligne"><div class="periode" id="k-periode-pas">';
+    [[7,'7j'],[14,'14j'],[30,'30j'],[90,'90j'],[0,'Tout']].forEach(x=>{h+='<button data-kp="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';});
+    h+='</div>'+(moyP!==null?'<div class="periode-delta"><span class="pd-lib">moyenne</span><span class="pd-val">'+nb(moyP)+' pas</span></div>':'')+'</div>';
+    h+=barresSeuil(items,{seuil:OBJECTIF_PAS,bonSiHaut:true,libSeuil:nb(OBJECTIF_PAS)+' pas',titre:'Pas par jour',cle:'pas',
+      fmt:v=>nb(v)+' pas'+(kpp?' · '+nb(v*kpp)+'-'+nb(v*kpp*1.2)+' kcal':'')});
+    h+='<p class="note">Touche une barre pour voir le nombre de pas du jour.</p>';
+  }
   // aide au réglage manuel du niveau d'activité, sur au moins 5 jours de pas
   if(prec.length>=5)h+=conseilActivite(d,moy);
   const der=act.length?act[act.length-1].date:null;
@@ -2089,13 +2117,16 @@ function sectionMesures(d){
   }
   const v=k=>der&&der[k]?String(der[k]).replace('.',','):'';
   h+='<div class="repart mes-saisie">'+
-     '<div class="repart-i"><span>Taille (cm)</span><input type="text" inputmode="decimal" id="k-taille" value="'+esc(v('taille_cm'))+'"></div>'+
-     '<div class="repart-i"><span>Cou (cm)</span><input type="text" inputmode="decimal" id="k-cou" value="'+esc(v('cou_cm'))+'"></div>'+
-     '<div class="repart-i"><span>Hanches</span><input type="text" inputmode="decimal" id="k-hanches" placeholder="option" value="'+esc(v('hanches_cm'))+'"></div></div>'+
+     '<div class="repart-i"><span>Tour de taille</span><input type="text" inputmode="decimal" id="k-taille" value="'+esc(v('taille_cm'))+'"></div>'+
+     '<div class="repart-i"><span>Tour de cou</span><input type="text" inputmode="decimal" id="k-cou" value="'+esc(v('cou_cm'))+'"></div>'+
+     '<div class="repart-i"><span>Hanches</span><input type="text" inputmode="decimal" id="k-hanches" placeholder="facultatif" value="'+esc(v('hanches_cm'))+'"></div></div>'+
      '<button class="primaire" id="k-mes-ok"'+(C.mesEtat==='envoi'?' disabled':'')+'>'+(C.mesEtat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer les mensurations du jour')+'</button>';
   if(C.mesEtat==='ko')h+='<p class="alerte">'+esc(C.mesMsg)+'</p>';
   if(C.mesEtat==='ok')h+='<p class="bien">'+esc(C.mesMsg)+'</p>';
-  h+='<p class="note">Une fois par mois, le matin à jeun, mètre ruban à plat. Taille : au niveau du nombril, en fin d\'expiration, sans rentrer le ventre. Cou : juste sous la pomme d\'Adam.</p>';
+  h+='<div class="note mes-aide"><p>Mesures en cm, autour du corps (pas ta taille en hauteur). Une fois par mois, le matin à jeun, mètre ruban bien à plat, sans serrer.</p>'+
+     '<p><b>Tour de taille</b> : autour du ventre, au niveau du nombril, en fin d\'expiration, sans rentrer le ventre. C\'est la mesure la plus importante : elle suit la graisse du ventre, la plus liée aux risques pour la santé, et sert au calcul de la masse grasse.</p>'+
+     '<p><b>Tour de cou</b> : juste sous la pomme d\'Adam. Indispensable pour estimer la masse grasse.</p>'+
+     '<p><b>Hanches</b> (facultatif) : plus bas, au point le plus large des fesses, pieds joints. Pour un homme, il ne sert pas au calcul de la masse grasse, seulement au suivi de la silhouette.</p></div>';
   return h+'</section>';
 }
 function libType(t){return t==='profil'?'profil':'face';}
@@ -2988,6 +3019,8 @@ function brancher(){
     const lit=sel=>String((($(sel)||{}).value)||'').trim().replace(',','.');
     const t=lit('#k-taille'),co=lit('#k-cou'),ha=lit('#k-hanches');
     if(!t){C.mesEtat='ko';C.mesMsg='Le tour de taille est obligatoire.';rendre();return;}
+    const stat=Number(S.data&&S.data.profil&&S.data.profil.taille)||0;
+    if(stat&&Math.abs(Number(t)-stat)<=3&&!await modaleConfirm('Tour de taille de '+String(t).replace('.',',')+' cm : c\'est ta taille en hauteur. Le champ attend ton tour de ventre, mesuré au niveau du nombril. Enregistrer quand même ?',{ok:'Enregistrer',annule:'Corriger'}))return;
     C.mesEtat='envoi';rendre();
     try{
       await appel({action:'mesure',date:auj(),taille_cm:t,cou_cm:co,hanches_cm:ha});
@@ -2996,6 +3029,13 @@ function brancher(){
     }catch(e){C.mesEtat='ko';C.mesMsg=e.message;}
     rendre();
   });
+  document.querySelectorAll('#k-periode-pas button').forEach(b=>b.addEventListener('click',()=>{S.corps.periodePas=Number(b.dataset.kp);rendre();}));
+  document.querySelectorAll('[data-bar]').forEach(r=>r.addEventListener('click',()=>{
+    const [cle,date]=r.getAttribute('data-bar').split('|');
+    S.corps.selBar=S.corps.selBar||{};
+    S.corps.selBar[cle]=(S.corps.selBar[cle]===date)?null:date;
+    rendre();
+  }));
   document.querySelectorAll('#k-courbe button').forEach(b=>b.addEventListener('click',()=>{S.corps.courbe=b.dataset.kc;rendre();}));
   on('#k-ph-face','click',()=>ouvrirCamera('face'));
   on('#k-ph-profil','click',()=>ouvrirCamera('profil'));
