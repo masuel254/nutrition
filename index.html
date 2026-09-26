@@ -94,7 +94,8 @@ section h2{font-size:14px;font-weight:600;margin-bottom:10px}
 svg{display:block;width:100%;max-width:100%;height:auto}
 
 .reste{margin:2px 0 6px}
-.cal-anneau{display:flex;justify-content:center;margin:6px 0 2px}
+.cal-anneau{display:flex;flex-direction:column;align-items:center;margin:6px 0 2px}
+.cal-pastille{margin-top:10px;padding:8px 18px;border-radius:999px;color:var(--paper);font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cal-anneau svg{width:160px;height:160px;max-width:52vw;max-height:52vw}
 .reste .val{font-size:56px;font-weight:300;letter-spacing:-0.035em;line-height:1}
 .reste .val.depasse{color:var(--over)}
@@ -366,6 +367,17 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .pur-tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px;font-size:15px}
 .pur-tete b{font-size:22px;font-weight:600}
 .pur-lib{font-size:12.5px;color:var(--soft)}
+.pur7-t{font-size:12.5px;font-weight:600;margin:14px 0 6px}
+.pur7{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.pur7-c{border-radius:8px;padding:7px 1px;text-align:center;display:flex;flex-direction:column;gap:1px;border:1.5px solid transparent;min-width:0}
+.pur7-c .j{font-size:10.5px;opacity:.85;white-space:nowrap}
+.pur7-c b{font-size:15px;font-variant-numeric:tabular-nums}
+.pur7-c .u{font-size:9.5px;opacity:.8}
+.pur7-c.bas{background:color-mix(in srgb,var(--under) 22%,var(--card))}
+.pur7-c.moyen{background:color-mix(in srgb,var(--ambre) 32%,var(--card))}
+.pur7-c.haut{background:var(--over);color:#fff}
+.pur7-c.vide{background:var(--creux);color:var(--soft)}
+.pur7-c.auj{border-color:var(--ink)}
 .mes-aide p{margin:6px 0 0}
 .mes-aide b{color:var(--ink);font-weight:600}
 .goutte{border:1px solid var(--over);border-left-width:4px;border-radius:6px;padding:10px 13px;background:color-mix(in srgb,var(--over) 8%,var(--card))}
@@ -410,6 +422,39 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
   .scan-cadre .box::after{animation:scanline 2s ease-in-out infinite}
   @keyframes scanline{0%,100%{transform:translateY(-70px)}50%{transform:translateY(70px)}}
 }
+/* Raccourcis Ajouter : refaire un repas, composer avec ses aliments */
+.rac{margin-bottom:22px}
+.rac-acc{border:1px solid var(--rule);border-radius:12px;background:var(--card);margin-bottom:10px}
+.rac-tete{display:flex;align-items:center;gap:12px;width:100%;padding:14px;text-align:left}
+.rac-ic{width:36px;height:36px;border-radius:9px;background:var(--creux);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.rac-t{flex:1;min-width:0}.rac-t b{display:block;font-size:16px;font-weight:600}.rac-t small{display:block;font-size:12.5px;color:var(--soft)}
+.rac-ch{font-size:20px;color:var(--soft);transition:transform .15s;flex:none}
+.rac-acc.o .rac-ch{transform:rotate(90deg)}
+.rac-contenu{border-top:1px solid var(--rule);padding:12px}
+.rac-onglets{flex-wrap:wrap}
+.rac-repas{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;background:var(--paper);margin-bottom:8px}
+.rac-rt{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.rac-rt b{font-size:14.5px}.rac-rt span{font-size:13px;color:var(--soft);white-space:nowrap}
+.rac-repas small{display:block;font-size:12.5px;color:var(--soft);margin-top:2px}
+.rac-repas small.rac-ancien{font-style:italic}
+.rac-btns{display:flex;gap:8px;margin-top:9px}
+.rac-btns button{flex:1;padding:10px 6px;border-radius:8px;font-weight:700;font-size:14px}
+.rac-btns .p{background:var(--under);color:var(--paper)}
+.rac-btns .s{border:1px solid var(--rule);color:var(--ink)}
+.rac-cherche{margin-bottom:10px}
+.rac-grille{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rac-tuile{border:1px solid var(--rule);border-radius:10px;padding:10px;background:var(--paper);display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
+.rac-tuile[hidden]{display:none}
+.rac-tn{min-width:0}.rac-tn b{display:block;font-size:14px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.rac-tn small{display:block;font-size:11.5px;color:var(--soft);margin-top:2px}
+.rac-tuile.sel{border:2px solid var(--under);padding:9px;background:color-mix(in srgb,var(--under) 12%,var(--paper))}
+.rac-pas{display:flex;align-items:center;justify-content:space-between}
+.rac-pas.zero{justify-content:flex-end}
+.rac-pas button{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--rule);font-size:20px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:center;line-height:1}
+.rac-pas button.pl{background:var(--under);border-color:var(--under);color:var(--paper)}
+.rac-pas span{font-size:17px;font-weight:700}
+.rac-barre{position:sticky;bottom:8px;z-index:2;width:100%;margin-top:12px;padding:13px 14px;border-radius:10px;background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.rac-barre[disabled]{opacity:.55}
 </style>
 </head>
 <body>
@@ -417,13 +462,13 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='25/09/2026 20h06';
+const APP_VERSION='26/09/2026 09h23';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,file:[],courbeVue:'poids',
+  foods:[],recentsOuv:false,rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
   cam:{ouvert:false}};
@@ -1038,19 +1083,19 @@ function anneauCalories(mange,cible){
   const trop=mange>cible;
   const reste=cible-mange;
   const trait=couleurDepassement(mange,cible);
-  const legende=trop?nb(Math.abs(reste))+' kcal au-dessus':nb(reste)+' kcal restantes';
   let o='<div class="cal-anneau"><svg viewBox="0 0 '+t+' '+t+'" role="img" aria-label="'+nb(mange)+' kcal mangées sur une cible de '+nb(cible)+'">';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="11"/>';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="'+trait+
      '" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+
      '" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 '+t/2+' '+t/2+')"/>';
-  o+='<text x="50%" y="44%" text-anchor="middle" font-size="44" font-weight="700" letter-spacing="-1.5" fill="'+(trop?trait:'var(--ink)')+'">'+nb(mange)+'</text>';
-  o+='<text x="50%" y="56%" text-anchor="middle" font-size="12.5" fill="var(--soft)" font-weight="300">kcal mangées</text>';
-  o+='<text x="50%" y="67%" text-anchor="middle" font-size="13" fill="var(--soft)" font-weight="700">'+legende+'</text>';
-  o+='</svg></div>';
+  o+='<text x="50%" y="50%" text-anchor="middle" font-size="46" font-weight="700" letter-spacing="-1.5" fill="'+(trop?trait:'var(--ink)')+'">'+nb(mange)+'</text>';
+  o+='<text x="50%" y="62%" text-anchor="middle" font-size="12.5" fill="var(--soft)">kcal mangées sur '+nb(cible)+'</text>';
+  o+='</svg>';
+  // pastille des restantes (ou du dépassement), sous l'anneau, bien lisible de loin
+  o+='<div class="cal-pastille" style="background:'+(trop?trait:'var(--under)')+'">'+nb(Math.abs(reste))+' kcal '+(trop?'en trop':'restantes')+'</div>';
+  o+='</div>';
   return o;
 }
-
 function jauge(conso,cible){
   if(!cible)return '';
   const w=320,h=30,maxi=Math.max(conso,cible)*1.06;
@@ -1293,41 +1338,173 @@ function overlayScan(){
   h+='<div class="scan-bas"><button class="stop" id="scan-fermer">Fermer</button></div></div>';
   return h;
 }
-function blocSuggestions(d){
-  // Suggestions = aliments recurrents du journal (calcules par le workflow),
-  // filtres sur le creneau correspondant a l'heure courante.
-  const sugg=(d&&d.suggestions)||{};
-  const cr=repasParHeure();                    // matin / midi / encas / soir
-  let liste=(sugg[cr]||[]).slice();
-  // repli : si rien pour ce creneau, agreger tous creneaux (dedupe par nom)
-  if(!liste.length){
-    const vus={},all=[];
-    ['matin','midi','encas','soir'].forEach(k=>{(sugg[k]||[]).forEach(s=>{
-      const key=s.nom.toLowerCase();if(!vus[key]){vus[key]=1;all.push(s);}
-    });});
-    liste=all.sort((a,b)=>b.n-a.n).slice(0,8);
-  }
-  if(!liste.length)return '';
-  const ouv=S.recentsOuv;
-  const libCr={matin:'ce matin',midi:'ce midi',encas:'en en-cas',soir:'ce soir'}[cr]||'';
-  let h='<section class="recents"><button class="recents-tete" id="rec-tete" aria-expanded="'+(ouv?'true':'false')+'">'+
-    '<span>Suggestions '+(libCr?'<span class="recents-cr">'+libCr+'</span> ':'')+'<span class="recents-n">'+liste.length+'</span></span>'+
-    '<span class="recents-chev'+(ouv?' o':'')+'">\u203A</span></button>';
-  if(ouv){
-    h+='<div class="recents-puces">';
-    liste.forEach((s,i)=>{
-      h+='<button class="puce" data-sug="'+i+'" data-nom="'+esc(s.nom)+'" title="Vu '+s.n+' fois">'+esc(s.nom)+'</button>';
-    });
-    h+='</div><p class="note">D\'après tes habitudes. Touche un aliment pour l\'analyser, puis ajuste la quantité.</p>';
-  }
-  return h+'</section>';
+/* ---------- Raccourcis de l'écran Ajouter : refaire un repas, composer avec ses aliments ----------
+   Les repas viennent du journal (colonne aliments), le catalogue est calculé par le
+   workflow : une unité par aliment ("1 tranche", ou la portion mangée "150 g").
+   Rien ne repasse par l'IA. */
+const CRENEAUX=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']];
+function creneauDe(lib){const s=String(lib||'').toLowerCase();
+  if(s.indexOf('matin')>=0)return 'matin';if(s.indexOf('midi')>=0)return 'midi';
+  if(s.indexOf('cas')>=0)return 'encas';if(s.indexOf('soir')>=0)return 'soir';return '';}
+function normNom(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .replace(/œ/g,'oe').replace(/æ/g,'ae').replace(/[^a-z0-9%\s]/g,' ').replace(/\s+/g,' ').trim();}
+const MASSE_Q=/^(g|gr|grammes?|kg|mg|ml|cl|dl|l|litres?)(?![a-zA-ZÀ-ſ])/i;
+function plurielQ(s){return String(s).replace(/^[^\s]+/,w=>/[sxz]$/i.test(w)?w:w+'s');}
+// Quantité affichée pour c unités d'un aliment du catalogue.
+function qteUnite(it,c){
+  if(it.mode==='n')return it.u?c+' '+(c>1?(it.up||it.u):it.u):String(c);
+  const u=String(it.u||'1 portion');
+  if(c===1)return u;
+  const m=u.replace(',','.').match(/^(\d+(?:\.\d+)?)\s*([^\/].*)?$/);
+  if(!m)return c+' × '+u;
+  const v=Math.round(parseFloat(m[1])*c*10)/10;const reste=(m[2]||'').trim();
+  return String(v).replace('.',',')+(reste?' '+(MASSE_Q.test(reste)?reste:plurielQ(reste)):'');
 }
-// aliments recurrents du creneau courant, pour le tap-to-analyse
-function suggestionsCourantes(d){
-  const sugg=(d&&d.suggestions)||{};const cr=repasParHeure();
-  let liste=(sugg[cr]||[]).slice();
-  if(!liste.length){const vus={},all=[];['matin','midi','encas','soir'].forEach(k=>{(sugg[k]||[]).forEach(s=>{const key=s.nom.toLowerCase();if(!vus[key]){vus[key]=1;all.push(s);}});});liste=all.sort((a,b)=>b.n-a.n).slice(0,8);}
-  return liste;
+function alimentDepuis(it,c){
+  const R=x=>Math.round((Number(x)||0)*c);
+  const o={nom:it.nom,quantite:qteUnite(it,c),kcal:R(it.kcal),prot:R(it.prot),lip:R(it.lip),gluc:R(it.gluc),
+    fibres:R(it.fibres),sucres:R(it.sucres),sodium:R(it.sodium)};
+  if(it.purines!==undefined){o.famille=it.famille||'';o.grammes=R(it.grammes);o.purines=R(it.purines);
+    o.purines_risque=R(it.purines_risque);o.alcool=Math.round((Number(it.alcool)||0)*c*10)/10;o.sucree=it.sucree?c:0;}
+  return o;
+}
+// Aliments d'une ligne du journal ; ancienne ligne sans détail -> un seul bloc "1 portion".
+function alimentsLigne(l){
+  if(Array.isArray(l.aliments)&&l.aliments.length)return JSON.parse(JSON.stringify(l.aliments));
+  return [{nom:l.detail||l.repas||'Repas',quantite:'\u00d71',kcal:l.kcal||0,prot:l.prot||0,lip:l.lip||0,gluc:l.gluc||0,
+    fibres:l.fibres||0,sucres:l.sucres||0,sodium:l.sodium||0,famille:'',grammes:0,purines:l.purines||0,
+    purines_risque:l.purines_risque||0,alcool:l.alcool||0,sucree:l.boissons_sucrees||0}];
+}
+function resultatDepuis(als,cr,note){
+  const lib=libelleRepas(cr);
+  const r={repas:lib,aliments:als,total:{},incertitude:'faible',note:note,nutriscore:'',
+    ligne:{repas:lib,detail:'',kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,nutriscore:''}};
+  recalculeTotal(r);
+  return r;
+}
+// Aliments envoyés au workflow : sans la mémoire interne des steppers.
+function alimentsAEnvoyer(r){
+  return ((r&&r.aliments)||[]).map(a=>{const o=Object.assign({},a);delete o.__base;return o;});
+}
+function libDate(d){
+  const a=auj();if(d===a)return 'Aujourd’hui';
+  const h=new Date();h.setDate(h.getDate()-1);if(d===isoLocal(h))return 'Hier';
+  return jourSemaine(d)+' '+jjmm(d);
+}
+// Clé de composition d'un repas : noms des aliments, triés, sans quantités. Calculée
+// pareil depuis les aliments gardés ou depuis le texte du détail (anciennes lignes),
+// pour qu'un ancien repas et le même repas récent tombent dans le même groupe.
+function nomSeul(s){return normNom(String(s||'').replace(/\([^)]*\)/g,' ').replace(/\s\u00b7\s.*$/,''));}
+function nomsDetail(d){
+  const out=[];let buf='',p=0;const t=String(d||'');
+  for(const ch of t){if(ch==='(')p++;else if(ch===')')p=Math.max(0,p-1);
+    if(ch===','&&p===0){out.push(buf);buf='';}else buf+=ch;}
+  out.push(buf);return out.map(nomSeul).filter(Boolean);
+}
+function cleCompo(l){
+  const n=(Array.isArray(l.aliments)&&l.aliments.length)?l.aliments.map(a=>nomSeul(a.nom)):nomsDetail(l.detail);
+  return n.filter(Boolean).sort().join('|');
+}
+// Derniers repas d'un créneau, regroupés quand la composition est identique.
+function repasARefaire(d,cr){
+  const grp={},ordre=[];
+  ((d&&d.journal)||[]).forEach(l=>{
+    if(!l||!l.kcal)return;
+    if(cr!=='tous'&&creneauDe(l.repas)!==cr)return;
+    const k=cleCompo(l);if(!k)return;
+    if(!grp[k]){grp[k]={l:l,n:0};ordre.push(k);}
+    // le représentant est le repas le plus récent qui a le détail par aliment
+    else if(!(Array.isArray(grp[k].l.aliments)&&grp[k].l.aliments.length)&&Array.isArray(l.aliments)&&l.aliments.length)grp[k].l=l;
+    grp[k].n++;
+  });
+  const liste=ordre.map(k=>grp[k]);
+  let hab=null;
+  liste.forEach(g=>{if(g.n>=3&&(!hab||g.n>hab.n))hab=g;});
+  const autres=liste.filter(g=>g!==hab).slice(0,hab?5:6);
+  return (hab?[Object.assign({hab:true},hab)]:[]).concat(autres);
+}
+function catalogueDe(d,cr){
+  const cat=((d&&d.catalogue)||[]).filter(it=>it&&it.k&&it.nom);
+  if(cr==='tous')return cat.slice();
+  return cat.filter(it=>it.cr&&it.cr[cr]>0).sort((a,b)=>(b.cr[cr]-a.cr[cr])||(b.n-a.n));
+}
+function ongletsCr(id,actif,avecTous){
+  let h='<div class="periode rac-onglets" id="'+id+'">';
+  CRENEAUX.concat(avecTous?[['tous','Tous']]:[]).forEach(c=>{h+='<button data-cr="'+c[0]+'" class="'+(actif===c[0]?'on':'')+'">'+c[1]+'</button>';});
+  return h+'</div>';
+}
+function totalCompo(d){
+  const R=S.rac,cat=(d&&d.catalogue)||[];let u=0,k=0;
+  cat.forEach(it=>{const c=R.sel[it.k]||0;if(c>0){u+=c;k+=(Number(it.kcal)||0)*c;}});
+  return {u:u,kcal:k};
+}
+function blocComposer(d,modeAjout){
+  const R=S.rac;const cr=R.crC||repasParHeure();
+  const cat=(d&&d.catalogue)||[];
+  const liste=catalogueDe(d,cr);const vus={};liste.forEach(it=>{vus[it.k]=1;});
+  const reste=cat.filter(it=>it&&it.k&&!vus[it.k]);
+  let h='<div class="rac-contenu">';
+  if(!cat.length){
+    return h+'<p class="note">Pas encore d’aliments enregistrés. Ils apparaîtront ici au fil des repas analysés, scannés et enregistrés à partir de maintenant.</p></div>';
+  }
+  h+=ongletsCr('rac-crc',cr,true);
+  h+='<div class="rac-cherche"><input id="rac-q" type="search" placeholder="Chercher dans mes '+cat.length+' aliments" value="'+esc(R.q||'')+'" autocomplete="off"></div>';
+  h+='<div class="rac-grille" id="rac-grille">';
+  const tuile=(it,hors)=>{
+    const c=R.sel[it.k]||0;
+    let t='<div class="rac-tuile'+(c?' sel':'')+(hors?' hors':'')+'" data-nom="'+esc(normNom(it.nom))+'">'+
+      '<div class="rac-tn"><b>'+esc(it.nom)+'</b><small>'+esc(qteUnite(it,1))+' · '+nb(it.kcal)+' kcal</small></div>';
+    t+=c?'<div class="rac-pas"><button data-cm="'+esc(it.k)+'" aria-label="Moins">−</button><span>'+c+'</span><button class="pl" data-cp="'+esc(it.k)+'" aria-label="Plus">+</button></div>'
+        :'<div class="rac-pas zero"><button class="pl" data-cp="'+esc(it.k)+'" aria-label="Ajouter">+</button></div>';
+    return t+'</div>';
+  };
+  liste.forEach(it=>{h+=tuile(it,false);});
+  reste.forEach(it=>{h+=tuile(it,true);});
+  h+='</div><p class="note rac-vide" id="rac-vide" hidden>Aucun aliment ne correspond. Essaie l’onglet Tous ou un autre mot.</p>';
+  if(!liste.length&&cr!=='tous')h+='<p class="note">Rien encore pour ce moment de la journée : regarde l’onglet Tous.</p>';
+  const t=totalCompo(d);
+  h+='<button class="rac-barre" id="rac-valide"'+(t.u?'':' disabled')+'><span>'+(t.u?t.u+' unité'+(t.u>1?'s':'')+' · '+nb(t.kcal)+' kcal':'Touche + pour choisir')+'</span><span>'+(modeAjout?'Ajouter à ce repas':'Continuer')+' ›</span></button>';
+  return h+'</div>';
+}
+function blocRaccourcis(d){
+  const R=S.rac;
+  const crR=R.crR||repasParHeure();
+  const nbCat=((d&&d.catalogue)||[]).length;
+  const lib={matin:'du matin',midi:'du midi',encas:'en-cas',soir:'du soir',tous:''}[crR];
+  let h='<section class="rac">';
+  // --- Refaire un repas ---
+  h+='<div class="rac-acc'+(R.ouvR?' o':'')+'"><button class="rac-tete" id="rac-tr" aria-expanded="'+(R.ouvR?'true':'false')+'">'+
+    '<span class="rac-ic">↺</span><span class="rac-t"><b>Refaire un repas</b><small>'+(R.ouvR?'Tes derniers repas '+lib:'Reprendre un repas déjà enregistré')+'</small></span><span class="rac-ch">›</span></button>';
+  if(R.ouvR){
+    const liste=repasARefaire(d,crR);R.liste=liste;
+    h+='<div class="rac-contenu">'+ongletsCr('rac-crr',crR,false);
+    if(!liste.length)h+='<p class="note">Aucun repas enregistré à ce moment de la journée ces dernières semaines.</p>';
+    liste.forEach((g,i)=>{
+      const l=g.l,als=Array.isArray(l.aliments)&&l.aliments.length?l.aliments:null;
+      const desc=als?als.map(a=>a.nom+(a.quantite?' '+a.quantite:'')).join(', '):(l.detail||'');
+      h+='<div class="rac-repas"><div class="rac-rt"><b>'+(g.hab?'Habituel · '+g.n+' fois':esc(libDate(l.date)))+'</b><span>'+nb(l.kcal)+' kcal</span></div>'+
+        '<small>'+esc(desc)+'</small>'+(als?'':'<small class="rac-ancien">Ancien repas : ajoutable tel quel, sans détail par aliment.</small>')+
+        '<div class="rac-btns"><button class="p" data-rf-aj="'+i+'">+ Ajouter</button><button class="s" data-rf-mod="'+i+'">✎ Modifier</button></div></div>';
+    });
+    if(R.msg)h+='<p class="alerte">'+esc(R.msg)+'</p>';
+    h+='<p class="note">+ Ajouter l’enregistre tout de suite pour aujourd’hui, en '+esc(libelleRepas(crR==='tous'?repasParHeure():crR))+'. Modifier l’ouvre pour ajuster les quantités avant.</p></div>';
+  }
+  h+='</div>';
+  // --- Composer avec mes aliments ---
+  h+='<div class="rac-acc'+(R.ouvC?' o':'')+'"><button class="rac-tete" id="rac-tc" aria-expanded="'+(R.ouvC?'true':'false')+'">'+
+    '<span class="rac-ic">▦</span><span class="rac-t"><b>Composer avec mes aliments</b><small>'+(R.ouvC?'Touche + pour ajouter une unité':(nbCat?nbCat+' aliment'+(nbCat>1?'s':'')+' enregistré'+(nbCat>1?'s':''):'Se remplit au fil des repas enregistrés'))+'</small></span><span class="rac-ch">›</span></button>';
+  if(R.ouvC)h+=blocComposer(d,false);
+  h+='</div></section>';
+  return h;
+}
+// Filtre des tuiles sans re-rendu (garde le clavier ouvert).
+function filtrerTuiles(){
+  const q=normNom(S.rac.q||'');let vis=0;
+  document.querySelectorAll('#rac-grille .rac-tuile').forEach(t=>{
+    const ok=q?t.dataset.nom.indexOf(q)>=0:(!t.classList.contains('hors')||t.classList.contains('sel'));
+    t.hidden=!ok;if(ok)vis++;
+  });
+  const v=document.getElementById('rac-vide');if(v)v.hidden=!!vis||!q;
 }
 // Extrait le nombre d'une quantité texte ("200 g" -> 200, "2 oeufs" -> 2).
 // Renvoie null si aucun nombre exploitable (ex. "une poignée").
@@ -1389,10 +1566,12 @@ function vueAjout(d){
   // résultat, OU pendant un ajout d'aliment à un repas existant (A.ajoutEnCours).
   const saisieVisible=!A.resultat||A.ajoutEnCours;
   if(saisieVisible){
-    if(!A.ajoutEnCours)h+=blocSuggestions(d);
+    if(!A.ajoutEnCours)h+=blocRaccourcis(d);
     if(A.ajoutEnCours)h+='<section class="ajout-entete"><h2>Ajouter un aliment</h2>'+
       '<p class="note">Décris, photographie ou scanne l\'aliment à ajouter au repas. Il s\'ajoutera sans toucher au reste.</p>'+
       '<button class="lien" id="aj-annule">Annuler l\'ajout</button></section>';
+    if(A.ajoutEnCours&&((d&&d.catalogue)||[]).length)h+='<section class="rac"><div class="rac-acc o"><div class="rac-tete"><span class="rac-ic">\u25a6</span>'+
+      '<span class="rac-t"><b>Mes aliments</b><small>Touche + puis Ajouter à ce repas</small></span></div>'+blocComposer(d,true)+'</div></section>';
     h+=sectionScan(A);
     h+='<section><h2>Description</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
     const pret=!!(A.photo||A.desc.trim());
@@ -1901,9 +2080,38 @@ function blocPurinesJour(d){
   const s7=sept(d).concat([a]);
   const alc=s7.reduce((s,j)=>s+(Number(j.alcool)||0),0);
   const suc=s7.reduce((s,j)=>s+(Number(j.boissons_sucrees)||0),0);
+  o+=pastilles7(d,max);
   o+='<div class="micro">Sur 7 jours : alcool '+nb(alc)+' g · '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
   o+='<p class="note">Seules comptent les purines des viandes, abats, charcuteries, poissons, fruits de mer, bouillons et de la bière : ce sont celles qui favorisent les crises de goutte. Les purines végétales (lentilles, épinards, champignons) n\'augmentent pas ce risque et ne sont pas comptées. Valeurs estimées par famille d\'aliments : une tendance, pas une mesure au milligramme.</p>';
   return o+'</section>';
+}
+// Purines à risque des 7 derniers jours (aujourd'hui compris), une pastille par jour.
+function pastilles7(d,max){
+  const par={};(d.jours||[]).forEach(j=>{par[j.date]=j;});
+  const JL=['D','L','M','M','J','V','S'];
+  const ajd=auj(),a=d.aujourdhui||{},it=[];
+  const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()-6);
+  for(let i=0;i<7;i++){
+    const k=isoLocal(x),j=par[k],estAuj=(k===ajd);
+    let v=null;
+    if(estAuj){if((a.repas||0)>0||(a.kcal||0)>0)v=Math.round(a.purines_risque||0);}
+    else if(j&&(j.repas>0||j.kcal>0))v=Math.round(j.purines_risque||0);
+    it.push({date:k,v:v,auj:estAuj,lib:estAuj?'Auj.':JL[x.getDay()]+' '+x.getDate()});
+    x.setDate(x.getDate()+1);
+  }
+  let s='<div class="pur7-t">7 derniers jours</div><div class="pur7">';
+  it.forEach(i=>{
+    const cl=i.v===null?'vide':(i.v>max?'haut':(i.v>max*0.75?'moyen':'bas'));
+    s+='<div class="pur7-c '+cl+(i.auj?' auj':'')+'" title="'+esc(jjmmJour(i.date))+'"><span class="j">'+i.lib+'</span><b>'+(i.v===null?'\u2013':nb(i.v))+'</b><span class="u">mg</span></div>';
+  });
+  s+='</div>';
+  const hier=it[5],passes=it.slice(0,6).filter(i=>i.v!==null);
+  const moy=passes.length?Math.round(passes.reduce((t,i)=>t+i.v,0)/passes.length):null;
+  const dep=passes.filter(i=>i.v>max).length;
+  s+='<div class="micro">Hier : <b>'+(hier.v===null?'pas de saisie':nb(hier.v)+' mg')+'</b>'+
+     (moy!==null?' · moyenne '+passes.length+' jour'+(passes.length>1?'s':'')+' : '+nb(moy)+' mg':'')+
+     (dep?' · <span class="sur">'+dep+' jour'+(dep>1?'s':'')+' au-dessus du plafond</span>':'')+'</div>';
+  return s;
 }
 // Alertes acide urique, en tête de l'écran Jour, affichées seulement si elles se déclenchent.
 function alertesGoutte(d){
@@ -1979,14 +2187,18 @@ function blocPurinesCourbes(d){
   if(!js.some(j=>j.purines>0))return '<section><h2>Purines</h2><p class="note">Les purines s\'afficheront ici au fil des nouveaux repas analysés (les repas enregistrés avant ce suivi n\'en ont pas).</p></section>';
   const max=purMax(d),par={};
   js.forEach(j=>{par[j.date]=Math.round(j.purines_risque||0);});
-  const items=joursCalendaires(30,par);
+  const P=(S.periodePur===undefined?30:S.periodePur);
+  let n=P;
+  if(!P){const prem=js.filter(j=>j.purines>0)[0];const d0=new Date(prem.date+'T12:00:00');const d1=new Date();d1.setHours(12,0,0,0);n=Math.max(1,Math.round((d1-d0)/86400000)+1);}
+  const items=joursCalendaires(n,par);
   const pleins=items.filter(i=>!i.vide);
   const dessus=pleins.filter(i=>i.v>max).length;
-  const m7=sept(d).filter(j=>j.repas>0);
-  const moy7=m7.length?Math.round(m7.reduce((s,j)=>s+(j.purines_risque||0),0)/m7.length):null;
-  let h='<section><h2>Purines</h2>';
+  const moyP=pleins.length?Math.round(pleins.reduce((t,i)=>t+i.v,0)/pleins.length):null;
+  let h='<section><h2>Purines</h2><div class="periode-ligne"><div class="periode" id="ch-periode-pur">';
+  [[7,'7j'],[14,'14j'],[30,'30j'],[90,'90j'],[0,'Tout']].forEach(x=>{h+='<button data-pr="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';});
+  h+='</div>'+(moyP!==null?'<div class="periode-delta"><span class="pd-lib">moyenne</span><span class="pd-val" style="color:'+(moyP>max?'var(--over)':'var(--under)')+'">'+nb(moyP)+' mg</span></div>':'')+'</div>';
   h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour',cle:'pur',fmt:v=>nb(v)+' mg'});
-  h+='<div class="micro">'+(moy7!==null?'Moyenne 7 jours : <b>'+nb(moy7)+' mg</b> par jour · ':'')+dessus+' jour'+(dessus>1?'s':'')+' au-dessus du plafond sur 30 jours</div>';
+  h+='<div class="micro">'+dessus+' jour'+(dessus>1?'s':'')+' au-dessus du plafond sur '+(P?P+' jours':'toute la période')+' ('+pleins.length+' jour'+(pleins.length>1?'s':'')+' saisi'+(pleins.length>1?'s':'')+'). Touche une barre pour sa valeur.</div>';
   const top=(d.journal||[]).filter(r=>(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
   if(top.length){
     h+='<div class="pur-top"><div class="pur-top-t">Repas les plus chargés (100 dernières saisies)</div>';
@@ -2522,6 +2734,9 @@ function brancher(){
   document.querySelectorAll('#ch-periode button').forEach(b=>{
     b.addEventListener('click',()=>{S.periode=Number(b.dataset.p);rendre();});
   });
+  document.querySelectorAll('#ch-periode-pur button').forEach(b=>{
+    b.addEventListener('click',()=>{S.periodePur=Number(b.dataset.pr);rendre();});
+  });
   document.querySelectorAll('#ch-periode-prog button').forEach(b=>{
     b.addEventListener('click',()=>{S.periodeProg=Number(b.dataset.pp);rendre();});
   });
@@ -2545,28 +2760,58 @@ function brancher(){
       }
     });
   });
-  on('#rec-tete','click',()=>{S.recentsOuv=!S.recentsOuv;rendre();});
-  document.querySelectorAll('[data-sug]').forEach(b=>{
-    b.addEventListener('click',async()=>{
-      const nom=b.dataset.nom;if(!nom)return;
-      const A=S.ajout;
-      A.enregistre=null; // nouveau repas : pas une modification
-      // créneau toujours recalculé selon l'heure au moment de l'analyse
-      A.repas=repasParHeure();
-      A.desc=nom;
-      // l'ancien repas analysé bascule en historique
-      const precedent=paquetRepas();
-      A.etat='envoi';A.resultat=null;rendre();hautPage();
-      try{
-        const r=await appel({action:'repas',repas:A.repas,description:nom,photo:'',mime:'image/jpeg'});
-        if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
-        A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
-        A.photo=null;A.apercu=null;A.taille=0;A.desc='';
-        pousserFoodRepas(r);
-        ecrireRepasCache();
-      }catch(e){A.etat='ko';A.message=e.message;}
-      rendre();
-    });
+  // --- raccourcis : refaire un repas / composer avec mes aliments ---
+  on('#rac-tr','click',()=>{S.rac.ouvR=!S.rac.ouvR;S.rac.msg='';rendre();});
+  on('#rac-tc','click',()=>{S.rac.ouvC=!S.rac.ouvC;rendre();});
+  document.querySelectorAll('#rac-crr button').forEach(b=>b.addEventListener('click',()=>{S.rac.crR=b.dataset.cr;S.rac.msg='';rendre();}));
+  document.querySelectorAll('#rac-crc button').forEach(b=>b.addEventListener('click',()=>{S.rac.crC=b.dataset.cr;rendre();}));
+  document.querySelectorAll('[data-cp]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.cp;S.rac.sel[k]=Math.min(50,(S.rac.sel[k]||0)+1);rendre();}));
+  document.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.cm;const c=(S.rac.sel[k]||0)-1;if(c>0)S.rac.sel[k]=c;else delete S.rac.sel[k];rendre();}));
+  on('#rac-q','input',e=>{S.rac.q=e.target.value;filtrerTuiles();});
+  if(document.getElementById('rac-grille'))filtrerTuiles();
+  // repas du journal -> résultat prêt à enregistrer (copie, le journal n'est pas touché)
+  function prendreRepas(g){
+    const l=g.l,cr=creneauDe(l.repas)||repasParHeure();
+    const A=S.ajout;
+    const prec=paquetRepas();
+    if(prec)A.histo=[prec].concat(A.histo||[]).slice(0,MAX_HISTO);
+    A.enregistre=null;A.ajoutEnCours=false;A.repas=cr;
+    A.resultat=resultatDepuis(alimentsLigne(l),cr,'Repris de ton journal, sans nouvelle analyse.');
+    A.confirm=null;A.message='';A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
+  }
+  document.querySelectorAll('[data-rf-aj]').forEach(b=>b.addEventListener('click',async()=>{
+    const g=(S.rac.liste||[])[Number(b.dataset.rfAj)];if(!g)return;
+    prendreRepas(g);S.rac.msg='';
+    ecrireRepasCache();hautPage();
+    await enregistrer(auj());
+  }));
+  document.querySelectorAll('[data-rf-mod]').forEach(b=>b.addEventListener('click',()=>{
+    const g=(S.rac.liste||[])[Number(b.dataset.rfMod)];if(!g)return;
+    prendreRepas(g);
+    ecrireRepasCache();rendre();hautPage();
+  }));
+  on('#rac-valide','click',()=>{
+    const R=S.rac,A=S.ajout;
+    const als=[];
+    ((S.data&&S.data.catalogue)||[]).forEach(it=>{const c=R.sel[it.k]||0;if(c>0)als.push(alimentDepuis(it,c));});
+    if(!als.length)return;
+    R.sel={};R.q='';
+    if(A.ajoutEnCours&&A.resultat){
+      als.forEach(a=>A.resultat.aliments.push(a));
+      recalculeTotal(A.resultat);
+      A.ajoutEnCours=false;A.confirm=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
+      ecrireRepasCache();rendre();hautPage();
+      return;
+    }
+    const cr=(R.crC&&R.crC!=='tous')?R.crC:repasParHeure();
+    const prec=paquetRepas();
+    if(prec)A.histo=[prec].concat(A.histo||[]).slice(0,MAX_HISTO);
+    A.enregistre=null;A.repas=cr;
+    A.resultat=resultatDepuis(als,cr,'Composé avec tes aliments enregistrés, sans nouvelle analyse.');
+    A.confirm=null;A.message='';A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
+    ecrireRepasCache();rendre();hautPage();
   });
   ['#a-photo','#a-galerie'].forEach(sel=>on(sel,'change',async e=>{
     const f=e.target.files&&e.target.files[0];
@@ -2764,7 +3009,7 @@ function brancher(){
       try{await appel({action:'suppr',date:ancien.date,repas:ancien.repas,detail:ancien.detail,kcal:ancien.kcal});}
       catch(e){/* si la suppression échoue on continue : on préviendra du doublon éventuel */}
     }
-    const payload=Object.assign({action:'enregistrer',date:date},l);
+    const payload=Object.assign({action:'enregistrer',date:date},l,{aliments:alimentsAEnvoyer(A.resultat)});
     try{
       const r=await appel(payload);
       await rafraichir();
@@ -2958,8 +3203,8 @@ function brancher(){
       rendre();
     });
   });
-  // Modifier un repas depuis le journal : on le ré-analyse à partir de son texte
-  // (le journal ne garde pas les aliments séparés), puis l'utilisateur ajuste et
+  // Modifier un repas depuis le journal : repris tel quel si ses aliments sont gardés,
+  // sinon ré-analysé à partir de son texte (anciennes lignes), puis l'utilisateur ajuste et
   // réenregistre ; l'ancienne ligne est supprimée pour éviter le doublon.
   document.querySelectorAll('[data-jmod]').forEach(b=>{
     b.addEventListener('click',async()=>{
@@ -2974,6 +3219,12 @@ function brancher(){
       // on retient la ligne d'origine pour la retirer une fois la version corrigée enregistrée
       A.enregistre={date:l.date,repas:l.repas,detail:l.detail,kcal:l.kcal};
       A.resultat=null;A.confirm=null;A.message='';A.photo=null;A.apercu=null;A.taille=0;
+      if(Array.isArray(l.aliments)&&l.aliments.length){
+        // aliments gardés dans le journal : on rouvre le repas tel quel, sans IA
+        A.resultat=resultatDepuis(alimentsLigne(l),A.repas,'Repris de ton journal, sans nouvelle analyse.');
+        A.desc='';A.etat=null;S.vue='ajout';ecrireRepasCache();rendre();hautPage();
+        return;
+      }
       S.vue='ajout';A.etat='envoi';rendre();hautPage();
       try{
         const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:'',mime:'image/jpeg'});
