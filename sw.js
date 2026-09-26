@@ -5,7 +5,7 @@
 // >>> POUR PUBLIER UNE MISE À JOUR : change UNE SEULE ligne, VERSION ci-dessous
 //     (mets la date/heure du jour). Ça suffit à déclencher la bascule
 //     automatique sur l'iPhone : il n'y a JAMAIS à réinstaller l'app.
-const VERSION = '26/09/2026 à 09h23';
+const VERSION = '26/09/2026 à 11h22';
 
 const SHELL = 'suivi-shell-' + VERSION.replace(/[^0-9]/g, '');
 const FILES = ['./', './index.html', './manifest.webmanifest'];

@@ -315,8 +315,11 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 /* Anneaux P/L/G (onglet Jour) */
 .anneaux{display:flex;justify-content:space-around;gap:8px;margin:-6px 0 2px}
 .anneaux svg{flex:0 0 auto}
-.anneaux-leg{display:flex;justify-content:space-around;gap:8px;font-size:11.5px;color:var(--soft);font-weight:300;margin-bottom:12px}
-.anneaux-leg span{flex:1;text-align:center}
+.anneaux-leg{display:flex;justify-content:space-around;gap:6px;margin:2px 0 14px}
+.anneaux-leg>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.mac-pastille{max-width:100%;padding:6px 10px;border-radius:999px;color:var(--paper);font-size:13.5px;font-weight:700;line-height:1.2;text-align:center;font-variant-numeric:tabular-nums}
+.mac-sur{font-size:11px;color:var(--soft);font-weight:300}
+@media (max-width:400px){.mac-pastille{font-size:12px;padding:5px 8px}}
 /* Liste Par repas repliable */
 .repas-liste{margin-top:2px}
 .rep-ligne{border-top:1px solid var(--rule);padding:9px 0;cursor:pointer}
@@ -462,7 +465,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='26/09/2026 09h23';
+const APP_VERSION='26/09/2026 11h22';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1075,6 +1078,19 @@ function couleurDepassement(v,cible){
   return 'var(--rouge)';
 }
 
+// Pastille sous chaque anneau de macro. Protéines = plancher : orange tant qu'on est
+// sous 90 % de la cible. Lipides / glucides = plafond : vert en dessous, couleurs de
+// dépassement de l'anneau au-dessus.
+function pastilleMacro(k,v,t){
+  if(!t)return '<div><span class="mac-sur">\u2014</span></div>';
+  const ecart=Math.round(t-v);let coul,txt;
+  if(k==='prot'){
+    if(v>=t)coul='var(--under)',txt='Objectif atteint';
+    else coul=(v>=t*0.9)?'var(--under)':'var(--over)',txt=nb(ecart)+' g à prendre';
+  }else if(ecart>=0){coul='var(--under)';txt=nb(ecart)+' g restant'+(ecart>1?'s':'');}
+  else{coul=couleurDepassement(v,t);txt=nb(-ecart)+' g en trop';}
+  return '<div><span class="mac-pastille" style="background:'+coul+'">'+txt+'</span><span class="mac-sur">sur '+nb(t)+' g</span></div>';
+}
 function anneauCalories(mange,cible){
   if(!cible)return '';
   const t=200,R=t/2-10,C=2*Math.PI*R;
@@ -1204,10 +1220,7 @@ function vueJour(d){
        anneau(a.gluc,c.gluc,'var(--under)','Glucides',96,couleurDepassement(a.gluc,c.gluc))+
        '</div>';
     h+='<div class="anneaux-leg">';
-    [['Protéines','prot'],['Lipides','lip'],['Glucides','gluc']].forEach(m=>{
-      const v=a[m[1]],t=c[m[1]];
-      h+='<span>'+(t?'cible '+nb(t)+' g'+(sgn(v-t)?' ('+sgn(v-t)+')':''):'\u2014')+'</span>';
-    });
+    ['prot','lip','gluc'].forEach(k=>h+=pastilleMacro(k,a[k],c[k]));
     h+='</div>';
     h+=barreMacros(a);
     h+='</section>';
