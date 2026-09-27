@@ -495,6 +495,28 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .bilan-t{font-weight:700;font-size:15px;margin-bottom:6px}.bilan-t small{font-weight:400;color:var(--soft);font-size:12.5px;margin-left:4px}
 .bilan-s ul{list-style:none;margin:0;padding:0;font-size:13.5px;line-height:1.45}
 .bilan-s li{padding:2px 0}
+/* Écran Jour, version C : anneau compact + barres de macros, onglets en bas */
+.hero{display:flex;align-items:center;gap:14px}
+.hero .cal-anneau{margin:0;flex:none}
+.hero .cal-anneau svg{width:140px;height:140px;max-width:38vw;max-height:38vw}
+.hero-d{flex:1;min-width:0}
+.hero-d .cal-pastille{display:inline-block;margin:0 0 6px;font-size:15px;padding:6px 12px}
+.hm{margin-top:8px;font-size:12.5px}
+.hm-l{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}.hm-l b{font-weight:600}
+.hm-e{font-weight:700;white-space:nowrap}
+.hm-b{height:7px;border-radius:4px;background:var(--creux);margin-top:3px;overflow:hidden}
+.hm-b i{display:block;height:100%;border-radius:4px}
+.vg{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--over);border-left:4px solid var(--over);border-radius:10px;padding:10px 12px;font-size:14px;text-align:left;background:color-mix(in srgb,var(--over) 8%,var(--card))}
+.vg b{color:var(--over)}
+.vg-n{margin-left:auto;background:var(--over);color:var(--paper);border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700}
+.vg-ch{color:var(--soft);font-size:18px;transition:transform .15s}
+.vg[aria-expanded="true"] .vg-ch{transform:rotate(90deg)}
+.vg+.goutte{margin-top:8px}
+.seg{display:flex;background:var(--creux);border-radius:10px;padding:3px;margin:0 0 12px}
+.seg button{flex:1;min-width:0;padding:8px 2px;border-radius:8px;font-size:13.5px;color:var(--soft);font-weight:600}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+details.aide{margin-top:10px}
+details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 </style>
 </head>
 <body>
@@ -502,13 +524,13 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='27/09/2026 22h41';
+const APP_VERSION='27/09/2026 23h57';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
+  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
   cam:{ouvert:false}};
@@ -1141,7 +1163,7 @@ function pastilleMacro(k,v,t){
   else{coul=couleurDepassement(v,t);txt=nb(-ecart)+' g en trop';}
   return '<div><span class="mac-pastille" style="background:'+coul+'">'+txt+'</span><span class="mac-sur">sur '+nb(t)+' g</span></div>';
 }
-function anneauCalories(mange,cible){
+function anneauCalories(mange,cible,sansPastille){
   if(!cible)return '';
   const t=200,R=t/2-10,C=2*Math.PI*R;
   const pct=Math.min(mange/cible,1);
@@ -1158,7 +1180,7 @@ function anneauCalories(mange,cible){
   o+='<text x="50%" y="62%" text-anchor="middle" font-size="12.5" fill="var(--soft)">kcal mangées sur '+nb(cible)+'</text>';
   o+='</svg>';
   // pastille des restantes (ou du dépassement), sous l'anneau, bien lisible de loin
-  o+='<div class="cal-pastille" style="background:'+(trop?trait:'var(--under)')+'">'+nb(Math.abs(reste))+' kcal '+(trop?'en trop':'restantes')+'</div>';
+  if(!sansPastille)o+='<div class="cal-pastille" style="background:'+(trop?trait:'var(--under)')+'">'+nb(Math.abs(reste))+' kcal '+(trop?'en trop':'restantes')+'</div>';
   o+='</div>';
   return o;
 }
@@ -1249,71 +1271,84 @@ function couleurMacro(nom,v,t){
   return 'sur';
 }
 
+// État propre à l'écran Jour : onglet du bas (mémorisé sur le téléphone), alerte dépliée.
+function ongletJourInit(){try{const v=localStorage.getItem('suivi.jour.onglet');return ['repas','purines','objectif','tendance'].indexOf(v)>=0?v:'repas';}catch(e){return 'repas';}}
+// Couleur et libellé d'une macro par rapport à sa cible.
+// Protéines = plancher (orange tant qu'on est sous 90 %) ; lipides / glucides = plafond.
+function macroEtat(k,v,t){
+  const ecart=Math.round(t-v);
+  if(k==='prot'){
+    if(v>=t)return {coul:'var(--under)',txt:'objectif atteint'};
+    return {coul:(v>=t*0.9)?'var(--under)':'var(--over)',txt:nb(ecart)+' g à prendre'};
+  }
+  if(ecart>=0)return {coul:'var(--under)',txt:nb(ecart)+' g restant'+(ecart>1?'s':'')};
+  return {coul:couleurDepassement(v,t),txt:nb(-ecart)+' g en trop'};
+}
+function barreMacro(k,lib,v,t){
+  if(!t)return '<div class="hm"><div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> g</span></div></div>';
+  const e=macroEtat(k,v,t);
+  return '<div class="hm"><div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> / '+nb(t)+' g</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
+    '<div class="hm-b"><i style="width:'+Math.min(100,v/t*100).toFixed(0)+'%;background:'+e.coul+'"></i></div></div>';
+}
 function vueJour(d){
   const c=d.cibles,a=d.aujourdhui;
-  const reste=c.kcal?c.kcal-a.kcal:null;
   let h=alertesGoutte(d)+'<section>';
   if(c.kcal){
-    h+=anneauCalories(a.kcal,c.kcal);
-    const manque=c.prot-a.prot;
-    if(manque>15)h+='<p class="rappel"><span class="sur">Il te manque '+nb(manque)+' g de protéines.</span> '+
-      'En sèche, c\'est ce qui protège ta masse musculaire : vise-les avant de combler le reste.</p>';
+    const trop=a.kcal>c.kcal,trait=couleurDepassement(a.kcal,c.kcal);
+    h+='<div class="hero">'+anneauCalories(a.kcal,c.kcal,true)+'<div class="hero-d">'+
+      '<span class="cal-pastille" style="background:'+(trop?trait:'var(--under)')+'">'+nb(Math.abs(c.kcal-a.kcal))+' kcal '+(trop?'en trop':'restantes')+'</span>'+
+      barreMacro('prot','Prot.',a.prot||0,c.prot)+barreMacro('lip','Lip.',a.lip||0,c.lip)+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc)+
+      '</div></div>';
     h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour la fixer.</p>';
   h+='</section>';
 
-  if(a.kcal){
-    h+='<section>';
-    h+='<div class="anneaux">'+
-       anneau(a.prot,c.prot,'var(--under)','Protéines',96,null)+
-       anneau(a.lip,c.lip,'var(--under)','Lipides',96,couleurDepassement(a.lip,c.lip))+
-       anneau(a.gluc,c.gluc,'var(--under)','Glucides',96,couleurDepassement(a.gluc,c.gluc))+
-       '</div>';
-    h+='<div class="anneaux-leg">';
-    ['prot','lip','gluc'].forEach(k=>h+=pastilleMacro(k,a[k],c[k]));
+  const o=S.jour.onglet;
+  h+='<section><div class="seg" role="tablist">';
+  [['repas','Repas'],['purines','Purines'],['objectif','Objectif'],['tendance','Tendance']].forEach(x=>{
+    h+='<button role="tab" data-jo="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';
+  });
+  h+='</div>';
+
+  if(o==='repas'){
+    const frac=repartFrac(d);
+    const cibleRepas=(champ,r)=>(c[champ]&&frac[r]!==undefined)?Math.round(c[champ]*frac[r]):0;
+    const pc=repartPct(d);
+    h+='<div class="repas-liste">';
+    const cellPLG=(v,ci)=>nb(v)+'<span style="color:var(--soft)">/'+nb(ci)+'</span> <span class="'+(ci&&v>ci?'sur':'sous')+'">'+(ci?sgn(v-ci):'—')+'</span>';
+    REPAS.forEach(r=>{
+      const p=a.parRepas[r[0]]||{kcal:0,prot:0,lip:0,gluc:0};
+      const ci=(r[0]==='autre')?0:cibleRepas('kcal',r[0]);
+      if(!p.kcal&&!ci)return;
+      const cp=cibleRepas('prot',r[0]),cl=cibleRepas('lip',r[0]),cg=cibleRepas('gluc',r[0]);
+      h+='<div class="rep-ligne" data-ouvre tabindex="0" role="button" aria-expanded="false"><div class="rep-tete">'+
+         '<span class="rep-nom">'+r[1]+'<span class="rep-chev">›</span></span>'+
+         '<span class="rep-kcal">'+nb(p.kcal)+(ci?'<span class="rep-cible"> / '+nb(ci)+'</span> <span class="'+(p.kcal>ci?'sur':'sous')+'">'+sgn(p.kcal-ci)+'</span>':'')+'</span></div>'+
+         '<div class="rep-detail"><span>P '+cellPLG(p.prot||0,cp)+'</span><span>L '+cellPLG(p.lip||0,cl)+'</span><span>G '+cellPLG(p.gluc||0,cg)+'</span></div>'+
+         '<div class="rep-micro">'+ligneMicro(p)+'</div>'+
+         '</div>';
+    });
     h+='</div>';
-    h+=barreMacros(a);
-    h+='</section>';
+    if(a.kcal)h+='<div style="margin-top:14px">'+barreMacros(a)+'</div>';
+    h+='<p class="note">Touche un repas pour voir le détail P/L/G et les fibres, sucres, sodium. Répartition réglée '+pc.matin+'/'+pc.midi+'/'+pc.encas+'/'+pc.soir+' %, modifiable dans les Réglages.</p>';
+  }else if(o==='purines'){
+    const p=blocPurinesJour(d);
+    h+=p?p.replace('<section><h2>Purines</h2>','<div>').replace(/<\/section>$/,'</div>'):'<p class="note">Pas encore de purines enregistrées : elles s’affichent dès qu’un repas analysé en contient.</p>';
+  }else if(o==='objectif'){
+    const b=blocObjectif(d);
+    h+=b?b.replace(/^<section( class="obj")?>/,'<div class="obj">').replace(/<\/section>$/,'</div>'):'<p class="note">Enregistre une pesée pour suivre ton objectif.</p>';
+  }else{
+    const m=d.moyennes;
+    const fleche=v=>(v===null||v===undefined||!c.kcal)?'':(v>c.kcal?' <span class="sur">▲</span>':' <span class="sous">▼</span>');
+    h+='<table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
+    h+='<tr><td>Aujourd\'hui</td><td>'+nb(a.kcal)+fleche(a.kcal)+'</td><td>'+nb(a.prot)+'</td><td>'+nb(a.lip)+'</td><td>'+nb(a.gluc)+'</td></tr>';
+    [['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(p=>{
+      const v=m[p[1]]||{};
+      h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
+    });
+    h+='</tbody></table><p class="note">La flèche compare à ta cible. Les moyennes portent sur les jours pleins précédents (au moins deux repas), le jour en cours n\'est pas compté tant qu\'il n\'est pas terminé.</p>';
   }
-
-  h+=blocObjectif(d);
-  h+=blocPurinesJour(d);
-
-  // Cibles par repas recalculees cote appli a partir du decoupage regle,
-  // pour rester iso avec les Reglages quelle que soit la valeur renvoyee par l'API.
-  const frac=repartFrac(d);
-  const cibleRepas=(champ,r)=>(c[champ]&&frac[r]!==undefined)?Math.round(c[champ]*frac[r]):0;
-
-  const pc=repartPct(d);
-  h+='<section><h2>Par repas</h2><div class="repas-liste">';
-  const cellPLG=(v,ci)=>nb(v)+'<span style="color:var(--soft)">/'+nb(ci)+'</span> <span class="'+(ci&&v>ci?'sur':'sous')+'">'+(ci?sgn(v-ci):'\u2014')+'</span>';
-  REPAS.forEach(r=>{
-    const p=a.parRepas[r[0]]||{kcal:0,prot:0,lip:0,gluc:0};
-    const ci=(r[0]==='autre')?0:cibleRepas('kcal',r[0]);
-    if(!p.kcal&&!ci)return;
-    const cp=cibleRepas('prot',r[0]),cl=cibleRepas('lip',r[0]),cg=cibleRepas('gluc',r[0]);
-    h+='<div class="rep-ligne" data-ouvre tabindex="0" role="button" aria-expanded="false"><div class="rep-tete">'+
-       '<span class="rep-nom">'+r[1]+'<span class="rep-chev">\u203A</span></span>'+
-       '<span class="rep-kcal">'+nb(p.kcal)+(ci?'<span class="rep-cible"> / '+nb(ci)+'</span> <span class="'+(p.kcal>ci?'sur':'sous')+'">'+sgn(p.kcal-ci)+'</span>':'')+'</span></div>'+
-       '<div class="rep-detail"><span>P '+cellPLG(p.prot||0,cp)+'</span><span>L '+cellPLG(p.lip||0,cl)+'</span><span>G '+cellPLG(p.gluc||0,cg)+'</span></div>'+
-       '<div class="rep-micro">'+ligneMicro(p)+'</div>'+
-       '</div>';
-  });
-  h+='</div><p class="note">Touche un repas pour voir le détail P/L/G et les fibres, sucres, sodium. R\u00e9partition r\u00e9gl\u00e9e '+pc.matin+'/'+pc.midi+'/'+pc.encas+'/'+pc.soir+' %, modifiable dans les R\u00e9glages.</p></section>';
-
-  const m=d.moyennes;
-  h+='<section><details class="accord"><summary><h2>Moyennes par jour</h2></summary><table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
-  function fleche(v){
-    if(v===null||v===undefined||!c.kcal)return '';
-    return v>c.kcal?' <span class="sur">\u25B2</span>':' <span class="sous">\u25BC</span>';
-  }
-  h+='<tr><td>Aujourd\'hui</td><td>'+nb(a.kcal)+fleche(a.kcal)+'</td><td>'+nb(a.prot)+'</td><td>'+nb(a.lip)+'</td><td>'+nb(a.gluc)+'</td></tr>';
-  [['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(p=>{
-    const v=m[p[1]];
-    h+='<tr><td>'+p[0]+'</td><td>'+nb(v.kcal)+fleche(v.kcal)+'</td><td>'+nb(v.prot)+'</td><td>'+nb(v.lip)+'</td><td>'+nb(v.gluc)+'</td></tr>';
-  });
-  h+='</tbody></table><p class="note">La flèche compare à ta cible. Les moyennes portent sur les jours pleins précédents (au moins deux repas), le jour en cours n\'est pas compté tant qu\'il n\'est pas terminé.</p></details></section>';
-  return h;
+  return h+'</section>';
 }
 
 function repasParHeure(){
@@ -2308,7 +2343,7 @@ function blocPurinesJour(d){
   const suc=s7.reduce((s,j)=>s+(Number(j.boissons_sucrees)||0),0);
   o+=pastilles7(d,max);
   o+='<div class="micro">Sur 7 jours : alcool '+nb(alc)+' g · '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
-  o+='<p class="note">Seules comptent les purines des viandes, abats, charcuteries, poissons, fruits de mer, bouillons et de la bière : ce sont celles qui favorisent les crises de goutte. Les purines végétales (lentilles, épinards, champignons) n\'augmentent pas ce risque et ne sont pas comptées. Valeurs estimées par famille d\'aliments : une tendance, pas une mesure au milligramme.</p>';
+  o+='<details class="aide"><summary>Comment c\'est calculé ?</summary><p class="note">Seules comptent les purines des viandes, abats, charcuteries, poissons, fruits de mer, bouillons et de la bière : ce sont celles qui favorisent les crises de goutte. Les purines végétales (lentilles, épinards, champignons) n\'augmentent pas ce risque et ne sont pas comptées. Valeurs estimées par famille d\'aliments : une tendance, pas une mesure au milligramme.</p></details>';
   return o+'</section>';
 }
 // Purines à risque des 7 derniers jours (aujourd'hui compris), une pastille par jour.
@@ -2367,7 +2402,9 @@ function alertesGoutte(d){
     if(m<-900)al.push('<b>Déficit moyen de '+nb(Math.abs(m))+' kcal par jour</b> sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.');
   }
   if(!al.length)return '';
-  return '<section><div class="goutte"><div class="goutte-t">Vigilance acide urique</div>'+al.map(t=>'<p>'+t+'</p>').join('')+'</div></section>';
+  const ouv=S.jour.alerteOuv;
+  return '<section><button class="vg" id="j-alerte" aria-expanded="'+ouv+'">\u26A0\uFE0F <b>Vigilance acide urique</b><span class="vg-n">'+al.length+'</span><span class="vg-ch">\u203A</span></button>'+
+    (ouv?'<div class="goutte">'+al.map(t=>'<p>'+t+'</p>').join('')+'</div>':'')+'</section>';
 }
 // Barres journalières avec un seuil (plafond de purines, objectif de pas).
 // bonSiHaut : vert au-dessus du seuil (pas) ; sinon vert en dessous (purines).
@@ -2967,6 +3004,9 @@ function brancher(){
     b.addEventListener('click',()=>{S.periodeProg=Number(b.dataset.pp);rendre();});
   });
   on('#j-ajout','click',()=>{S.vue='ajout';rendre();hautPage();});
+  on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});
+  document.querySelectorAll('[data-jo]').forEach(b=>b.addEventListener('click',()=>{
+    S.jour.onglet=b.dataset.jo;try{localStorage.setItem('suivi.jour.onglet',S.jour.onglet);}catch(e){}rendre();}));
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
   document.querySelectorAll('[data-ouvre]').forEach(l=>{
@@ -3587,6 +3627,7 @@ async function demarrer(){
   if(!S.cfg||!S.cfg.api||!S.cfg.token){connexion();return;}
   try{S.coach.fil=JSON.parse(localStorage.getItem(S.chat))||[];}catch(e){S.coach.fil=[];}
   S.foods=lireFoods();
+  S.jour.onglet=ongletJourInit();
   S.file=lirePending();
   const cache=lireRepasCache();
   if(cache){
