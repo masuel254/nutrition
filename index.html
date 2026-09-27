@@ -458,6 +458,29 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .rac-pas span{font-size:17px;font-weight:700}
 .rac-barre{position:sticky;bottom:8px;z-index:2;width:100%;margin-top:12px;padding:13px 14px;border-radius:10px;background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600;font-size:15px}
 .rac-barre[disabled]{opacity:.55}
+/* Journal par semaines */
+.jn-t{font-size:12px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px}
+.jn-t:first-child{margin-top:0}
+.jn-carte{border:1px solid var(--rule);border-radius:12px;background:var(--card);overflow:hidden}
+.jn-carte.jn-dans{border:none;border-top:1px solid var(--rule);border-radius:0}
+.jn-j{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border-top:1px solid var(--rule);text-align:left}
+.jn-carte>.jn-j:first-child{border-top:none}
+.jn-j.o{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.jn-d{width:96px;flex:none;font-size:14px;font-weight:600}.jn-d small{display:block;font-weight:400;color:var(--soft);font-size:11.5px}
+.jn-bar{flex:1;min-width:30px;height:8px;border-radius:4px;background:var(--creux);position:relative;overflow:hidden}
+.jn-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.jn-k{width:74px;flex:none;text-align:right;font-weight:700;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.jn-k small{display:block;font-weight:400;font-size:11px;color:var(--soft)}
+.jn-ch{color:var(--soft);font-size:18px;flex:none;transition:transform .15s}
+.jn-j.o .jn-ch,.jn-sem.o>.jn-sem-t .jn-ch{transform:rotate(90deg)}
+.jn-det{padding:0 14px 12px;border-top:1px solid var(--rule)}
+.jn-det .repas-titre:first-child{margin-top:10px}
+.jn-sem{border:1px solid var(--rule);border-radius:12px;background:var(--card);margin-bottom:10px;overflow:hidden}
+.jn-sem-t{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;text-align:left}
+.jn-sem-n{flex:1;min-width:0}.jn-sem-n b{display:block;font-size:15px}.jn-sem-n small{display:block;font-size:12px;color:var(--soft);margin-top:2px}
+.jn-moy{flex:none;text-align:right;font-size:15px;white-space:nowrap;line-height:1.3;font-variant-numeric:tabular-nums}
+.jn-moy small{font-size:11.5px;color:var(--soft)}.jn-moy small.e{display:block}
+.jn-plus{width:100%;padding:13px;border:1px dashed var(--rule);border-radius:12px;color:var(--ink);font-weight:600;font-size:14.5px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -465,13 +488,13 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='27/09/2026 09h46';
+const APP_VERSION='27/09/2026 15h48';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
+  foods:[],recentsOuv:false,jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
   cam:{ouvert:false}};
@@ -609,18 +632,18 @@ async function appel(corps){
   const url=S.cfg.api.trim().replace(/\/+$/,'');
   const body=JSON.stringify(Object.assign({token:S.cfg.token.trim()},corps));
   // l'analyse IA d'un repas (surtout avec photo) est lente par nature : on lui
-  // laisse 90 s. Les autres appels (data, enregistrer, suppr, params) : 25 s.
-  // appels IA (analyse de repas, coach) : lents par nature, 90 s ; le serveur
-  // est calibré pour répondre avant (pire cas ~81 s). Autres appels : 25 s.
+  // laisse 120 s. Les autres appels (data, enregistrer, suppr, params) : 25 s.
+  // appels IA (analyse de repas, coach) : lents par nature, 120 s ; le serveur
+  // est calibré pour répondre avant (pire cas ~110 s, si les deux modèles expirent). Autres appels : 25 s.
   const IA=!!(corps&&(corps.action==='repas'||corps.action==='conseil'||corps.action==='photo'));
-  const DELAI=IA?90000:25000;
+  const DELAI=IA?120000:25000;
   // 3 tentatives (1 + 2 retries) avec backoff exponentiel, uniquement sur
   // erreurs transitoires : coupure reseau, timeout, ou 5xx. Le 429 n'est pas
   // rejoue dans la seconde (le serveur demande d'attendre) mais est marque
   // transitoire (.reseau) pour que la file d'attente le rejoue plus tard, sans
   // le supprimer. Un refus applicatif (j.ok===false) reste definitif.
   // pas de retry pour l'analyse : si l'IA est lente, relancer ne fait que doubler
-  // le travail. Une seule tentative de 90 s. Les autres appels gardent 2 retries.
+  // le travail. Une seule tentative de 120 s. Les autres appels gardent 2 retries.
   // enregistrer n'est pas rejoué : si le serveur a écrit mais répond lentement,
   // un nouvel essai créerait un doublon dans le Journal.
   const RETRIS=(IA||(corps&&corps.action==='enregistrer'))?0:2;
@@ -649,8 +672,12 @@ async function appel(corps){
       throw e;
     }
     if(r.status>=500&&r.status<600){
-      // erreur serveur transitoire : on retente
-      derniere=new Error('Le serveur a répondu '+r.status+'. Réessaie dans un instant.');
+      // erreur serveur : on lit le message renvoyé par le workflow s'il y en a un
+      // (ex. IA saturée chez Google), sinon message générique ; puis on retente.
+      let je=null;try{je=await r.json();}catch(e){}
+      const msg=(je&&je.erreur)?je.erreur:('Le serveur a répondu '+r.status+'. Réessaie dans un instant.');
+      if(IA&&je&&je.erreur)throw new Error(msg);
+      derniere=new Error(msg);
       continue;
     }
     let j=null;
@@ -1948,42 +1975,122 @@ function vueCourbes(d){
   return h;
 }
 
-function vueJournal(d){
-  if(!d.journal.length)return '<p class="vide">Rien d\'enregistré pour le moment. Passe par Ajouter.</p>';
-  const infoJour={};(d.jours||[]).forEach(j=>{infoJour[j.date]=j;});
-  const par={};d.journal.forEach((r,i)=>{r.__i=i;(par[r.date]=par[r.date]||[]).push(r);});
-  let h='<section>';
-  Object.keys(par).sort().reverse().forEach(k=>{
-    const l=par[k],j=infoJour[k];
-    const tot=j?j.kcal:l.reduce((s,r)=>s+r.kcal,0);
-    const cible=j?j.cible:0;
-    let cls='';
-    if(cible)cls=(tot<=cible)?'sous':(tot<=cible*1.1?'':'sur');
-    h+='<div class="jour"><div class="jour-titre"><span>'+jjmmJour(k)+'</span>'+
-       '<span class="tot '+cls+'">'+nb(tot)+' kcal</span></div>';
-    h+='<div class="jour-sous"><span>'+
-       (cible?(tot<=cible?'sous la cible de '+nb(cible):'au-dessus de '+nb(cible))+' \u00b7 '+sgn(tot-cible):'aucune cible ce jour-là')+
-       '</span><span>'+(j?'P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc):'')+'</span></div>';
-    const groupes={};
-    l.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
-    Object.keys(groupes).forEach(nom=>{
-      const g=groupes[nom],st=g.reduce((s,r)=>s+r.kcal,0);
-      h+='<div class="repas-titre"><span>'+esc(nom)+'</span><span>'+nb(st)+' kcal</span></div>';
-      g.forEach(r=>{
-        const ns=String(r.nutriscore||'').trim().toLowerCase();
-        const pastille=/^[abcde]$/.test(ns)?'<span class="nutri '+ns+'" style="width:20px;height:20px;font-size:12px;vertical-align:-4px;margin-right:6px">'+ns+'</span>':'';
-        h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
-           '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
-           '<div class="macro">P '+nb(r.prot)+' \u00b7 L '+nb(r.lip)+' \u00b7 G '+nb(r.gluc)+
-           ((r.purines_risque||0)>0?' \u00b7 <span'+((r.purines_risque||0)>=150?' class="sur"':'')+'>purines '+nb(r.purines_risque)+' mg</span>':'')+'</div></div>'+
-           '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
-           '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">\u270e</button>'+
-           '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">\u00d7</button></div>';
-      });
+/* ---------- Journal : semaine en cours jour par jour, semaines passées repliées ----------
+   Les totaux (jours, semaines) viennent de d.jours, qui couvre tout l'historique. Le détail
+   des repas n'est livré par /data que depuis d.journal_depuis (lundi de la semaine
+   précédente) ; au-delà, une semaine est chargée à la demande (action journal) quand on
+   ouvre un de ses jours. */
+function lundiJn(iso){const x=new Date(iso+'T12:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return isoLocal(x);}
+function plusJours(iso,n){const x=new Date(iso+'T12:00:00');x.setDate(x.getDate()+n);return isoLocal(x);}
+function semaineChargee(d,lun){
+  if(!d.journal_depuis)return true;           // ancien workflow : tout est déjà là
+  return lun>=d.journal_depuis||!!(d.__sem&&d.__sem[lun]);
+}
+function libJourCourt(iso){
+  if(iso===auj())return 'Aujourd’hui';
+  if(iso===plusJours(auj(),-1))return 'Hier';
+  const x=new Date(iso+'T12:00:00');return JOURS[x.getDay()].slice(0,3)+'. '+jjmm(iso);
+}
+function detailJourJn(rows){
+  let h='';const groupes={};
+  rows.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
+  Object.keys(groupes).forEach(nom=>{
+    const g=groupes[nom],st=g.reduce((s,r)=>s+r.kcal,0);
+    h+='<div class="repas-titre"><span>'+esc(nom)+'</span><span>'+nb(st)+' kcal</span></div>';
+    g.forEach(r=>{
+      const ns=String(r.nutriscore||'').trim().toLowerCase();
+      const pastille=/^[abcde]$/.test(ns)?'<span class="nutri '+ns+'" style="width:20px;height:20px;font-size:12px;vertical-align:-4px;margin-right:6px">'+ns+'</span>':'';
+      h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
+         '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
+         '<div class="macro">P '+nb(r.prot)+' · L '+nb(r.lip)+' · G '+nb(r.gluc)+
+         ((r.purines_risque||0)>0?' · <span'+((r.purines_risque||0)>=150?' class="sur"':'')+'>purines '+nb(r.purines_risque)+' mg</span>':'')+'</div></div>'+
+         '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
+         '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">✎</button>'+
+         '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">×</button></div>';
     });
+  });
+  return h;
+}
+function ligneJourJn(d,iso,J){
+  const j=J[iso]||{kcal:0,repas:0,cible:0};
+  const ouvert=!!S.jn.ouv['j:'+iso];
+  const c=j.cible||0,col=c?couleurDepassement(j.kcal,c):'var(--soft)';
+  const pct=c?Math.min(100,j.kcal/c*100):0;
+  let h='<button class="jn-j'+(ouvert?' o':'')+'" data-jt="'+iso+'" aria-expanded="'+(ouvert?'true':'false')+'">'+
+    '<span class="jn-d">'+esc(libJourCourt(iso))+'<small>'+j.repas+' saisie'+(j.repas>1?'s':'')+'</small></span>'+
+    '<span class="jn-bar">'+(c?'<i style="width:'+pct.toFixed(0)+'%;background:'+col+'"></i>':'')+'</span>'+
+    '<span class="jn-k" style="color:'+col+'">'+nb(j.kcal)+(c?'<small>'+sgn(j.kcal-c)+'</small>':'')+'</span>'+
+    '<span class="jn-ch">›</span></button>';
+  if(ouvert){
+    const lun=lundiJn(iso);
+    h+='<div class="jn-det">';
+    if(S.jn.err[lun])h+='<p class="alerte">'+esc(S.jn.err[lun])+'</p><button class="lien" data-jre="'+lun+'">Réessayer</button>';
+    else if(!semaineChargee(d,lun))h+='<p class="note"><span class="attente"></span>Chargement du détail</p>';
+    else{
+      const rows=(d.journal||[]).filter(r=>r.date===iso);
+      h+=rows.length?detailJourJn(rows):'<p class="note">Aucun repas enregistré ce jour-là.</p>';
+    }
+    h+='</div>';
+  }
+  return h;
+}
+function vueJournal(d){
+  const jours=(d.jours||[]).filter(j=>j&&j.date&&(j.kcal>0||j.repas>0));
+  (d.journal||[]).forEach((r,i)=>{r.__i=i;});
+  if(!jours.length&&!(d.journal||[]).length)return '<p class="vide">Rien d\'enregistré pour le moment. Passe par Ajouter.</p>';
+  const J={};jours.forEach(j=>{J[j.date]=j;});
+  // jour présent dans le détail mais absent des totaux (cas limite) : total recalculé ici
+  (d.journal||[]).forEach(r=>{if(!J[r.date])J[r.date]={date:r.date,kcal:0,repas:0,cible:0,__ajoute:1};
+    const j=J[r.date];if(j.__ajoute){j.kcal+=r.kcal;if(r.kcal>0)j.repas++;}});
+  const dates=Object.keys(J).sort().reverse();
+  const cur=lundiJn(auj());
+  if(!S.jn.ouv){
+    // à l'ouverture : le jour le plus récent déplié (et sa semaine si elle est passée)
+    S.jn.ouv={};
+    if(dates[0]){S.jn.ouv['j:'+dates[0]]=1;const l=lundiJn(dates[0]);if(l!==cur)S.jn.ouv['s:'+l]=1;}
+  }
+  const sem={};dates.forEach(s=>{const l=lundiJn(s);(sem[l]=sem[l]||[]).push(s);});
+  let h='<section class="jn"><div class="jn-t">Cette semaine</div>';
+  if(sem[cur]){h+='<div class="jn-carte">';sem[cur].forEach(s=>{h+=ligneJourJn(d,s,J);});h+='</div>';}
+  else h+='<p class="note">Rien de saisi cette semaine pour l’instant.</p>';
+  const passees=Object.keys(sem).filter(l=>l!==cur).sort().reverse();
+  if(passees.length)h+='<div class="jn-t">Semaines précédentes</div>';
+  passees.slice(0,S.jn.nbSem).forEach(l=>{
+    const ds=sem[l],fin=plusJours(l,6);
+    const js=ds.map(s=>J[s]);
+    const val=js.filter(j=>j.valide&&j.date!==auj());const base=val.length?val:js;
+    const moy=base.reduce((t,j)=>t+j.kcal,0)/(base.length||1);
+    const cibles=base.filter(j=>j.cible>0);const cm=cibles.length?cibles.reduce((t,j)=>t+j.cible,0)/cibles.length:0;
+    const sur=js.filter(j=>j.cible>0&&j.kcal>j.cible).length;
+    const col=cm?couleurDepassement(moy,cm):'var(--ink)';
+    const o=!!S.jn.ouv['s:'+l];
+    const m0=MOIS[Number(l.slice(5,7))-1],m1=MOIS[Number(fin.slice(5,7))-1];
+    h+='<div class="jn-sem'+(o?' o':'')+'"><button class="jn-sem-t" data-st="'+l+'" aria-expanded="'+(o?'true':'false')+'">'+
+      '<span class="jn-sem-n"><b>Semaine du '+Number(l.slice(8,10))+(m0!==m1?' '+m0:'')+' au '+Number(fin.slice(8,10))+' '+m1+'</b>'+
+      '<small>'+ds.length+' jour'+(ds.length>1?'s':'')+' saisi'+(ds.length>1?'s':'')+(cm?' · '+sur+' au-dessus de la cible':'')+'</small></span>'+
+      '<span class="jn-moy"><b style="color:'+col+'">'+nb(moy)+'</b>&nbsp;<small>kcal/j</small>'+(cm?'<small class="e">'+sgn(moy-cm)+'&nbsp;/j</small>':'')+'</span>'+
+      '<span class="jn-ch">›</span></button>';
+    if(o){h+='<div class="jn-carte jn-dans">';ds.forEach(s=>{h+=ligneJourJn(d,s,J);});h+='</div>';}
     h+='</div>';
   });
+  const reste=passees.length-S.jn.nbSem;
+  if(reste>0)h+='<button class="jn-plus" id="jn-plus">Voir '+Math.min(4,reste)+' semaine'+(Math.min(4,reste)>1?'s':'')+' de plus</button>';
   return h+'</section>';
+}
+// Charge le détail d'une semaine ancienne (lundi -> dimanche) et le greffe au journal en mémoire.
+async function chargerSemaine(lun){
+  if(S.jn.charge[lun]||!S.data)return;
+  S.jn.charge[lun]=true;
+  const d=S.data;
+  try{
+    const r=await appel({action:'journal',debut:lun,fin:plusJours(lun,6)});
+    if(S.data!==d)return;                      // données rechargées entre-temps : on laisse tomber
+    const fin=plusJours(lun,6);
+    d.journal=(d.journal||[]).filter(x=>!(x.date>=lun&&x.date<=fin)).concat(r.journal||[]);
+    d.__sem=d.__sem||{};d.__sem[lun]=true;delete S.jn.err[lun];
+  }catch(e){S.jn.err[lun]='Détail indisponible : '+e.message;}
+  finally{delete S.jn.charge[lun];}
+  if(S.vue==='journal')rendre();
 }
 
 function vueCoach(){
@@ -2783,6 +2890,20 @@ function brancher(){
       }
     });
   });
+  // --- journal : jours et semaines repliables, détail ancien chargé à la demande ---
+  document.querySelectorAll('[data-jt]').forEach(b=>b.addEventListener('click',()=>{
+    const k='j:'+b.dataset.jt;if(S.jn.ouv[k])delete S.jn.ouv[k];else S.jn.ouv[k]=1;rendre();}));
+  document.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{
+    const k='s:'+b.dataset.st;if(S.jn.ouv[k])delete S.jn.ouv[k];else S.jn.ouv[k]=1;rendre();}));
+  on('#jn-plus','click',()=>{S.jn.nbSem+=4;rendre();});
+  document.querySelectorAll('[data-jre]').forEach(b=>b.addEventListener('click',()=>{delete S.jn.err[b.dataset.jre];rendre();}));
+  if(S.vue==='journal'&&S.data&&S.jn.ouv){
+    Object.keys(S.jn.ouv).forEach(k=>{
+      if(k.slice(0,2)!=='j:')return;
+      const lun=lundiJn(k.slice(2));
+      if(!semaineChargee(S.data,lun)&&!S.jn.err[lun])chargerSemaine(lun);
+    });
+  }
   // --- raccourcis : refaire un repas / composer avec mes aliments ---
   on('#rac-tr','click',()=>{S.rac.ouvR=!S.rac.ouvR;S.rac.msg='';rendre();});
   on('#rac-tc','click',()=>{S.rac.ouvC=!S.rac.ouvC;rendre();});
