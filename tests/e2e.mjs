@@ -62,6 +62,7 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'suppr') return json({ ok: true });
+  if (q.action === 'poids') return json({ ok: true, poids: q.poids });
   return json(DATA);
 });
 await page.addInitScript(() => localStorage.setItem('suivi.config', JSON.stringify({ api: 'https://api.test/x', token: 't' })));
@@ -79,6 +80,21 @@ ok(/vers le/.test(await texte('.obj')), 'projection datée');
 await page.click('[data-jo="purines"]');
 ok(await page.locator('.pur-tete').count() === 1, 'onglet Purines');
 await page.click('[data-jo="repas"]');
+
+console.log('Courbes et Corps');
+await page.click('nav button[data-vue="courbes"]');
+ok(await page.locator('[data-cong="poids"].on').count() === 1 && await page.locator('[data-cper="30"].on').count() === 1, 'Courbes : onglet Poids et 30 jours par défaut');
+ok(await page.locator('.vue.on .tu').count() === 3, 'Courbes : trois tuiles de synthèse');
+ok(await page.locator('.vue.on #p-envoi').count() === 0, 'Courbes : plus de saisie de pesée');
+await page.click('[data-cong="calories"]'); await page.click('[data-cper="7"]');
+ok(/Sous besoins/i.test(await texte('.vue.on .tuiles')) && await page.locator('[data-cper="7"].on').count() === 1, 'Courbes : onglet Calories sur 7 jours');
+await page.click('[data-cong="purines"]');
+ok(/Plafond/i.test(await texte('.vue.on .tuiles')), 'Courbes : onglet Purines');
+await page.click('[data-cong="poids"]'); await page.click('[data-cper="30"]');
+await page.click('nav button[data-vue="corps"]');
+ok(/Pesée du jour/.test(await texte('.vue.on section')), 'Corps : pesée en tête');
+await page.click('#p-envoi'); await page.waitForTimeout(300);
+ok(appels.some(a => a.action === 'poids' && a.poids === 100) && /100 kg enregistrés/.test(await texte('.vue.on .bien')), 'Corps : pesée envoyée');
 
 console.log('Journal');
 await page.click('nav button[data-vue="journal"]');

@@ -5,6 +5,7 @@ données fictives (aucune donnée personnelle ici). Il vérifie les parcours qui
 ou qui comptent le plus :
 
 - écran Jour : pastille des calories, carte objectif et projection ;
+- Courbes : onglets Poids / Calories / Purines, période commune, tuiles ; Corps : pesée en tête et envoi ;
 - Journal : bilan de la semaine dernière, semaines repliées, « Voir plus », chargement à la demande ;
 - Ajouter : refaire un repas, enregistrement rejoué sans doublon (même identifiant),
   modification de la même ligne, composer avec ses aliments, message si l'IA est indisponible ;
