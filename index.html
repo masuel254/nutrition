@@ -524,7 +524,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='27/09/2026 23h57';
+const APP_VERSION='28/09/2026 00h03';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -1305,7 +1305,7 @@ function vueJour(d){
 
   const o=S.jour.onglet;
   h+='<section><div class="seg" role="tablist">';
-  [['repas','Repas'],['purines','Purines'],['objectif','Objectif'],['tendance','Tendance']].forEach(x=>{
+  [['repas','Repas'],['tendance','Tendance'],['purines','Purines'],['objectif','Objectif']].forEach(x=>{
     h+='<button role="tab" data-jo="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div>';
