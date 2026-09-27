@@ -465,7 +465,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='26/09/2026 14h06';
+const APP_VERSION='27/09/2026 09h46';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
@@ -655,7 +655,15 @@ async function appel(corps){
     }
     let j=null;
     try{j=await r.json();}catch(e){}
-    if(!j)throw new Error('Le serveur a répondu '+r.status+' sans contenu lisible.');
+    if(!j){
+      // réponse vide : n8n s'est arrêté avant de répondre (souvent Google Sheets injoignable
+      // un instant). Lecture ou écriture rejouable : on retente. Enregistrement d'un repas :
+      // on ne sait pas si la ligne est écrite, on ne rejoue pas.
+      if(corps&&corps.action==='enregistrer')
+        throw new Error('Pas de réponse claire du serveur. Vérifie dans le Journal si le repas y est avant de réessayer.');
+      derniere=new Error('Le serveur n\'a pas répondu correctement. Réessaie dans un instant.');
+      continue;
+    }
     if(j.ok!==true)throw new Error(j.erreur||('Le serveur a répondu '+r.status+'.'));
     return j;
   }
