@@ -71,8 +71,14 @@ const texte = async s => (await page.locator(s).first().innerText()).replace(/\s
 
 console.log('Jour');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
-ok(/Objectif 90 kg/.test(await texte('.obj')), 'carte objectif');
+ok(await page.locator('.hero .hm').count() === 3, 'barres des trois macros');
+ok(await page.locator('.seg .on[data-jo="repas"]').count() === 1, 'onglet Repas ouvert par défaut');
+await page.click('[data-jo="objectif"]');
+ok(/Objectif 90 kg/.test(await texte('.obj')), 'onglet Objectif : carte objectif');
 ok(/vers le/.test(await texte('.obj')), 'projection datée');
+await page.click('[data-jo="purines"]');
+ok(await page.locator('.pur-tete').count() === 1, 'onglet Purines');
+await page.click('[data-jo="repas"]');
 
 console.log('Journal');
 await page.click('nav button[data-vue="journal"]');
