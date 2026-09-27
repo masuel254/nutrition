@@ -517,6 +517,19 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
 details.aide{margin-top:10px}
 details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
+.cg-per{display:flex;gap:6px;margin:0 0 10px}
+.cg-per button{flex:1;min-width:0;padding:6px 0;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
+.cg-per button.on{border-color:var(--ink);color:var(--ink);font-weight:700}
+.tuiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.tu{border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:9px 10px;min-width:0}
+.tu small{display:block;font-size:10.5px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tu b{display:block;font-size:17px;margin:3px 0 1px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tu span{display:block;font-size:11px;color:var(--soft);line-height:1.3}
+.crb-ac{font-size:13px;line-height:1.4;margin:-2px 0 14px;padding:8px 11px;border-radius:8px;border-left:3px solid var(--rule)}
+.crb-ac.ok{border-left-color:var(--under);background:color-mix(in srgb,var(--under) 8%,var(--card))}
+.crb-ac.ecart{border-left-color:var(--over);background:color-mix(in srgb,var(--over) 8%,var(--card))}
+.crb-ac b{font-weight:600}
+.crb-st{font-size:12px;color:var(--soft);margin:-6px 0 10px}
 </style>
 </head>
 <body>
@@ -524,10 +537,10 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='28/09/2026 00h03';
+const APP_VERSION='28/09/2026 00h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
-  cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,periode:30,periodeProg:30,
+  cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
@@ -1760,112 +1773,6 @@ function historiqueRepas(A){
   h+='<button class="secondaire" id="a-vider-histo">Tout effacer</button>';
   return h+'</section>';
 }
-/* Bloc Progression : compare la perte réelle (balance) au théorique (déficit).
-   periode en jours (7, 30) ou 0 = tout l'historique. */
-function progression(d,periode){
-  const pes=(d.poids||[]).filter(x=>x&&x.date&&typeof x.poids==='number');
-  const cumule=d.deficit&&d.deficit.cumule?d.deficit.cumule:[];
-  if(pes.length<2&&cumule.length<2)
-    return '<p class="vide">Pas encore assez de données. Ajoute quelques pesées et repas pour voir ta progression.</p>';
-
-  // borne de début selon la période (fenêtre glissante à partir de la dernière pesée)
-  const finDate=pes.length?pes[pes.length-1].date:(cumule.length?cumule[cumule.length-1].date:auj());
-  let debutISO=null;
-  if(periode>0){
-    const f=new Date(finDate+'T00:00:00Z');f.setUTCDate(f.getUTCDate()-periode);
-    debutISO=f.toISOString().slice(0,10);
-  }
-  // Poids estimé à une date donnée : interpolation linéaire entre les deux
-  // pesées qui l'encadrent. Avant la première pesée -> première pesée.
-  // Après la dernière -> dernière pesée. Pile sur une pesée -> sa valeur.
-  const jours=iso=>Math.round((new Date(iso+'T00:00:00Z'))/86400000);
-  function poidsAEstime(iso){
-    if(!pes.length)return null;
-    if(iso<=pes[0].date)return pes[0].poids;
-    if(iso>=pes[pes.length-1].date)return pes[pes.length-1].poids;
-    for(let i=0;i<pes.length-1;i++){
-      const a=pes[i],b=pes[i+1];
-      if(iso>=a.date&&iso<=b.date){
-        if(iso===a.date)return a.poids;
-        if(iso===b.date)return b.poids;
-        const da=jours(a.date),db=jours(b.date),di=jours(iso);
-        const t=(di-da)/(db-da);
-        return a.poids+(b.poids-a.poids)*t;
-      }
-    }
-    return pes[pes.length-1].poids;
-  }
-  // pesée de référence : réelle si "Tout", sinon poids estimé pile à la borne
-  const pFin=pes.length?pes[pes.length-1]:null;
-  let pRef=null,refDate=null,refEstime=false;
-  if(pes.length){
-    if(!debutISO){ pRef=pes[0]; refDate=pes[0].date; }
-    else if(debutISO<=pes[0].date){ pRef=pes[0]; refDate=pes[0].date; }  // recul avant la 1re pesée
-    else { const w=poidsAEstime(debutISO); pRef={date:debutISO,poids:w}; refDate=debutISO;
-           refEstime=!pes.some(x=>x.date===debutISO); }
-  }
-  const reel=(pRef&&pFin)?(pFin.poids-pRef.poids):null; // <0 = perte
-
-  // déficit théorique sur la même fenêtre : cumul(fin) - cumul(début)
-  function cumulAt(iso){
-    if(!cumule.length)return null;
-    let v=cumule[0].cumul;
-    for(let i=0;i<cumule.length;i++){if(cumule[i].date<=iso)v=cumule[i].cumul;else break;}
-    return v;
-  }
-  let theoKg=null;
-  if(cumule.length){
-    const finK=cumule[cumule.length-1].cumul;
-    const debK=debutISO?cumulAt(debutISO):0;
-    theoKg=(finK-(debK||0))/7000; // <0 = perte prévue
-  }
-
-  // rythme réel hebdo
-  let ryth=null,nbJours=null;
-  if(pRef&&pFin&&refDate!==pFin.date){
-    nbJours=Math.round((new Date(pFin.date+'T00:00:00Z')-new Date(refDate+'T00:00:00Z'))/86400000);
-    if(nbJours>0)ryth=(reel/nbJours)*7;
-  }
-
-  function kg(v){return (v>0?'+':'')+v.toFixed(1);}
-  const cls=v=>v===null?'':(v<0?'pos':(v>0?'neg':''));
-  let h='<div class="prog">';
-  h+='<div class="col"><div class="lib">Réel · balance</div><div class="big '+cls(reel)+'">'+
-     (reel===null?'\u2014':kg(reel)+'<span style="font-size:16px"> kg</span>')+'</div>'+
-     '<div class="sub">'+(pRef&&pFin?(refEstime?'~':'')+jjmm(refDate)+' \u2192 '+jjmm(pFin.date):'\u2014')+'</div></div>';
-  h+='<div class="col"><div class="lib">Théorique · déficit</div><div class="big '+cls(theoKg)+'">'+
-     (theoKg===null?'\u2014':kg(theoKg)+'<span style="font-size:16px"> kg</span>')+'</div>'+
-     '<div class="sub">'+(theoKg===null?'selon tes apports':((theoKg*7000>0?'+':theoKg*7000<0?'\u2212':'')+nb(Math.abs(Math.round(theoKg*7000)))+' kcal cumul\u00e9es'))+'</div></div>';
-  h+='</div>';
-
-  if(ryth!==null){
-    h+='<div class="prog-ryth"><span class="k">Rythme réel</span>'+
-       '<span class="v '+cls(ryth)+'" style="color:'+(ryth<0?'var(--under)':(ryth>0?'var(--over)':'inherit'))+'">'+
-       kg(ryth)+' kg / semaine</span></div>';
-  }
-
-  // accord réel vs théorique
-  if(reel!==null&&theoKg!==null){
-    const diff=reel-theoKg; // écart entre mesuré et prévu
-    const proche=Math.abs(diff)<=0.8;
-    h+='<div class="prog-accord '+(proche?'ok':'ecart')+'">';
-    if(proche){
-      h+='La balance et le calcul concordent (écart '+Math.abs(diff).toFixed(1)+' kg). '+
-         'Ton estimation de besoins est bien calibrée, tu peux t\'y fier.';
-    }else if(reel>theoKg){
-      h+='<b>Tu perds moins vite que prévu</b> ('+Math.abs(diff).toFixed(1)+' kg d\'écart). '+
-         'Soit tes besoins réels sont plus bas qu\'estimés, soit quelques apports passent sous le radar. '+
-         'Vérifie les portions ou baisse un peu la cible.';
-    }else{
-      h+='<b>Tu perds plus vite que prévu</b> ('+Math.abs(diff).toFixed(1)+' kg d\'écart). '+
-         'Tant mieux, mais garde un rythme tenable pour préserver ta masse musculaire.';
-    }
-    h+='</div>';
-  }
-  h+='<p class="note">Réel : différence de poids à la balance sur la période. Théorique : ce que ton déficit prévoit '+
-     '(7000 kcal = 1 kg). L\'eau et la digestion font varier la balance au jour le jour, c\'est la tendance qui compte.</p>';
-  return h;
-}
 function blocNutriscore(d){
   // Distribution des Nutri-Scores sur les seuls produits CONSOMMÉS.
   // d.journal ne contient que les repas enregistrés : les estimations
@@ -1917,110 +1824,176 @@ function blocNutriscore(d){
   h+='</section>';
   return h;
 }
-function vueCourbes(d){
-  const p=d.poids;
-  const dernier=p.length?p[p.length-1].poids:(d.reference.poids||80);
-  if(S.pesée.val===null||S.pesée.val===undefined)S.pesée.val=dernier;
-  let h='<section><h2>Nouvelle pesée</h2>'+
-    '<div class="peson">'+
-      '<button id="p-moins" aria-label="Retirer 100 grammes">\u2212</button>'+
-      '<input id="p-val" type="number" step="0.1" min="30" max="300" inputmode="decimal" value="'+S.pesée.val.toFixed(1)+'">'+
-      '<button id="p-plus" aria-label="Ajouter 100 grammes">+</button>'+
-    '</div>'+
-    '<p class="note">Dernière pesée : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'\u2014')+
-    '. Ajuste avec les boutons ou tape la valeur.</p>'+
-    '<button class="primaire" id="p-envoi"'+(S.pesée.etat==='envoi'?' disabled':'')+'>'+
-    (S.pesée.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
-  if(S.pesée.etat==='ko')h+='<p class="alerte">'+esc(S.pesée.message)+'</p>';
-  if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
-  h+='</section>';
+/* ---------- Courbes : une période pour tout l'onglet, trois sous-onglets ----------
+   S.crb = {onglet:'poids'|'calories'|'purines', per:7|14|30|90|0}, 0 = tout l'historique.
+   Mémorisé sur le téléphone (clé suivi.courbes). */
+function courbesInit(){
+  try{
+    const o=JSON.parse(localStorage.getItem('suivi.courbes')||'{}');
+    return {onglet:['poids','calories','purines'].indexOf(o.onglet)>=0?o.onglet:'poids',
+            per:[7,14,30,90,0].indexOf(o.per)>=0?o.per:30};
+  }catch(e){return {onglet:'poids',per:30};}
+}
+function courbesMemo(){try{localStorage.setItem('suivi.courbes',JSON.stringify(S.crb));}catch(e){}}
 
+/* Perte réelle (balance) et théorique (déficit) sur la période.
+   Fenêtre glissante qui se termine à la dernière pesée ; periode 0 = tout. */
+function calcProgression(d,periode){
+  const pes=(d.poids||[]).filter(x=>x&&x.date&&typeof x.poids==='number');
+  const cumule=d.deficit&&d.deficit.cumule?d.deficit.cumule:[];
+  if(pes.length<2&&cumule.length<2)return null;
+  const finDate=pes.length?pes[pes.length-1].date:(cumule.length?cumule[cumule.length-1].date:auj());
+  let debutISO=null;
+  if(periode>0){
+    const f=new Date(finDate+'T00:00:00Z');f.setUTCDate(f.getUTCDate()-periode);
+    debutISO=f.toISOString().slice(0,10);
+  }
+  const jours=iso=>Math.round((new Date(iso+'T00:00:00Z'))/86400000);
+  // poids à une date : interpolation entre les deux pesées qui l'encadrent
+  function poidsA(iso){
+    if(iso<=pes[0].date)return pes[0].poids;
+    if(iso>=pes[pes.length-1].date)return pes[pes.length-1].poids;
+    for(let i=0;i<pes.length-1;i++){
+      const a=pes[i],b=pes[i+1];
+      if(iso>=a.date&&iso<=b.date){
+        if(iso===a.date)return a.poids;
+        if(iso===b.date)return b.poids;
+        return a.poids+(b.poids-a.poids)*(jours(iso)-jours(a.date))/(jours(b.date)-jours(a.date));
+      }
+    }
+    return pes[pes.length-1].poids;
+  }
+  const pFin=pes.length?pes[pes.length-1]:null;
+  let pRef=null,refEstime=false;
+  if(pes.length){
+    if(!debutISO||debutISO<=pes[0].date)pRef=pes[0];
+    else{pRef={date:debutISO,poids:poidsA(debutISO)};refEstime=!pes.some(x=>x.date===debutISO);}
+  }
+  const reel=(pRef&&pFin&&pRef.date!==pFin.date)?(pFin.poids-pRef.poids):null;   // <0 = perte
+  function cumulA(iso){
+    let v=cumule[0].cumul;
+    for(let i=0;i<cumule.length;i++){if(cumule[i].date<=iso)v=cumule[i].cumul;else break;}
+    return v;
+  }
+  let theoKg=null;
+  if(cumule.length)theoKg=(cumule[cumule.length-1].cumul-(debutISO?(cumulA(debutISO)||0):0))/7000;
+  let ryth=null,nbJours=null;
+  if(reel!==null){
+    nbJours=jours(pFin.date)-jours(pRef.date);
+    if(nbJours>0)ryth=reel/nbJours*7;
+  }
+  return {reel,theoKg,ryth,nbJours,debutISO,refDate:pRef?pRef.date:null,finDate:pFin?pFin.date:null,refEstime};
+}
+const kgSigne=v=>(v<0?'−':v>0?'+':'±')+Math.abs(v).toFixed(1).replace('.',',');
+const coulKg=v=>v<0?'var(--under)':v>0?'var(--over)':'';
+function tuile(lib,val,sub,coul){
+  return '<div class="tu"><small>'+lib+'</small><b'+(coul?' style="color:'+coul+'"':'')+'>'+val+'</b><span>'+sub+'</span></div>';
+}
+function aide(txt,titre){return '<details class="aide"><summary>'+(titre||'Comment lire ce graphique ?')+'</summary>'+txt+'</details>';}
+
+function ongletPoids(d,P){
+  const p=d.poids||[];
+  const pr=calcProgression(d,P);
+  let h='';
+  if(!pr)h+='<p class="vide">Pas encore assez de données. Ajoute quelques pesées (écran Corps) et des repas pour voir ta progression.</p>';
+  else{
+    h+='<div class="tuiles">'+
+      tuile('Balance',pr.reel===null?'—':kgSigne(pr.reel)+' kg',
+        pr.reel===null?'pas assez de pesées':'en '+pr.nbJours+' jour'+(pr.nbJours>1?'s':'')+(pr.refEstime?', début estimé':''),pr.reel===null?'':coulKg(pr.reel))+
+      tuile('Rythme',pr.ryth===null?'—':kgSigne(pr.ryth)+' kg','par semaine',pr.ryth===null?'':coulKg(pr.ryth))+
+      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg','d’après le déficit',pr.theoKg===null?'':coulKg(pr.theoKg))+
+      '</div>';
+    if(pr.reel!==null&&pr.theoKg!==null){
+      const diff=pr.reel-pr.theoKg,e=kgTxt(Math.abs(diff));
+      if(Math.abs(diff)<=0.8)h+='<p class="crb-ac ok">La balance et le calcul concordent (écart '+e+' kg) : ton estimation de besoins est fiable.</p>';
+      else if(diff>0)h+='<p class="crb-ac ecart"><b>Tu perds moins vite que prévu</b> ('+e+' kg d’écart) : besoins surestimés ou apports qui passent sous le radar.</p>';
+      else h+='<p class="crb-ac ecart"><b>Tu perds plus vite que prévu</b> ('+e+' kg d’écart) : garde un rythme tenable pour tes muscles.</p>';
+    }
+  }
+  const deb=pr&&pr.debutISO;
+  const dansPer=r=>!deb||r.date>=deb;
   const cv=S.courbeVue==='besoins'?'besoins':(S.courbeVue==='regulier'?'regulier':'poids');
-  h+='<section><div class="courbe-tabs" id="ch-courbe">'+
+  h+='<div class="courbe-tabs" id="ch-courbe">'+
      '<button data-cv="poids" class="'+(cv==='poids'?'on':'')+'">Poids</button>'+
      '<button data-cv="besoins" class="'+(cv==='besoins'?'on':'')+'">Besoins</button>'+
      '<button data-cv="regulier" class="'+(cv==='regulier'?'on':'')+'">Régulier ?</button>'+
      '</div>';
+  const peu='<p class="vide">Moins de deux pesées sur cette période. Choisis une période plus longue.</p>';
+  const noteBase='<p class="note"><b>Balance</b> : différence de poids sur la période (sans pesée le jour de début, le poids de ce jour est estimé entre les deux pesées qui l\u2019encadrent). '+
+    '<b>Théorique</b> : ce que ton déficit prévoit, 7000 kcal = 1 kg. L’eau et la digestion font varier la balance au jour le jour, c’est la tendance qui compte.</p>';
   if(cv==='poids'){
-    h+=serieCourbe(p.map(r=>({date:r.date,v:r.poids})),
-        {h:150,unite:' kg',dec:1,moyenne:true,titre:'poids',badgeW:58});
-    if(p.length>1){
-      const e=p[p.length-1].poids-p[0].poids;
-      const nbJ=Math.round((new Date(p[p.length-1].date+'T00:00:00Z')-new Date(p[0].date+'T00:00:00Z'))/86400000);
-      const ryth=nbJ>0?(e/nbJ)*7:0;
-      const kcalJour=nbJ>0?Math.abs(e)*7000/nbJ:0;
-      h+='<div class="ryth-poids"><span class="k">Rythme moyen</span>'+
-         '<span class="v" style="color:'+(e<0?'var(--under)':'var(--over)')+'">'+
-         (ryth<0?'\u2212':ryth>0?'+':'')+Math.abs(ryth).toFixed(2)+' kg / semaine</span></div>';
-      h+='<p class="note">'+(e<0?'Perte':'Prise')+' de '+Math.abs(e).toFixed(1)+' kg entre le '+
-         jjmm(p[0].date)+' et le '+jjmm(p[p.length-1].date)+
-         (kcalJour?', soit un '+(e<0?'déficit':'surplus')+' moyen d\'environ '+nb(Math.round(kcalJour/10)*10)+' kcal par jour':'')+'.</p>';
-    }
+    const pts=p.filter(dansPer).map(r=>({date:r.date,v:r.poids}));
+    h+=pts.length<2?peu:serieCourbe(pts,{h:150,unite:' kg',dec:1,moyenne:true,titre:'poids',badgeW:58});
+    h+=aide(noteBase);
   }else if(cv==='besoins'){
-    // courbe des besoins (TDEE) par pesee : baisse avec le poids
-    const bpts=p.filter(r=>r.tdee).map(r=>({date:r.date,v:r.tdee}));
-    if(bpts.length<2){
-      h+='<p class="vide">Pas encore assez de pesées pour tracer l\'évolution des besoins.</p>';
-    }else{
+    const bpts=p.filter(r=>r.tdee&&dansPer(r)).map(r=>({date:r.date,v:r.tdee}));
+    if(bpts.length<2)h+=peu;
+    else{
       h+=serieCourbe(bpts,{h:150,unite:' kcal',dec:0,moyenne:false,titre:'besoins',couleur:'var(--over)',legende:'besoins',badgeW:66});
       const eb=bpts[bpts.length-1].v-bpts[0].v;
-      h+='<p class="note">Tes besoins évoluent avec ton poids : chaque kilo perdu réduit un peu ta dépense. '+
-         (Math.abs(eb)>=1?('Depuis le '+jjmm(bpts[0].date)+', ils sont passés de '+nb(bpts[0].v)+' à '+nb(bpts[bpts.length-1].v)+' kcal ('+(eb<0?'\u2212':'+')+nb(Math.abs(Math.round(eb)))+').'):'Ils sont restés quasi stables sur la période.')+
-         ' C\'est la cible à viser pour ta sèche, réévaluée au fil de la perte.</p>';
+      h+=aide('<p class="note">Tes besoins évoluent avec ton poids : chaque kilo perdu réduit un peu ta dépense. '+
+         (Math.abs(eb)>=1?('Sur la période, ils sont passés de '+nb(bpts[0].v)+' à '+nb(bpts[bpts.length-1].v)+' kcal ('+(eb<0?'−':'+')+nb(Math.abs(Math.round(eb)))+').'):'Ils sont restés quasi stables sur la période.')+
+         ' C’est la base de ta cible, réévaluée à chaque pesée.</p>'+noteBase);
     }
   }else{
-    // Régulier ? : variation de poids semaine par semaine
-    h+=barresHebdo(p.map(r=>({date:r.date,poids:r.poids})),{h:150,seuilStagne:0.2});
-    h+='<p class="note">Chaque barre est la variation de poids d\'une semaine à l\'autre. '+
+    // semaines de la période, plus la précédente pour avoir une première variation
+    const borne=deb?plusJours(lundiJn(deb),-7):null;
+    h+=barresHebdo(p.filter(r=>!borne||r.date>=borne).map(r=>({date:r.date,poids:r.poids})),{h:150,seuilStagne:0.2});
+    h+=aide('<p class="note">Chaque barre est la variation de poids d’une semaine à l’autre. '+
        '<span style="color:var(--under)">Vert</span> : tu perds. '+
        '<span style="color:var(--ambre)">Ambre</span> : tu stagnes (moins de 0,2 kg). '+
-       '<span style="color:var(--over)">Orange</span> : tu reprends. La régularité compte plus que la vitesse.</p>';
+       '<span style="color:var(--over)">Orange</span> : tu reprends. La régularité compte plus que la vitesse.</p>'+noteBase);
   }
-  h+='</section>';
+  return h;
+}
 
-  const PP=S.periodeProg===undefined?30:S.periodeProg;
-  h+='<section><h2>Progression</h2><div class="periode" id="ch-periode-prog">';
-  [[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
-    h+='<button data-pp="'+x[0]+'" class="'+(PP===x[0]?'on':'')+'">'+x[1]+'</button>';
-  });
-  h+='</div>'+progression(d,PP)+'</section>';
-
-  h+=blocNutriscore(d);
-  h+=blocPurinesCourbes(d);
-
-  let js=d.jours.filter(j=>j.valide&&j.ecart!==null);
-  // P peut valoir 0 (= "Tout") : ne pas utiliser || qui écraserait 0 en 30
-  const P=(S.periode===undefined?30:S.periode);
-  // fenêtre CALENDAIRE (comme Progression) : on garde les jours dont la date
-  // tombe dans les P derniers jours avant le dernier jour enregistré, plutôt
-  // que "les P derniers jours enregistrés".
+function ongletCalories(d,P){
+  let js=(d.jours||[]).filter(j=>j.valide&&j.ecart!==null&&j.ecart!==undefined);
+  // fenêtre calendaire : les P jours qui finissent au dernier jour complet enregistré
   if(P&&js.length){
     const finJ=new Date(js[js.length-1].date+'T00:00:00Z');
-    const borne=new Date(finJ);borne.setUTCDate(finJ.getUTCDate()-(P-1));
-    const borneISO=borne.toISOString().slice(0,10);
-    js=js.filter(j=>j.date>=borneISO);
+    finJ.setUTCDate(finJ.getUTCDate()-(P-1));
+    const b=finJ.toISOString().slice(0,10);
+    js=js.filter(j=>j.date>=b);
   }
-  // somme des écarts sur la sélection affichée (déficit cumulé si négatif)
-  const somme=js.reduce((s,j)=>s+(Number(j.ecart)||0),0);
-  h+='<section><h2>Écart quotidien</h2><div class="periode-ligne">'+
-     '<div class="periode" id="ch-periode">';
-  [[7,'7j'],[14,'14j'],[30,'30j'],[90,'90j'],[0,'Tout']].forEach(x=>{
-    h+='<button data-p="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
+  if(!js.length)return '<p class="vide">Pas encore de journée complète sur cette période.</p>';
+  const moy=js.reduce((t,j)=>t+(Number(j.kcal)||0),0)/js.length;
+  const som=js.reduce((t,j)=>t+(Number(j.ecart)||0),0);
+  const sous=js.filter(j=>j.ecart<0).length;
+  let h='<div class="tuiles">'+
+    tuile('Moyenne',nb(moy),'kcal/j')+
+    tuile('Écart cumulé',(som<0?'−':som>0?'+':'')+nb(Math.abs(Math.round(som))),'kcal ≈ '+kgSigne(som/7000)+' kg',coulKg(som))+
+    tuile('Sous besoins',sous+' / '+js.length,'jour'+(js.length>1?'s':''))+
+    '</div>';
+  h+=barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+detailJour(d,S.insp?S.insp.date:null);
+  h+=aide('<p class="note"><b>Chaque barre</b> = ce que tu as mangé moins tes besoins du jour. Vert = déficit (sous tes besoins, tu perds), orange = surplus. Touche une barre pour sa valeur. '+
+    '<b>La courbe blanche</b> lisse ces écarts sur 7 jours glissants : elle gomme les à-coups d’un repas de fête ou d’un jour léger et montre ta tendance de fond. '+
+    'Seules les journées complètes (au moins deux repas) comptent dans les tuiles.</p>');
+  return h;
+}
+
+function vueCourbes(d){
+  const P=S.crb.per,o=S.crb.onglet;
+  let h='<section><div class="cg-per" id="ch-per">';
+  [[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
+    h+='<button data-cper="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
-  h+='</div>'+
-     '<div class="periode-delta" title="Somme des écarts sur la sélection">'+
-       '<span class="pd-lib">Δ sélection</span>'+
-       '<span class="pd-val" style="color:'+(somme<0?'var(--under)':somme>0?'var(--over)':'var(--soft)')+'">'+
-       (somme<0?'\u2212':somme>0?'+':'')+nb(Math.abs(Math.round(somme)))+' kcal</span>'+
-     '</div></div>';
-  h+=barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+
-     detailJour(d,S.insp?S.insp.date:null)+
-     '<p class="note"><b>Chaque barre</b> = ce que tu as mangé moins tes besoins du jour. Vert = déficit (sous tes besoins, tu perds), orange = surplus. Touche une barre pour sa valeur. <b>La courbe blanche</b> lisse ces écarts sur 7 jours glissants : elle gomme les à-coups d\'un repas de fête ou d\'un jour léger, et montre ta tendance de fond. <b>Δ sélection</b> = déficit ou surplus total cumulé sur la période choisie.</p></section>';
-
-  h+='<section><h2>Régularité</h2>'+calendrier(d.jours)+
-     detailJour(d,S.inspCal?S.inspCal.date:null)+
-     '<p class="note">Quatre dernières semaines. Vert sous tes besoins, orange au-dessus, plus la case est foncée plus l\'écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p></section>';
-
+  h+='</div><div class="seg" role="tablist">';
+  [['poids','Poids'],['calories','Calories'],['purines','Purines']].forEach(x=>{
+    h+='<button role="tab" data-cong="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';
+  });
+  h+='</div>';
+  if(o==='calories')h+=ongletCalories(d,P);
+  else if(o==='purines')h+=blocPurinesCourbes(d,P);
+  else h+=ongletPoids(d,P);
+  h+='</section>';
+  if(o==='calories'){
+    h+='<section><h2>Régularité</h2><p class="crb-st">4 dernières semaines</p>'+calendrier(d.jours||[])+
+       detailJour(d,S.inspCal?S.inspCal.date:null)+
+       aide('<p class="note">Vert sous tes besoins, orange au-dessus, plus la case est foncée plus l’écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p>','Comment lire le calendrier ?')+
+       '</section>';
+    h+=blocNutriscore(d);
+  }
   return h;
 }
 
@@ -2445,31 +2418,33 @@ function joursCalendaires(n,parDate){
     out.push({date:k,v:parDate[k]!==undefined?parDate[k]:0,vide:parDate[k]===undefined});}
   return out;
 }
-function blocPurinesCourbes(d){
+function blocPurinesCourbes(d,P){
   const js=(d.jours||[]).filter(j=>j.repas>0);
-  if(!js.some(j=>j.purines>0))return '<section><h2>Purines</h2><p class="note">Les purines s\'afficheront ici au fil des nouveaux repas analysés (les repas enregistrés avant ce suivi n\'en ont pas).</p></section>';
+  if(!js.some(j=>j.purines>0))return '<p class="note">Les purines s\'afficheront ici au fil des nouveaux repas analysés (les repas enregistrés avant ce suivi n\'en ont pas).</p>';
   const max=purMax(d),par={};
   js.forEach(j=>{par[j.date]=Math.round(j.purines_risque||0);});
-  const P=(S.periodePur===undefined?30:S.periodePur);
   let n=P;
   if(!P){const prem=js.filter(j=>j.purines>0)[0];const d0=new Date(prem.date+'T12:00:00');const d1=new Date();d1.setHours(12,0,0,0);n=Math.max(1,Math.round((d1-d0)/86400000)+1);}
   const items=joursCalendaires(n,par);
   const pleins=items.filter(i=>!i.vide);
   const dessus=pleins.filter(i=>i.v>max).length;
   const moyP=pleins.length?Math.round(pleins.reduce((t,i)=>t+i.v,0)/pleins.length):null;
-  let h='<section><h2>Purines</h2><div class="periode-ligne"><div class="periode" id="ch-periode-pur">';
-  [[7,'7j'],[14,'14j'],[30,'30j'],[90,'90j'],[0,'Tout']].forEach(x=>{h+='<button data-pr="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';});
-  h+='</div>'+(moyP!==null?'<div class="periode-delta"><span class="pd-lib">moyenne</span><span class="pd-val" style="color:'+(moyP>max?'var(--over)':'var(--under)')+'">'+nb(moyP)+' mg</span></div>':'')+'</div>';
+  let h='<div class="tuiles">'+
+    tuile('Moyenne',moyP===null?'—':nb(moyP),'mg/j',moyP===null?'':(moyP>max?'var(--over)':'var(--under)'))+
+    tuile('Au-dessus',dessus+' / '+pleins.length,'jours saisis',dessus?'var(--over)':'var(--under)')+
+    tuile('Plafond',nb(max),'mg/j')+
+    '</div>';
   h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour',cle:'pur',fmt:v=>nb(v)+' mg'});
-  h+='<div class="micro">'+dessus+' jour'+(dessus>1?'s':'')+' au-dessus du plafond sur '+(P?P+' jours':'toute la période')+' ('+pleins.length+' jour'+(pleins.length>1?'s':'')+' saisi'+(pleins.length>1?'s':'')+'). Touche une barre pour sa valeur.</div>';
-  const top=(d.journal||[]).filter(r=>(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
+  // le détail des repas n'est chargé que depuis le lundi de la semaine précédente
+  const debP=plusJours(auj(),-(n-1));
+  const top=(d.journal||[]).filter(r=>r.date>=debP&&(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
   if(top.length){
-    h+='<div class="pur-top"><div class="pur-top-t">Repas les plus chargés (100 dernières saisies)</div>';
+    h+='<div class="pur-top"><div class="pur-top-t">Repas les plus chargés'+(n>14?' (deux dernières semaines)':'')+'</div>';
     top.forEach(r=>{h+='<div class="pur-top-l"><span>'+jjmm(r.date)+' · '+esc(r.repas)+' · '+esc(String(r.detail||'').slice(0,70))+'</span><b>'+nb(r.purines_risque)+' mg</b></div>';});
     h+='</div>';
   }
-  h+='<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>';
-  return h+'</section>';
+  h+=aide('<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Touche une barre pour sa valeur. Le plafond se règle dans les Réglages. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>');
+  return h;
 }
 
 /* ---------- corps : pas, mensurations, photos ---------- */
@@ -2639,8 +2614,26 @@ function sectionPhotos(d){
   h+='<p class="note">Tes photos sont gardées dans l\'appli et archivées par ton bot dans ta conversation Telegram, sans notification. Personne d\'autre n\'y a accès.</p>';
   return h+'</section>';
 }
+function sectionPesee(d){
+  const p=d.poids||[];
+  const dernier=p.length?p[p.length-1].poids:((d.reference&&d.reference.poids)||80);
+  if(S.pesée.val===null||S.pesée.val===undefined)S.pesée.val=dernier;
+  let h='<section><h2>Pesée du jour</h2>'+
+    '<div class="peson">'+
+      '<button id="p-moins" aria-label="Retirer 100 grammes">−</button>'+
+      '<input id="p-val" type="number" step="0.1" min="30" max="300" inputmode="decimal" value="'+S.pesée.val.toFixed(1)+'">'+
+      '<button id="p-plus" aria-label="Ajouter 100 grammes">+</button>'+
+    '</div>'+
+    '<p class="note">Dernière pesée : '+dernier.toFixed(1)+' kg le '+(p.length?jjmm(p[p.length-1].date):'—')+
+    '. Ajuste avec les boutons ou tape la valeur.</p>'+
+    '<button class="primaire" id="p-envoi"'+(S.pesée.etat==='envoi'?' disabled':'')+'>'+
+    (S.pesée.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
+  if(S.pesée.etat==='ko')h+='<p class="alerte">'+esc(S.pesée.message)+'</p>';
+  if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
+  return h+'</section>';
+}
 function vueCorps(d){
-  return sectionPas(d)+sectionMesures(d)+sectionPhotos(d);
+  return sectionPesee(d)+sectionPas(d)+sectionMesures(d)+sectionPhotos(d);
 }
 
 /* ---------- photos : stockage local (IndexedDB) + récupération serveur ---------- */
@@ -2994,15 +2987,10 @@ function brancher(){
   document.querySelectorAll('#ch-courbe button').forEach(b=>{
     b.addEventListener('click',()=>{S.courbeVue=b.dataset.cv;rendre();});
   });
-  document.querySelectorAll('#ch-periode button').forEach(b=>{
-    b.addEventListener('click',()=>{S.periode=Number(b.dataset.p);rendre();});
-  });
-  document.querySelectorAll('#ch-periode-pur button').forEach(b=>{
-    b.addEventListener('click',()=>{S.periodePur=Number(b.dataset.pr);rendre();});
-  });
-  document.querySelectorAll('#ch-periode-prog button').forEach(b=>{
-    b.addEventListener('click',()=>{S.periodeProg=Number(b.dataset.pp);rendre();});
-  });
+  document.querySelectorAll('[data-cper]').forEach(b=>b.addEventListener('click',()=>{
+    S.crb.per=Number(b.dataset.cper);S.insp=null;courbesMemo();rendre();}));
+  document.querySelectorAll('[data-cong]').forEach(b=>b.addEventListener('click',()=>{
+    S.crb.onglet=b.dataset.cong;courbesMemo();rendre();}));
   on('#j-ajout','click',()=>{S.vue='ajout';rendre();hautPage();});
   on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});
   document.querySelectorAll('[data-jo]').forEach(b=>b.addEventListener('click',()=>{
@@ -3628,6 +3616,7 @@ async function demarrer(){
   try{S.coach.fil=JSON.parse(localStorage.getItem(S.chat))||[];}catch(e){S.coach.fil=[];}
   S.foods=lireFoods();
   S.jour.onglet=ongletJourInit();
+  S.crb=courbesInit();
   S.file=lirePending();
   const cache=lireRepasCache();
   if(cache){
