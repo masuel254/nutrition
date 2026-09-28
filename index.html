@@ -546,6 +546,26 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .adm-l small{display:block;color:var(--soft);font-size:12px}
 .adm-b{display:flex;gap:6px;flex:none}
 .adm-b button{padding:6px 10px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--ink)}
+.corps-tete{padding-bottom:4px}
+.qj{margin-top:16px;border-top:1px solid var(--rule);padding-top:12px}
+.qj-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin-bottom:2px}
+.tuiles.t2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.nut-sel{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.nut-sel button{padding:6px 11px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--soft)}
+.nut-sel button.on{border-color:var(--ink);color:var(--ink);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
+.chips button{padding:7px 12px;border:1px solid var(--rule);border-radius:999px;font-size:13.5px;color:var(--soft)}
+.chips button.on{border-color:var(--over);color:var(--over);font-weight:700}
+.chips+input{margin-top:8px}
+.crise{border:1px solid var(--rule);border-left:4px solid var(--over);border-radius:10px;background:var(--card);padding:11px 13px 4px;margin-top:12px}
+.crise-t{display:flex;justify-content:space-between;font-size:14.5px}.crise-t b{font-weight:700}
+.crise-i{font-size:12px;color:var(--soft);margin:2px 0 6px}
+.crise ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5}
+.crise .crise-sup{width:auto;margin:4px 0 6px auto;font-size:12.5px}
+.synth{border:1px solid var(--rule);border-left:4px solid var(--ambre);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.45;background:var(--card)}
+.tu-large{grid-column:1/-1}
+.rg-tete{padding-bottom:4px}
+.rg-p[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -553,16 +573,16 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='28/09/2026 07h06';
+const APP_VERSION='28/09/2026 08h18';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
-  pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},prof:{etat:null,message:'',sexe:null},
-  adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,para:{etat:null,message:''},coach:{fil:[],etat:null},
-  corps:{periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
+  pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},regTab:'objectif',prof:{etat:null,message:'',sexe:null},
+  adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,gt:{quand:'auj',date:'',art:null,int:null,rem:'',etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null},
+  corps:{onglet:'pesee',periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
   cam:{ouvert:false}};
 
 const $=(s,r)=>(r||document).querySelector(s);
@@ -939,7 +959,7 @@ function calculProduit(p,grammes){
     kcal:Math.round(p.per100.kcal*f),prot:Math.round(p.per100.prot*f),
     lip:Math.round(p.per100.lip*f),gluc:Math.round(p.per100.gluc*f),
     fibres:Math.round((p.per100.fibres||0)*f),sucres:Math.round((p.per100.sucres||0)*f),
-    sodium:Math.round((p.per100.sodium||0)*f),
+    sodium:Math.round((p.per100.sodium||0)*f),satures:Math.round((p.per100.satures||0)*f*10)/10,sucres_ajoutes:Math.round((p.per100.sucres_ajoutes||0)*f),
     // purines/alcool : absents des produits mémorisés avant ce suivi -> on ne les invente pas
     ...(p.per100.purines!==undefined?{purines:Math.round((p.per100.purines||0)*f),
       purines_risque:Math.round((p.per100.purines_risque||0)*f),
@@ -1356,6 +1376,7 @@ function vueJour(d){
          '</div>';
     });
     h+='</div>';
+    h+=blocQualiteJour(d);
     if(a.kcal)h+='<div style="margin-top:14px">'+barreMacros(a)+'</div>';
     h+='<p class="note">Touche un repas pour voir le détail P/L/G et les fibres, sucres, sodium. Répartition réglée '+pc.matin+'/'+pc.midi+'/'+pc.encas+'/'+pc.soir+' %, modifiable dans les Réglages.</p>';
   }else if(o==='purines'){
@@ -1390,10 +1411,12 @@ function repasParHeure(){
 function ligneMicro(o){
   if(!o)return '';
   const f=Math.round(o.fibres||0),s=Math.round(o.sucres||0),so=Math.round(o.sodium||0);
-  if(!f&&!s&&!so)return '';
+  const sat=Math.round(o.satures||0),sa=Math.round(o.sucres_ajoutes||0);
+  if(!f&&!s&&!so&&!sat)return '';
   const p=[];
   p.push('fibres '+nb(f)+' g');
-  p.push('sucres '+nb(s)+' g');
+  p.push('sucres '+nb(s)+' g'+(sa?' (dont ajoutés '+nb(sa)+')':''));
+  if(sat||o.satures===0)p.push('saturées '+nb(sat)+' g');
   p.push('sodium '+nb(so)+' mg');
   return '<div class="micro">'+p.join(' · ')+'</div>';
 }
@@ -1489,7 +1512,7 @@ function qteUnite(it,c){
 function alimentDepuis(it,c){
   const R=x=>Math.round((Number(x)||0)*c);
   const o={nom:it.nom,quantite:qteUnite(it,c),kcal:R(it.kcal),prot:R(it.prot),lip:R(it.lip),gluc:R(it.gluc),
-    fibres:R(it.fibres),sucres:R(it.sucres),sodium:R(it.sodium)};
+    fibres:R(it.fibres),sucres:R(it.sucres),sodium:R(it.sodium),satures:R(it.satures),sucres_ajoutes:R(it.sucres_ajoutes)};
   if(it.purines!==undefined){o.famille=it.famille||'';o.grammes=R(it.grammes);o.purines=R(it.purines);
     o.purines_risque=R(it.purines_risque);o.alcool=Math.round((Number(it.alcool)||0)*c*10)/10;o.sucree=it.sucree?c:0;}
   return o;
@@ -1498,13 +1521,13 @@ function alimentDepuis(it,c){
 function alimentsLigne(l){
   if(Array.isArray(l.aliments)&&l.aliments.length)return JSON.parse(JSON.stringify(l.aliments));
   return [{nom:l.detail||l.repas||'Repas',quantite:'\u00d71',kcal:l.kcal||0,prot:l.prot||0,lip:l.lip||0,gluc:l.gluc||0,
-    fibres:l.fibres||0,sucres:l.sucres||0,sodium:l.sodium||0,famille:'',grammes:0,purines:l.purines||0,
+    fibres:l.fibres||0,sucres:l.sucres||0,sodium:l.sodium||0,satures:l.satures||0,sucres_ajoutes:l.sucres_ajoutes||0,famille:'',grammes:0,purines:l.purines||0,
     purines_risque:l.purines_risque||0,alcool:l.alcool||0,sucree:l.boissons_sucrees||0}];
 }
 function resultatDepuis(als,cr,note){
   const lib=libelleRepas(cr);
   const r={repas:lib,aliments:als,total:{},incertitude:'faible',note:note,nutriscore:'',
-    ligne:{repas:lib,detail:'',kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,nutriscore:''}};
+    ligne:{repas:lib,detail:'',kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0,sucres_ajoutes:0,nutriscore:''}};
   recalculeTotal(r);
   return r;
 }
@@ -1659,7 +1682,7 @@ function ajusteAliment(al,nouvelleQte){
   const R=x=>Math.round((Number(x)||0)*f);
   const o={nom:base.nom,quantite:qteRemplace(base.quantite,nouvelleQte),
     kcal:R(base.kcal),prot:R(base.prot),lip:R(base.lip),gluc:R(base.gluc),
-    fibres:R(base.fibres),sucres:R(base.sucres),sodium:R(base.sodium),__base:base};
+    fibres:R(base.fibres),sucres:R(base.sucres),sodium:R(base.sodium),satures:R(base.satures),sucres_ajoutes:R(base.sucres_ajoutes),__base:base};
   if(base.purines!==undefined){
     o.purines=R(base.purines);o.purines_risque=R(base.purines_risque);
     o.alcool=Math.round((Number(base.alcool)||0)*f*10)/10;o.sucree=base.sucree||0;
@@ -1669,8 +1692,8 @@ function ajusteAliment(al,nouvelleQte){
 }
 // Recalcule le total d'un résultat à partir de ses aliments.
 function recalculeTotal(r){
-  const s={kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0};
-  (r.aliments||[]).forEach(a=>{['kcal','prot','lip','gluc','fibres','sucres','sodium'].forEach(k=>{s[k]+=Number(a[k])||0;});});
+  const s={kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0,sucres_ajoutes:0};
+  (r.aliments||[]).forEach(a=>{['kcal','prot','lip','gluc','fibres','sucres','sodium','satures','sucres_ajoutes'].forEach(k=>{s[k]+=Number(a[k])||0;});});
   Object.keys(s).forEach(k=>s[k]=Math.round(s[k]));
   // purines / alcool / boissons sucrées, dès qu'un aliment les porte
   if((r.aliments||[]).some(a=>a.purines!==undefined)){
@@ -1680,7 +1703,7 @@ function recalculeTotal(r){
   }
   r.total=s;
   if(r.ligne){r.ligne.kcal=s.kcal;r.ligne.prot=s.prot;r.ligne.lip=s.lip;r.ligne.gluc=s.gluc;
-    r.ligne.fibres=s.fibres;r.ligne.sucres=s.sucres;r.ligne.sodium=s.sodium;
+    r.ligne.fibres=s.fibres;r.ligne.sucres=s.sucres;r.ligne.sodium=s.sodium;r.ligne.satures=s.satures;r.ligne.sucres_ajoutes=s.sucres_ajoutes;
     if(s.purines!==undefined){r.ligne.purines=s.purines;r.ligne.purines_risque=s.purines_risque;
       r.ligne.alcool=s.alcool;r.ligne.boissons_sucrees=s.boissons_sucrees;}
     r.ligne.detail=(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', ');}
@@ -1844,9 +1867,9 @@ function blocNutriscore(d){
 function courbesInit(){
   try{
     const o=JSON.parse(localStorage.getItem('suivi.courbes')||'{}');
-    return {onglet:['poids','calories','purines'].indexOf(o.onglet)>=0?o.onglet:'poids',
-            per:[7,14,30,90,0].indexOf(o.per)>=0?o.per:30};
-  }catch(e){return {onglet:'poids',per:30};}
+    return {onglet:['poids','calories','purines','qualite'].indexOf(o.onglet)>=0?o.onglet:'poids',
+            per:[7,14,30,90,0].indexOf(o.per)>=0?o.per:30,nut:NUTS.concat(['alcool']).indexOf(o.nut)>=0?o.nut:'satures'};
+  }catch(e){return {onglet:'poids',per:30,nut:'satures'};}
 }
 function courbesMemo(){try{localStorage.setItem('suivi.courbes',JSON.stringify(S.crb));}catch(e){}}
 
@@ -1988,12 +2011,13 @@ function vueCourbes(d){
     h+='<button data-cper="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div><div class="seg" role="tablist">';
-  [['poids','Poids'],['calories','Calories'],['purines','Purines']].forEach(x=>{
+  [['poids','Poids'],['calories','Calories'],['purines','Purines'],['qualite','Qualité']].forEach(x=>{
     h+='<button role="tab" data-cong="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div>';
   if(o==='calories')h+=ongletCalories(d,P);
   else if(o==='purines')h+=blocPurinesCourbes(d,P);
+  else if(o==='qualite')h+=ongletQualite(d,P);
   else h+=ongletPoids(d,P);
   h+='</section>';
   if(o==='calories'){
@@ -2193,7 +2217,7 @@ function bilanSemaine(d){
   if(js.some(j=>(j.purines_risque||0)>0)){const mp=js.reduce((t,j)=>t+(j.purines_risque||0),0)/js.length,ns=js.filter(j=>(j.purines_risque||0)>max).length;
     l.push('Purines à risque <b>'+nb(mp)+' mg/j</b>'+(ns?', '+ns+' jour'+(ns>1?'s':'')+' au-dessus du plafond':', jamais au-dessus du plafond'));}
   const ja=js.filter(j=>(j.alcool||0)>0);
-  if(ja.length)l.push('Alcool <b>'+ja.length+' jour'+(ja.length>1?'s':'')+'</b>, '+nb(ja.reduce((t,j)=>t+(j.alcool||0),0))+' g');
+  if(ja.length)l.push('Alcool <b>'+ja.length+' jour'+(ja.length>1?'s':'')+'</b>, <b>'+verresTxt(ja.reduce((t,j)=>t+(j.alcool||0),0))+'</b> (repère : 10 par semaine)');
   const pas=(d.activite||[]).filter(a=>a.date>=lun&&a.date<=dim&&a.pas>0);
   if(pas.length)l.push('<b>'+nb(pas.reduce((t,a)=>t+a.pas,0)/pas.length)+' pas/j</b> en moyenne');
   const x0=new Date(lun+'T12:00:00'),x1=new Date(dim+'T12:00:00');
@@ -2445,6 +2469,194 @@ function brancherIns(){
   });
 }
 
+/* ---------- Qualité : graisses saturées, fibres, sodium, sucres ajoutés ----------
+   Repères : saturées < 10 % des calories (OMS), sucres ajoutés < 10 % (OMS), sodium < 2 000 mg
+   (OMS, 5 g de sel), fibres 30 g (25 g pour une femme) à atteindre. Plafonds calés sur la cible du jour. */
+const NUTS=['satures','fibres','sodium','sucres_ajoutes'];
+function seuilsQualite(d){
+  const c=(d&&d.cibles&&d.cibles.kcal)||2000,fem=d&&d.profil&&String(d.profil.sexe||'').toUpperCase()==='F';
+  return {satures:{max:Math.round(c*0.10/9),lib:'Graisses saturées',court:'Saturées',u:'g',plancher:false},
+    fibres:{max:fem?25:30,lib:'Fibres',court:'Fibres',u:'g',plancher:true},
+    sodium:{max:2000,lib:'Sodium',court:'Sodium',u:'mg',plancher:false},
+    sucres_ajoutes:{max:Math.round(c*0.10/4),lib:'Sucres ajoutés',court:'Sucres ajoutés',u:'g',plancher:false}};
+}
+function etatNut(q,v){
+  const bon=q.plancher?v>=q.max:v<=q.max;
+  const coul=bon?'var(--under)':(q.plancher?'var(--over)':(v<=q.max*1.1?'var(--jaune)':'var(--over)'));
+  const e=nb(Math.abs(q.max-v));
+  const txt=q.plancher?(bon?'objectif atteint':e+' '+q.u+' à prendre'):(bon?e+' '+q.u+' restant'+(q.max-v>1?'s':''):e+' '+q.u+' en trop');
+  return {bon:bon,coul:coul,txt:txt};
+}
+function barreNut(q,v){
+  const e=etatNut(q,v);
+  return '<div class="hm"><div class="hm-l"><span>'+q.lib+' <b>'+nb(v)+'</b> / '+nb(q.max)+' '+q.u+'</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
+    '<div class="hm-b"><i style="width:'+Math.min(100,q.max?v/q.max*100:0).toFixed(0)+'%;background:'+e.coul+'"></i></div></div>';
+}
+function blocQualiteJour(d){
+  const a=d.aujourdhui||{};
+  if(!a.repas||a.satures===undefined)return '';
+  const Q=seuilsQualite(d);
+  return '<div class="qj"><div class="qj-t">Qualité du jour</div>'+NUTS.map(k=>barreNut(Q[k],Math.round(a[k]||0))).join('')+((Number(a.alcool)||0)>0?barreAlcool(a.alcool):'')+
+    aide('<p class="note">Plafonds calés sur ta cible du jour : graisses saturées sous 10 % des calories, sucres ajoutés sous 10 % (repères de l\'OMS), sodium sous 2 000 mg (5 g de sel), alcool : 2 verres par jour au plus (1 verre = 10 g d\'alcool pur : un demi de bière, un verre de vin, un petit verre d\'alcool fort). Les fibres sont un objectif à atteindre, pas un plafond. Les valeurs viennent de l\'estimation de l\'IA ou de l\'étiquette des produits scannés : c\'est la tendance sur plusieurs jours qui compte.</p>','D\'où viennent ces repères ?')+'</div>';
+}
+function ongletQualite(d,P){
+  const Q=seuilsQualite(d),k=NUTS.concat(['alcool']).indexOf(S.crb.nut)>=0?S.crb.nut:'satures',q=Q[k]||{};
+  const js=(d.jours||[]).filter(j=>j.repas>0);
+  const avec=js.filter(j=>j.satures!==null&&j.satures!==undefined);
+  if(!avec.length)return '<p class="note">Les graisses saturées et les sucres ajoutés s\'afficheront au fil des nouveaux repas analysés : les repas enregistrés avant ce suivi n\'en ont pas.</p>';
+  let n=P;
+  if(!P){const d0=new Date(avec[0].date+'T12:00:00'),d1=new Date();d1.setHours(12,0,0,0);n=Math.max(1,Math.round((d1-d0)/86400000)+1);}
+  const debut=plusJours(auj(),-(n-1));
+  // tuiles : moyenne sur les journées complètes (2 repas ou plus) qui ont la donnée
+  let h='<div class="tuiles t2">';
+  NUTS.forEach(x=>{
+    const qx=Q[x];
+    const jv=js.filter(j=>j.date>=debut&&j.date<auj()&&j.valide&&j[x]!==null&&j[x]!==undefined);
+    if(!jv.length){h+=tuile(qx.court,'—','pas encore de données');return;}
+    const moy=jv.reduce((t,j)=>t+(Number(j[x])||0),0)/jv.length,e=etatNut(qx,moy);
+    const nb2=qx.plancher?jv.filter(j=>j[x]>=qx.max).length:jv.filter(j=>j[x]>qx.max).length;
+    h+=tuile(qx.court,nb(moy)+' '+qx.u+'/j',(qx.plancher?'objectif ':'max ')+nb(qx.max)+' '+qx.u+' · '+nb2+' jour'+(nb2>1?'s':'')+(qx.plancher?' atteint'+(nb2>1?'s':''):' au-dessus'),e.coul);
+  });
+  h+=blocAlcool(d,n)+'</div><div class="nut-sel" role="tablist">';
+  NUTS.forEach(x=>{h+='<button data-cnut="'+x+'" class="'+(x===k?'on':'')+'">'+Q[x].court+'</button>';});
+  h+='<button data-cnut="alcool" class="'+(k==='alcool'?'on':'')+'">Alcool</button></div>';
+  if(k==='alcool')return h+graphiqueAlcool(d,n)+aide('<p class="note">1 verre standard = 10 g d\'alcool pur : un demi de bière (25 cl à 5 %), un verre de vin (10 cl), une coupe de champagne, un petit verre d\'alcool fort (3 cl). Repères de Santé publique France : au plus 10 verres par semaine, 2 par jour, et des jours sans alcool. Pour l\'acide urique, la bière compte double : alcool et purines.</p>');
+  const par={};js.forEach(j=>{if(j[k]!==null&&j[k]!==undefined)par[j.date]=Math.round(Number(j[k])||0);});
+  h+=barresSeuil(joursCalendaires(n,par),{seuil:q.max,bonSiHaut:q.plancher,libSeuil:(q.plancher?'objectif ':'max ')+nb(q.max)+' '+q.u,titre:q.lib+' par jour',cle:'nut',fmt:v=>nb(v)+' '+q.u});
+  // ce qui en apporte le plus : aliments des repas chargés (deux dernières semaines au plus)
+  const tot={};
+  (d.journal||[]).filter(r=>r.date>=debut&&Array.isArray(r.aliments)).forEach(r=>r.aliments.forEach(a=>{
+    const v=Number(a[k])||0;if(v<=0)return;
+    const nom=String(a.nom||'').trim();if(!nom)return;
+    const cle=nom.toLowerCase();tot[cle]=tot[cle]||{nom:nom,v:0};tot[cle].v+=v;}));
+  const top=Object.values(tot).sort((x,y)=>y.v-x.v).slice(0,6);
+  if(top.length){
+    h+='<div class="pur-top"><div class="pur-top-t">'+'Ce qui en apporte le plus'+(n>14?' (deux dernières semaines)':'')+'</div>';
+    top.forEach(t=>{h+='<div class="pur-top-l"><span>'+esc(t.nom)+'</span><b'+(q.plancher?' style="color:var(--under)"':'')+'>'+nb(t.v)+' '+q.u+'</b></div>';});
+    h+='</div>';
+  }
+  h+=aide('<p class="note">Tuiles : moyenne des journées complètes (au moins deux repas). Barres : total de chaque jour, '+(q.plancher?'vert quand l\'objectif est atteint.':'vert sous le repère, orange au-dessus.')+
+    ' Graisses saturées : charcuterie, fromage, beurre, crème, viennoiseries, viandes grasses. Sucres ajoutés : sodas, jus, confiseries, pâtisseries, céréales sucrées ; les sucres des fruits entiers et du lait nature ne comptent pas. Fibres : légumes, légumineuses, céréales complètes, fruits, oléagineux.</p>');
+  return h;
+}
+
+/* ---------- Corps : onglets (pesée, pas, mesures, photos, goutte) ---------- */
+const CORPS_ONGLETS=[['pesee','Pesée'],['pas','Pas'],['mesures','Mesures'],['photos','Photos'],['goutte','Goutte']];
+function corpsOngletInit(){try{const v=localStorage.getItem('suivi.corps.onglet');return CORPS_ONGLETS.some(x=>x[0]===v)?v:'pesee';}catch(e){return 'pesee';}}
+function vueCorps(d){
+  const o=S.corps.onglet||'pesee';
+  let h='<section class="corps-tete"><div class="seg" role="tablist">';
+  CORPS_ONGLETS.forEach(x=>{h+='<button role="tab" data-ko="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';});
+  h+='</div></section>';
+  if(o==='pas')return h+sectionPas(d);
+  if(o==='mesures')return h+sectionMesures(d);
+  if(o==='photos')return h+sectionPhotos(d);
+  if(o==='goutte')return h+sectionGoutte(d);
+  return h+sectionPesee(d);
+}
+
+/* ---------- Crises de goutte ---------- */
+const ARTICS=[['gros orteil','Gros orteil'],['cheville','Cheville'],['genou','Genou'],['pied','Pied'],['poignet, main','Poignet, main'],['autre','Autre']];
+// Ce qui s'est passé les 3 jours avant une crise (d.jours couvre tout l'historique).
+function analyseCrise(d,c){
+  const jrs=[1,2,3].map(n=>(d.jours||[]).find(j=>j.date===plusJours(c.date,-n))).filter(j=>j&&j.repas>0);
+  if(!jrs.length)return null;
+  const max=purMax(d),Q=seuilsQualite(d);
+  const moy=(f)=>{const v=jrs.filter(j=>j[f]!==null&&j[f]!==undefined);return v.length?v.reduce((t,j)=>t+(Number(j[f])||0),0)/v.length:null;};
+  const pur=moy('purines_risque'),alc=jrs.reduce((t,j)=>t+(Number(j.alcool)||0),0),sa=moy('sucres_ajoutes'),ec=moy('ecart');
+  const purMaxJ=Math.max.apply(null,jrs.map(j=>Number(j.purines_risque)||0));
+  return {n:jrs.length,pur:pur,purDessus:purMaxJ>max,alc:alc,sa:sa,saDessus:sa!==null&&sa>Q.sucres_ajoutes.max,ec:ec,grosDef:ec!==null&&ec<-800,max:max,maxSa:Q.sucres_ajoutes.max};
+}
+function sectionGoutte(d){
+  const G=S.gt,cr=d.crises||[];
+  const hier=plusJours(auj(),-1);
+  let h='<section><h2>Noter une crise</h2>'+
+    '<label>Quand</label><div class="chips" id="g-quand">'+
+      [['auj','Aujourd’hui'],['hier','Hier'],['autre','Autre date']].map(x=>'<button data-gq="'+x[0]+'" class="'+(G.quand===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>';
+  if(G.quand==='autre')h+='<input id="g-date" type="date" max="'+auj()+'" value="'+esc(G.date||hier)+'">';
+  h+='<label>Où</label><div class="chips">'+ARTICS.map(x=>'<button data-ga="'+x[0]+'" class="'+(G.art===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>'+
+    '<label>Intensité (1 = gêne, 5 = impossible de poser le pied)</label><div class="chips">'+[1,2,3,4,5].map(i=>'<button data-gi="'+i+'" class="'+(G.int===i?'on':'')+'">'+i+'</button>').join('')+'</div>'+
+    '<label for="g-rem">Remarque (facultatif)</label><input id="g-rem" type="text" maxlength="120" placeholder="Ex : côté droit, traitement pris" value="'+esc(G.rem||'')+'">'+
+    '<button class="primaire" id="g-noter"'+(G.etat==='envoi'?' disabled':'')+'>'+(G.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Noter la crise')+'</button>';
+  if(G.etat==='ko')h+='<p class="alerte">'+esc(G.message)+'</p>';
+  if(G.etat==='ok')h+='<p class="bien">'+esc(G.message)+'</p>';
+  h+='</section>';
+  if(!cr.length)return h+'<section><p class="note">Aucune crise notée. Chacune apparaîtra ici avec ce que tu as mangé et bu les trois jours avant, pour repérer ce qui revient. Tu peux aussi noter les crises passées dont tu te souviens (Autre date).</p></section>';
+  const an=cr.map(c=>({c:c,a:analyseCrise(d,c)}));
+  const conn=an.filter(x=>x.a);
+  h+='<section><h2>Mes crises</h2>';
+  if(conn.length===1){
+    const a=conn[0].a,l=[];
+    if(a.purDessus)l.push('au moins un jour au-dessus de ton plafond de purines');
+    if(a.alc>0)l.push('de l\u2019alcool');
+    if(a.saDessus)l.push('des sucres ajoutés au-dessus du repère');
+    if(a.grosDef)l.push('un gros déficit (plus de 800 kcal par jour)');
+    h+='<div class="synth"><b>Ta crise</b> a suivi '+(l.length?l.join(', '):'des jours sans excès marquant')+'. Avec quelques crises notées, cette synthèse montrera ce qui revient.</div>';
+  }else if(conn.length){
+    const np=conn.filter(x=>x.a.purDessus).length,na=conn.filter(x=>x.a.alc>0).length,ns=conn.filter(x=>x.a.saDessus).length,nd=conn.filter(x=>x.a.grosDef).length;
+    const l=[np+' après au moins un jour au-dessus de ton plafond de purines',na+' après un jour avec alcool'];
+    if(conn.some(x=>x.a.sa!==null))l.push(ns+' après des sucres ajoutés au-dessus du repère');
+    l.push(nd?nd+' après un gros déficit (plus de 800 kcal par jour)':'aucune après un gros déficit');
+    h+='<div class="synth"><b>Sur tes '+conn.length+' crises avec des repas notés</b> : '+l.join(', ')+'.'+
+      (conn.length<3?' La synthèse devient parlante à partir de quelques crises.':'')+'</div>';
+  }
+  an.forEach(x=>{
+    const c=x.c,a=x.a;
+    h+='<div class="crise"><div class="crise-t"><b>'+jjmm(c.date)+' · '+esc(c.articulation)+'</b><span>'+c.intensite+'/5</span></div>'+
+      (c.remarque?'<div class="crise-i">'+esc(c.remarque)+'</div>':'');
+    if(!a)h+='<p class="note" style="margin:4px 0 0">Pas de repas notés les trois jours avant.</p>';
+    else{
+      const o=v=>' style="color:var(--over)"';
+      h+='<div class="crise-i">Les 3 jours avant ('+a.n+' jour'+(a.n>1?'s':'')+' notés)</div><ul>'+
+        '<li>Purines à risque <b'+(a.purDessus?o():'')+'>'+nb(a.pur)+' mg/j</b> en moyenne (plafond '+nb(a.max)+')</li>'+
+        '<li>'+(a.alc>0?'Alcool <b'+o()+'>'+verresTxt(a.alc)+'</b>':'Pas d’alcool')+'</li>'+
+        (a.sa!==null?'<li>Sucres ajoutés <b'+(a.saDessus?o():'')+'>'+nb(a.sa)+' g/j</b> (repère '+nb(a.maxSa)+')</li>':'')+
+        (a.ec!==null?'<li>Écart aux besoins <b'+(a.grosDef?o():'')+'>'+sgn(a.ec)+' kcal/j</b></li>':'')+'</ul>';
+    }
+    h+='<button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div>';
+  });
+  return h+'<p class="note">Les crises apparaissent aussi en repères rouges sur le graphique des purines (Courbes). Une crise peut suivre un excès de purines, d’alcool ou de sucres, mais aussi une perte de poids trop rapide ou un changement de traitement : parles-en à ton médecin.</p></section>';
+}
+
+/* ---------- Alcool en verres standard ----------
+   1 verre standard = 10 g d'alcool pur (25 cl de bière à 5 %, 10 cl de vin à 12 %, 3 cl d'alcool fort).
+   Repères Santé publique France : 10 verres par semaine au maximum, 2 par jour, des jours sans. */
+function verresNb(g){return Math.round((Number(g)||0))/10;}
+function verresTxt(g){const v=verresNb(g);return String(v).replace('.',',')+' verre'+(v>1?'s':'');}
+function barreAlcool(g){
+  const v=verresNb(g),bon=v<=2,coul=bon?'var(--under)':(v<=3?'var(--jaune)':'var(--over)');
+  return '<div class="hm"><div class="hm-l"><span>Alcool <b>'+String(v).replace('.',',')+'</b> / 2 verres</span><span class="hm-e" style="color:'+coul+'">'+(bon?'dans le repère':'au-delà du repère')+'</span></div>'+
+    '<div class="hm-b"><i style="width:'+Math.min(100,v/2*100).toFixed(0)+'%;background:'+coul+'"></i></div></div>';
+}
+// Semaines (lundi → dimanche) couvrant la période : verres, jours avec alcool, jours à plus de 2 verres.
+function semainesAlcool(d,n){
+  const par={};(d.jours||[]).forEach(j=>{par[j.date]=j;});
+  const fin=auj(),debut=plusJours(auj(),-(Math.max(n,28)-1));
+  const sem={};
+  for(let x=lundiJn(debut);x<=fin;x=plusJours(x,1)){
+    const l=lundiJn(x),j=par[x];
+    const s=sem[l]||(sem[l]={date:l,g:0,jours:0,sans:0,saisis:0,excès:0});
+    if(j&&j.repas>0){s.saisis++;const a=Number(j.alcool)||0;s.g+=a;if(a>0)s.jours++;else s.sans++;if(a>20)s.excès++;}
+  }
+  return Object.values(sem).sort((a,b)=>a.date.localeCompare(b.date));
+}
+function blocAlcool(d,n){
+  const S7=semainesAlcool(d,n),cour=S7[S7.length-1],passees=S7.slice(0,-1).filter(s=>s.saisis>=4);
+  const moy=passees.length?passees.reduce((t,s)=>t+s.g,0)/passees.length:null;
+  const vs=verresNb(cour.g),c=vs<=10?'var(--under)':'var(--over)';
+  let h='<div class="tu tu-large"><small>Alcool</small><b style="color:'+c+'">'+verresTxt(cour.g)+' cette semaine</b><span>repère 10 par semaine · '+cour.jours+' jour'+(cour.jours>1?'s':'')+' avec, '+cour.sans+' sans'+
+    (moy!==null?' · moyenne '+String(verresNb(moy)).replace('.',',')+' par semaine':'')+'</span></div>';
+  return h;
+}
+function graphiqueAlcool(d,n){
+  const S7=semainesAlcool(d,n);
+  const items=S7.map(s=>({date:s.date,v:verresNb(s.g),vide:!s.saisis}));
+  let h=barresSeuil(items,{seuil:10,bonSiHaut:false,libSeuil:'repère 10 verres',titre:'Verres d’alcool par semaine',cle:'alc',fmt:v=>String(v).replace('.',',')+' verres la semaine'});
+  const ex=S7.reduce((t,s)=>t+s.excès,0);
+  h+='<div class="micro">Une barre par semaine (du lundi au dimanche), sur '+S7.length+' semaines. '+(ex?ex+' jour'+(ex>1?'s':'')+' à plus de 2 verres sur la période.':'Aucun jour à plus de 2 verres sur la période.')+'</div>';
+  return h;
+}
+
 function vueCoach(){
   let h='<section>';
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
@@ -2480,7 +2692,15 @@ function vueRéglages(d){
     const e0=(typeof r.ecart_kcal==='number')?r.ecart_kcal:((typeof r.ecart==='number')?r.ecart:null);
     R.ecart=bornerEcart(R.obj,e0===null?NaN:e0);
   }
-  let h='<section><h2>Objectif</h2><div class="seg" role="tablist" id="g-obj">';
+  const ONG=[['objectif','Objectif'],['reperes','Repères'],['profil','Profil']].concat(estAdmin(d)?[['inviter','Inviter']]:[]).concat([['appli','Appli']]);
+  if(!ONG.some(x=>x[0]===S.regTab))S.regTab='objectif';
+  const pan=k=>'<div class="rg-p" data-rgp="'+k+'"'+(S.regTab===k?'':' hidden')+'>';
+  const btnEnr=prem=>'<button class="primaire g-envoi"'+(prem?' id="g-envoi"':'')+(S.para.etat==='envoi'?' disabled':'')+'>'+
+     (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>'+
+     (S.para.etat==='ko'?'<p class="alerte">'+esc(S.para.message)+'</p>':'')+(S.para.etat==='ok'?'<p class="bien">'+esc(S.para.message)+'</p>':'');
+  let h='<section class="rg-tete"><div class="seg" role="tablist" id="rg-onglets">';
+  ONG.forEach(x=>{h+='<button role="tab" data-rg="'+x[0]+'" aria-selected="'+(S.regTab===x[0])+'" class="'+(S.regTab===x[0]?'on':'')+'">'+x[1]+'</button>';});
+  h+='</div></section>'+pan('objectif')+'<section><h2>Objectif</h2><div class="seg" role="tablist" id="g-obj">';
   Object.keys(OBJ_DEF).forEach(k=>{h+='<button role="tab" data-ob="'+k+'" aria-selected="'+(R.obj===k)+'" class="'+(R.obj===k?'on':'')+'">'+OBJ_DEF[k].lib+'</button>';});
   const b=OBJ_DEF[R.obj];
   h+='</div><p class="note" style="margin-top:0">'+b.aide+'</p>'+
@@ -2490,9 +2710,14 @@ function vueRéglages(d){
     '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
   ACTIV.forEach(x=>{h+='<button data-f="'+x[0]+'" class="'+(Math.abs((r.facteur||1.2)-x[0])<0.001?'on':'')+'">'+x[1]+'</button>';});
   h+='</div><p class="note">Le niveau d\'activité inclut déjà tes séances : ne compte pas en plus les calories brûlées à la salle.</p>';
+  const obj=(d&&d.reference&&d.reference.objectif_poids)||'';
+  h+='<label for="g-objectif" style="margin-top:16px">Objectif de poids (kg)</label>'+
+     '<input id="g-objectif" type="text" inputmode="decimal" value="'+esc(String(obj).replace('.',','))+'" placeholder="Ex : 95">'+
+     '<p class="note">Sert à la projection de l\'écran Jour. Laisse vide pour ne rien changer.</p>';
+  h+=btnEnr(true)+'</section></div>'+pan('reperes')+'<section><h2>Repas et macros</h2>';
   // Repartition des cibles par repas (matin/midi/en-cas/soir), en %.
   const rp=repartPct(d);
-  h+='<label style="margin-top:16px">Répartition par repas (%)</label>'+
+  h+='<label>Répartition par repas (%)</label>'+
      '<div class="repart" id="ch-repart">';
   [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']].forEach(x=>{
     h+='<div class="repart-i"><span>'+x[1]+'</span>'+
@@ -2511,23 +2736,15 @@ function vueRéglages(d){
   });
   h+='</div><p class="note" id="macros-tot" data-cible="'+cibleNum+'">Total : '+(mp.prot+mp.lip+mp.gluc)+' %. La somme doit faire 100. '+
      'Aujourd\'hui : '+Math.round(cibleNum*mp.prot/100/4)+' g de protéines, '+Math.round(cibleNum*mp.lip/100/9)+' g de lipides, '+Math.round(cibleNum*mp.gluc/100/4)+' g de glucides.</p>';
-  h+='<label for="g-purmax" style="margin-top:16px">Plafond de purines (mg par jour)</label>'+
+  h+='</section><section><h2>Purines</h2><label for="g-purmax">Plafond de purines (mg par jour)</label>'+
      '<input id="g-purmax" type="text" inputmode="numeric" value="'+purMax(d)+'">'+
      '<p class="note">Purines animales et bière seulement. 400 mg est le repère courant d\'une alimentation pauvre en purines, 300 en période de crise. À valider avec ton médecin.</p>';
-  const obj=(d&&d.reference&&d.reference.objectif_poids)||'';
-  h+='<label for="g-objectif" style="margin-top:16px">Objectif de poids (kg)</label>'+
-     '<input id="g-objectif" type="text" inputmode="decimal" value="'+esc(String(obj).replace('.',','))+'" placeholder="Ex : 95">'+
-     '<p class="note">Sert à la projection de l\'écran Jour. Laisse vide pour ne rien changer.</p>';
-  h+='<button class="primaire" id="g-envoi"'+(S.para.etat==='envoi'?' disabled':'')+'>'+
-     (S.para.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer')+'</button>';
-  if(S.para.etat==='ko')h+='<p class="alerte">'+esc(S.para.message)+'</p>';
-  if(S.para.etat==='ok')h+='<p class="bien">'+esc(S.para.message)+'</p>';
-  h+='</section>';
+  h+=btnEnr(false)+'</section></div>';
 
   // ---- profil ----
   const pf=(d&&d.profil)||{},P=S.prof;
   const sx=P.sexe||String(pf.sexe||'H').toUpperCase().charAt(0);
-  h+='<section><h2>Profil</h2>'+
+  h+=pan('profil')+'<section><h2>Profil</h2>'+
      '<label for="m-prenom">Prénom</label><input id="m-prenom" type="text" autocomplete="given-name" value="'+esc(pf.prenom||'')+'">'+
      '<label>Sexe</label><div class="seg" id="m-sexe"><button data-sx="H" class="'+(sx==='H'?'on':'')+'">Homme</button><button data-sx="F" class="'+(sx==='F'?'on':'')+'">Femme</button></div>'+
      '<div class="repart"><div class="repart-i"><span>Taille (cm)</span><input id="m-taille" type="text" inputmode="numeric" value="'+esc(String(pf.taille||''))+'"></div>'+
@@ -2536,19 +2753,19 @@ function vueRéglages(d){
      '<button class="secondaire" id="m-envoi"'+(P.etat==='envoi'?' disabled':'')+'>'+(P.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer le profil')+'</button>';
   if(P.etat==='ko')h+='<p class="alerte">'+esc(P.message)+'</p>';
   if(P.etat==='ok')h+='<p class="bien">'+esc(P.message)+'</p>';
-  h+='</section>';
+  h+='</section></div>';
 
   // ---- invitations et comptes (administrateur) ----
-  if(estAdmin(d))h+=blocAdmin();
+  if(estAdmin(d))h+=pan('inviter')+blocAdmin()+'</div>';
 
-  // ---- rappels et pas par Raccourci (utile surtout sans Telegram) ----
-  h+=blocRaccourci(pf);
+  // ---- onglet Appli : rappels et pas, application, connexion ----
+  h+=pan('appli')+blocRaccourci(pf);
 
   h+='<section><h2>Application</h2>'+
     '<p class="note">Dernière mise à jour le : '+esc(formatVersion(APP_VERSION))+'</p>'+
     '<button class="primaire" id="g-actualiser">Actualiser l\'application</button>'+
     aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir. '+
-      '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories et purines sur la période choisie. <b>Corps</b> : pesée, pas, mensurations et photos. '+
+      '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories, purines et qualité (saturées, fibres, sodium, sucres ajoutés, alcool) sur la période choisie. <b>Corps</b> : pesée, pas, mensurations, photos et crises de goutte. '+
       '<b>Journal</b> : tout ce qui est noté, semaine par semaine. <b>Coach</b> : une question sur ton alimentation.</p>'+
       '<p class="note">Les couleurs suivent ton objectif : vert quand tu vas dans son sens, orange quand tu t\'en écartes.</p>','Comment ça marche ?')+
     '</section>';
@@ -2568,7 +2785,7 @@ function vueRéglages(d){
       '<button class="secondaire danger" id="cpt-fermer">Fermer mon compte</button>','Fermer mon compte');
   if(C.etat==='ko')h+='<p class="alerte">'+esc(C.message)+'</p>';
   if(C.etat==='ok')h+='<p class="bien">'+esc(C.message)+'</p>';
-  return h+'</section>';
+  return h+'</section></div>';
 }
 function blocAdmin(){
   const A=S.adm;
@@ -2646,7 +2863,7 @@ function lignePurines(o,max,id){
   const t=Math.round(o.purines||0),r=Math.round(o.purines_risque||0),alc=Number(o.alcool)||0;
   let s='purines à risque '+nb(r)+' mg';
   if(max&&r)s+=' ('+Math.round(r/max*100)+' % du plafond)';
-  if(alc>0)s+=' · alcool '+String(Math.round(alc*10)/10).replace('.',',')+' g';
+  if(alc>0)s+=' · alcool '+verresTxt(alc);
   if(o.sucree||o.boissons_sucrees)s+=' · boisson sucrée';
   return '<div class="micro"'+(id?' id="'+id+'"':'')+'>'+s+'</div>';
 }
@@ -2675,7 +2892,7 @@ function blocPurinesJour(d){
   const alc=s7.reduce((s,j)=>s+(Number(j.alcool)||0),0);
   const suc=s7.reduce((s,j)=>s+(Number(j.boissons_sucrees)||0),0);
   o+=pastilles7(d,max);
-  o+='<div class="micro">Sur 7 jours : alcool '+nb(alc)+' g · '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
+  o+='<div class="micro">Sur 7 jours : alcool '+verresTxt(alc)+' · '+suc+' boisson'+(suc>1?'s':'')+' sucrée'+(suc>1?'s':'')+'</div>';
   o+='<details class="aide"><summary>Comment c\'est calculé ?</summary><p class="note">Seules comptent les purines des viandes, abats, charcuteries, poissons, fruits de mer, bouillons et de la bière : ce sont celles qui favorisent les crises de goutte. Les purines végétales (lentilles, épinards, champignons) n\'augmentent pas ce risque et ne sont pas comptées. Valeurs estimées par famille d\'aliments : une tendance, pas une mesure au milligramme.</p></details>';
   return o+'</section>';
 }
@@ -2726,7 +2943,7 @@ function alertesGoutte(d){
   if(n>=3)al.push('<b>'+n+' jours d\'affilée au-dessus du plafond.</b> C\'est la répétition qui fait monter l\'acide urique : prévois une journée sans viande ni poisson.');
   const s7=sept(d).concat([a]);
   const jAlc=s7.filter(j=>(Number(j.alcool)||0)>0).length,gAlc=s7.reduce((t,j)=>t+(Number(j.alcool)||0),0);
-  if(jAlc>=3||gAlc>=70)al.push('<b>Alcool '+jAlc+' jour'+(jAlc>1?'s':'')+' sur 7</b> ('+nb(gAlc)+' g). La bière et les alcools forts freinent l\'élimination de l\'acide urique, la bière apporte en plus ses propres purines.');
+  if(jAlc>=3||gAlc>=70)al.push('<b>Alcool '+jAlc+' jour'+(jAlc>1?'s':'')+' sur 7</b> ('+verresTxt(gAlc)+'). La bière et les alcools forts freinent l\'élimination de l\'acide urique, la bière apporte en plus ses propres purines.');
   const suc=s7.reduce((t,j)=>t+(Number(j.boissons_sucrees)||0),0);
   if(suc>3)al.push('<b>'+suc+' boissons sucrées sur 7 jours.</b> Le fructose des sodas et des jus fait monter l\'acide urique, même sans purines.');
   const v=sept(d).filter(j=>j.valide&&j.ecart!==null);
@@ -2757,6 +2974,11 @@ function barresSeuil(items,o){
     // zone de toucher pleine hauteur, plus large que la barre (les barres fines sont difficiles à viser)
     if(o.cle)s+='<rect data-bar="'+o.cle+'|'+it.date+'" x="'+(pl+pas*i).toFixed(1)+'" y="0" width="'+pas.toFixed(1)+'" height="'+h+'" fill="transparent"/>';
     if(estSel){selIt=it;selCx=cx;}
+  });
+  if(o.marques&&o.marques.length)items.forEach((it,i)=>{
+    if(o.marques.indexOf(it.date)<0)return;
+    const cx=pl+pas*(i+0.5);
+    s+='<path d="M'+(cx-5).toFixed(1)+' 2 L'+(cx+5).toFixed(1)+' 2 L'+cx.toFixed(1)+' 10 Z" fill="var(--rouge)"><title>crise de goutte</title></path>';
   });
   const ys=Y(o.seuil);
   s+='<line x1="0" y1="'+ys.toFixed(1)+'" x2="'+w+'" y2="'+ys.toFixed(1)+'" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 3"/>';
@@ -2794,7 +3016,7 @@ function blocPurinesCourbes(d,P){
     tuile('Au-dessus',dessus+' / '+pleins.length,'jours saisis',dessus?'var(--over)':'var(--under)')+
     tuile('Plafond',nb(max),'mg/j')+
     '</div>';
-  h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour',cle:'pur',fmt:v=>nb(v)+' mg'});
+  h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour',cle:'pur',fmt:v=>nb(v)+' mg',marques:(d.crises||[]).map(c=>c.date)});
   // le détail des repas n'est chargé que depuis le lundi de la semaine précédente
   const debP=plusJours(auj(),-(n-1));
   const top=(d.journal||[]).filter(r=>r.date>=debP&&(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
@@ -2803,7 +3025,7 @@ function blocPurinesCourbes(d,P){
     top.forEach(r=>{h+='<div class="pur-top-l"><span>'+jjmm(r.date)+' · '+esc(r.repas)+' · '+esc(String(r.detail||'').slice(0,70))+'</span><b>'+nb(r.purines_risque)+' mg</b></div>';});
     h+='</div>';
   }
-  h+=aide('<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Touche une barre pour sa valeur. Le plafond se règle dans les Réglages. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>');
+  h+=aide('<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus. Les jours pâles n\'ont aucune saisie. Touche une barre pour sa valeur. Les triangles rouges marquent les crises de goutte notées dans Corps. Le plafond se règle dans les Réglages. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>');
   return h;
 }
 
@@ -2992,10 +3214,6 @@ function sectionPesee(d){
   if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
   return h+'</section>';
 }
-function vueCorps(d){
-  return sectionPesee(d)+sectionPas(d)+sectionMesures(d)+sectionPhotos(d);
-}
-
 /* ---------- photos : stockage local (IndexedDB) + récupération serveur ---------- */
 const PHOTO_DB='suivi-photos';
 let photoDbP=null;
@@ -3352,6 +3570,35 @@ function brancher(){
     S.crb.per=Number(b.dataset.cper);S.insp=null;courbesMemo();rendre();}));
   document.querySelectorAll('[data-cong]').forEach(b=>b.addEventListener('click',()=>{
     S.crb.onglet=b.dataset.cong;courbesMemo();rendre();}));
+  // ---- Corps : onglets ; Courbes : nutriment affiché ; crises de goutte ----
+  document.querySelectorAll('[data-ko]').forEach(b=>b.addEventListener('click',()=>{
+    S.corps.onglet=b.dataset.ko;try{localStorage.setItem('suivi.corps.onglet',S.corps.onglet);}catch(e){}rendre();}));
+  document.querySelectorAll('[data-cnut]').forEach(b=>b.addEventListener('click',()=>{S.crb.nut=b.dataset.cnut;if(S.corps.selBar)delete S.corps.selBar.nut;courbesMemo();rendre();}));
+  document.querySelectorAll('[data-gq]').forEach(b=>b.addEventListener('click',()=>{S.gt.quand=b.dataset.gq;S.gt.etat=null;rendre();}));
+  document.querySelectorAll('[data-ga]').forEach(b=>b.addEventListener('click',()=>{S.gt.art=b.dataset.ga;S.gt.etat=null;rendre();}));
+  document.querySelectorAll('[data-gi]').forEach(b=>b.addEventListener('click',()=>{S.gt.int=Number(b.dataset.gi);S.gt.etat=null;rendre();}));
+  on('#g-date','change',e=>{S.gt.date=e.target.value;});
+  on('#g-rem','input',e=>{S.gt.rem=e.target.value;});
+  on('#g-noter','click',async()=>{
+    const G=S.gt;
+    const date=G.quand==='hier'?plusJours(auj(),-1):(G.quand==='autre'?(G.date||(($('#g-date')||{}).value)||''):auj());
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>auj()){G.etat='ko';G.message='Choisis une date passée.';rendre();return;}
+    if(!G.art){G.etat='ko';G.message='Indique où se situe la crise.';rendre();return;}
+    if(!G.int){G.etat='ko';G.message='Indique l’intensité, de 1 à 5.';rendre();return;}
+    G.etat='envoi';rendre();
+    try{
+      await appel({action:'crise',op:'ajouter',date:date,articulation:G.art,intensite:G.int,remarque:G.rem||''});
+      await rafraichir();
+      S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:'ok',message:'Crise du '+jjmm(date)+' notée.'};
+    }catch(err){G.etat='ko';G.message=err.message;}
+    rendre();
+  });
+  document.querySelectorAll('[data-gdel]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!await modaleConfirm('Retirer cette crise de la liste ?',{ok:'Retirer',danger:true}))return;
+    try{await appel({action:'crise',op:'supprimer',id:b.dataset.gdel});await rafraichir();S.gt.etat=null;}
+    catch(err){S.gt.etat='ko';S.gt.message=err.message;}
+    rendre();
+  }));
   on('#j-ajout','click',()=>{S.vue='ajout';rendre();hautPage();});
   on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});
   document.querySelectorAll('[data-jo]').forEach(b=>b.addEventListener('click',()=>{
@@ -3519,7 +3766,7 @@ function brancher(){
     const c=calculProduit(p,g);
     const A=S.ajout;
     const alScan={nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
-      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,
+      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,
       ...(c.purines!==undefined?{purines:c.purines,purines_risque:c.purines_risque,alcool:c.alcool,sucree:c.sucree,famille:p.famille||''}:{})};
     // --- MODE AJOUT : on greffe le produit scanné sur le repas en cours ---
     if(A.ajoutEnCours&&A.resultat){
@@ -3543,7 +3790,7 @@ function brancher(){
       total:Object.assign({},c,c.purines!==undefined?{boissons_sucrees:c.sucree||0}:{}),incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
       nutriscore:p.nutriscore||'',
-      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,nutriscore:p.nutriscore||'',
+      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,nutriscore:p.nutriscore||'',
         purines:c.purines||0,purines_risque:c.purines_risque||0,alcool:c.alcool||0,boissons_sucrees:c.sucree||0}
     };
     A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
@@ -3679,7 +3926,7 @@ function brancher(){
         const t=r.total||{};
         const detail=(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', ');
         r.ligne={repas:lib,detail:detail,kcal:t.kcal||0,prot:t.prot||0,lip:t.lip||0,
-          gluc:t.gluc||0,fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,nutriscore:''};
+          gluc:t.gluc||0,fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,satures:t.satures||0,sucres_ajoutes:t.sucres_ajoutes||0,nutriscore:''};
         r.estimation=false;
       }
       ecrireRepasCache();rendre();
@@ -3818,7 +4065,13 @@ function brancher(){
         ' Aujourd\'hui : '+Math.round(cN*(o.prot||0)/100/4)+' g de protéines, '+Math.round(cN*(o.lip||0)/100/9)+' g de lipides, '+Math.round(cN*(o.gluc||0)/100/4)+' g de glucides.';
     });
   });
-  on('#g-envoi','click',async()=>{
+  document.querySelectorAll('[data-rg]').forEach(b=>b.addEventListener('click',()=>{
+    S.regTab=b.dataset.rg;
+    document.querySelectorAll('[data-rg]').forEach(x=>{const o=x===b;x.classList.toggle('on',o);x.setAttribute('aria-selected',o);});
+    document.querySelectorAll('.rg-p').forEach(p=>{p.hidden=p.dataset.rgp!==S.regTab;});
+    hautPage();
+  }));
+  document.querySelectorAll('.g-envoi').forEach(bt=>bt.addEventListener('click',async()=>{
     const f=facteurChoisi();
     const B=OBJ_DEF[S.regl.obj],e=lireEcart();
     if(e===null||e<B.min||e>B.max){S.para.etat='ko';S.para.message='Écart attendu entre '+B.min+' et '+(B.max>0?'+':'')+B.max+' kcal par jour pour '+B.lib.toLowerCase()+'.';rendre();return;}
@@ -3845,7 +4098,7 @@ function brancher(){
       S.para.message=OBJ_DEF[r.objectif]?OBJ_DEF[r.objectif].lib+' : cible '+nb(r.cible)+' kcal aujourd’hui ('+(r.activite||'')+'), recalculée à chaque pesée.':'Cible '+r.cible+' kcal.';
     }catch(err){S.para.etat='ko';S.para.message=err.message;}
     rendre();
-  });
+  }));
   // ---- profil ----
   document.querySelectorAll('#m-sexe [data-sx]').forEach(b=>b.addEventListener('click',()=>{
     S.prof.sexe=b.dataset.sx;document.querySelectorAll('#m-sexe [data-sx]').forEach(x=>x.classList.toggle('on',x===b));}));
@@ -4073,6 +4326,7 @@ async function demarrer(){
   S.foods=lireFoods();
   S.jour.onglet=ongletJourInit();
   S.crb=courbesInit();
+  S.corps.onglet=corpsOngletInit();
   S.file=lirePending();
   const cache=lireRepasCache();
   if(cache){
