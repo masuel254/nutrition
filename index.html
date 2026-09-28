@@ -573,7 +573,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='28/09/2026 08h18';
+const APP_VERSION='28/09/2026 08h54';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2494,21 +2494,22 @@ function barreNut(q,v){
 }
 function blocQualiteJour(d){
   const a=d.aujourdhui||{};
-  if(!a.repas||a.satures===undefined)return '';
+  if(!a.repas)return '';
   const Q=seuilsQualite(d);
-  return '<div class="qj"><div class="qj-t">Qualité du jour</div>'+NUTS.map(k=>barreNut(Q[k],Math.round(a[k]||0))).join('')+((Number(a.alcool)||0)>0?barreAlcool(a.alcool):'')+
+  return '<div class="qj"><div class="qj-t">Qualité du jour</div>'+NUTS.filter(k=>a[k]!==undefined&&a[k]!==null).map(k=>barreNut(Q[k],Math.round(a[k]||0))).join('')+((Number(a.alcool)||0)>0?barreAlcool(a.alcool):'')+
     aide('<p class="note">Plafonds calés sur ta cible du jour : graisses saturées sous 10 % des calories, sucres ajoutés sous 10 % (repères de l\'OMS), sodium sous 2 000 mg (5 g de sel), alcool : 2 verres par jour au plus (1 verre = 10 g d\'alcool pur : un demi de bière, un verre de vin, un petit verre d\'alcool fort). Les fibres sont un objectif à atteindre, pas un plafond. Les valeurs viennent de l\'estimation de l\'IA ou de l\'étiquette des produits scannés : c\'est la tendance sur plusieurs jours qui compte.</p>','D\'où viennent ces repères ?')+'</div>';
 }
 function ongletQualite(d,P){
   const Q=seuilsQualite(d),k=NUTS.concat(['alcool']).indexOf(S.crb.nut)>=0?S.crb.nut:'satures',q=Q[k]||{};
   const js=(d.jours||[]).filter(j=>j.repas>0);
   const avec=js.filter(j=>j.satures!==null&&j.satures!==undefined);
-  if(!avec.length)return '<p class="note">Les graisses saturées et les sucres ajoutés s\'afficheront au fil des nouveaux repas analysés : les repas enregistrés avant ce suivi n\'en ont pas.</p>';
+  if(!js.length)return '<p class="vide">Pas encore de repas notés.</p>';
   let n=P;
-  if(!P){const d0=new Date(avec[0].date+'T12:00:00'),d1=new Date();d1.setHours(12,0,0,0);n=Math.max(1,Math.round((d1-d0)/86400000)+1);}
+  if(!P){const d0=new Date(js[0].date+'T12:00:00'),d1=new Date();d1.setHours(12,0,0,0);n=Math.max(1,Math.round((d1-d0)/86400000)+1);}
   const debut=plusJours(auj(),-(n-1));
   // tuiles : moyenne sur les journées complètes (2 repas ou plus) qui ont la donnée
-  let h='<div class="tuiles t2">';
+  let h=avec.length?'':'<p class="note">Graisses saturées et sucres ajoutés : ils s\'afficheront au fil des nouveaux repas analysés, les repas enregistrés avant ce suivi n\'en ont pas.</p>';
+  h+='<div class="tuiles t2">';
   NUTS.forEach(x=>{
     const qx=Q[x];
     const jv=js.filter(j=>j.date>=debut&&j.date<auj()&&j.valide&&j[x]!==null&&j[x]!==undefined);
