@@ -35,7 +35,7 @@ const jours = [...new Set(LIGNES.map(l => l.date))].sort().map(d => {
   return { date: d, kcal: k, prot: 61, lip: 12, gluc: 89, repas: ls.length, cible: 2100, tdee: 2700, ecart: k - 2700, valide: true,
     purines: ls.reduce((t, l) => t + l.purines, 0), purines_risque: ls.reduce((t, l) => t + l.purines_risque, 0), alcool: ls.reduce((t, l) => t + l.alcool, 0), boissons_sucrees: 0 };
 });
-jours.forEach((j, i) => { j.satures = i >= jours.length - 10 ? 18 + i % 9 : null; j.sucres_ajoutes = j.satures === null ? null : 25; j.sodium = 1800; j.fibres = 20; });
+jours.forEach((j, i) => { j.satures = i >= jours.length - 10 ? 18 + i % 9 : null; j.sucres_ajoutes = j.satures === null ? null : 25; j.sodium = 1800; j.fibres = 20; if (i < jours.length - 10) j.alcool = null; });
 const DATA = {
   ok: true, profil: { prenom: 'Test', sexe: 'H', taille: 180, naissance: 1980, age: 46, role: 'administrateur', telegram: true },
   reference: { date: jour(0), poids: 100, mb: 1900, tdee: 2700, cible: 2100, activite: 'Sedentaire', facteur: 1.2, mode: 'Seche', ecart: -600, repartition: '25/40/5/30', macros: '30/30/40', purines_max: 400, objectif_poids: 90, objectif: 'seche', ecart_kcal: -600 },
@@ -110,7 +110,9 @@ ok(await page.locator('.vue.on .tuiles.t2 .tu').count() === 5 && await page.loca
 await page.click('[data-cnut="fibres"]');
 ok(await page.locator('[data-cnut="fibres"].on').count() === 1, 'Courbes : choix du nutriment');
 await page.click('[data-cnut="alcool"]');
-ok(/verres? cette semaine/.test(await texte('.vue.on .tu-large')) && (await page.locator('.vue.on svg text', { hasText: 'repère 10 verres' }).count()) === 1, 'Courbes : alcool en verres par semaine, repère 10');
+ok(/verres? (la semaine derni[eè]re|cette semaine)/i.test(await texte('.vue.on .tu-large')) && (await page.locator('.vue.on .alc .alc-c').count()) >= 14 && (await page.locator('.vue.on .alc .alc-auj').count()) === 1, 'Courbes : alcool jour par jour (grille par semaine, aujourd hui en cours)');
+ok(/aujourd.hui en cours : 26 g/i.test(await texte('.vue.on .tuiles.t2')), 'Courbes : tuiles Qualité avec la journée en cours');
+ok((await page.locator('.vue.on .alc .alc-ns').count()) > 0 && /suivi depuis le/i.test(await texte('.vue.on .alc')), 'Courbes : alcool, jours d avant le suivi en non suivi');
 await page.click('[data-cong="purines"]');
 ok(await page.locator('.vue.on svg path[fill="var(--rouge)"]').count() === 1, 'Purines : repère de la crise sur le graphique');
 await page.click('[data-cong="poids"]');
