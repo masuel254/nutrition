@@ -566,6 +566,21 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .tu-large{grid-column:1/-1}
 .rg-tete{padding-bottom:4px}
 .rg-p[hidden]{display:none}
+.alc{margin:4px 0 10px}
+.alc-t{font-size:12px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.03em;margin:4px 0 6px}
+.alc-l{display:grid;grid-template-columns:64px repeat(7,minmax(0,1fr)) 34px;gap:4px;align-items:center}
+.alc-tete i{font-style:normal;text-align:center;font-size:10.5px;color:var(--soft);font-weight:700}
+.alc-d{font-size:11px;color:var(--soft);white-space:nowrap}
+.alc-c{font-style:normal;display:flex;align-items:center;justify-content:center;height:30px;border-radius:7px;font-size:12.5px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.alc-v{background:transparent;color:var(--soft);border:1px solid var(--rule);font-weight:400}
+.alc-ns{background:repeating-linear-gradient(45deg,var(--rule) 0 3px,transparent 3px 6px);color:var(--soft);border:1px solid var(--rule)}
+.alc-f{background:transparent;border:1px dashed var(--rule)}
+.alc-auj{outline:2px dashed var(--soft);outline-offset:1px}
+.alc-s{text-align:right;font-size:13px}
+.alc-r{font-size:11px;color:var(--soft);margin:2px 0 8px 68px;line-height:1.3}
+.alc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--soft);margin:2px 0 6px}
+.alc-leg span{display:inline-flex;align-items:center;gap:5px}
+.alc-leg i{display:inline-block;width:12px;height:12px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -573,7 +588,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='28/09/2026 08h54';
+const APP_VERSION='28/09/2026 11h50';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2513,12 +2528,13 @@ function ongletQualite(d,P){
   NUTS.forEach(x=>{
     const qx=Q[x];
     const jv=js.filter(j=>j.date>=debut&&j.date<auj()&&j.valide&&j[x]!==null&&j[x]!==undefined);
-    if(!jv.length){h+=tuile(qx.court,'—','pas encore de données');return;}
+    const ta=d.aujourdhui||{},enc=(ta.repas>0&&ta[x]!==null&&ta[x]!==undefined)?'aujourd\u2019hui en cours : '+nb(Math.round(Number(ta[x])||0))+' '+qx.u:'';
+    if(!jv.length){h+=tuile(qx.court,'—',enc||'pas encore de données');return;}
     const moy=jv.reduce((t,j)=>t+(Number(j[x])||0),0)/jv.length,e=etatNut(qx,moy);
     const nb2=qx.plancher?jv.filter(j=>j[x]>=qx.max).length:jv.filter(j=>j[x]>qx.max).length;
-    h+=tuile(qx.court,nb(moy)+' '+qx.u+'/j',(qx.plancher?'objectif ':'max ')+nb(qx.max)+' '+qx.u+' · '+nb2+' jour'+(nb2>1?'s':'')+(qx.plancher?' atteint'+(nb2>1?'s':''):' au-dessus'),e.coul);
+    h+=tuile(qx.court,nb(moy)+' '+qx.u+'/j',(qx.plancher?'objectif ':'max ')+nb(qx.max)+' '+qx.u+' · '+nb2+' jour'+(nb2>1?'s':'')+(qx.plancher?' atteint'+(nb2>1?'s':''):' au-dessus')+(enc?' · '+enc:''),e.coul);
   });
-  h+=blocAlcool(d,n)+'</div><div class="nut-sel" role="tablist">';
+  h+=blocAlcool(d)+'</div><div class="nut-sel" role="tablist">';
   NUTS.forEach(x=>{h+='<button data-cnut="'+x+'" class="'+(x===k?'on':'')+'">'+Q[x].court+'</button>';});
   h+='<button data-cnut="alcool" class="'+(k==='alcool'?'on':'')+'">Alcool</button></div>';
   if(k==='alcool')return h+graphiqueAlcool(d,n)+aide('<p class="note">1 verre standard = 10 g d\'alcool pur : un demi de bière (25 cl à 5 %), un verre de vin (10 cl), une coupe de champagne, un petit verre d\'alcool fort (3 cl). Repères de Santé publique France : au plus 10 verres par semaine, 2 par jour, et des jours sans alcool. Pour l\'acide urique, la bière compte double : alcool et purines.</p>');
@@ -2536,7 +2552,7 @@ function ongletQualite(d,P){
     top.forEach(t=>{h+='<div class="pur-top-l"><span>'+esc(t.nom)+'</span><b'+(q.plancher?' style="color:var(--under)"':'')+'>'+nb(t.v)+' '+q.u+'</b></div>';});
     h+='</div>';
   }
-  h+=aide('<p class="note">Tuiles : moyenne des journées complètes (au moins deux repas). Barres : total de chaque jour, '+(q.plancher?'vert quand l\'objectif est atteint.':'vert sous le repère, orange au-dessus.')+
+  h+=aide('<p class="note">Tuiles : moyenne des journées complètes (au moins deux repas), sans aujourd\'hui, affiché à part tant que la journée n\'est pas finie. Barres : total de chaque jour, '+(q.plancher?'vert quand l\'objectif est atteint.':'vert sous le repère, orange au-dessus.')+
     ' Graisses saturées : charcuterie, fromage, beurre, crème, viennoiseries, viandes grasses. Sucres ajoutés : sodas, jus, confiseries, pâtisseries, céréales sucrées ; les sucres des fruits entiers et du lait nature ne comptent pas. Fibres : légumes, légumineuses, céréales complètes, fruits, oléagineux.</p>');
   return h;
 }
@@ -2629,33 +2645,62 @@ function barreAlcool(g){
   return '<div class="hm"><div class="hm-l"><span>Alcool <b>'+String(v).replace('.',',')+'</b> / 2 verres</span><span class="hm-e" style="color:'+coul+'">'+(bon?'dans le repère':'au-delà du repère')+'</span></div>'+
     '<div class="hm-b"><i style="width:'+Math.min(100,v/2*100).toFixed(0)+'%;background:'+coul+'"></i></div></div>';
 }
-// Semaines (lundi → dimanche) couvrant la période : verres, jours avec alcool, jours à plus de 2 verres.
-function semainesAlcool(d,n){
+// Jours avec l'alcool : null = non suivi (repas antérieurs au suivi), sinon grammes d'alcool pur.
+function alcJour(j){if(!j||!(j.repas>0))return {st:'vide'};if(j.alcool===null||j.alcool===undefined)return {st:'ns'};return {st:'ok',g:Number(j.alcool)||0};}
+function alcDebut(d){const j=(d.jours||[]).find(x=>x.repas>0&&x.alcool!==null&&x.alcool!==undefined);return j?j.date:null;}
+function vTxt(v){return String(v).replace('.',',');}
+// Semaines (lundi → dimanche), la plus récente d'abord. Aujourd'hui ne compte pas comme jour sans tant qu'il n'est pas fini.
+function semainesAlcool(d,nbs){
   const par={};(d.jours||[]).forEach(j=>{par[j.date]=j;});
-  const fin=auj(),debut=plusJours(auj(),-(Math.max(n,28)-1));
-  const sem={};
-  for(let x=lundiJn(debut);x<=fin;x=plusJours(x,1)){
-    const l=lundiJn(x),j=par[x];
-    const s=sem[l]||(sem[l]={date:l,g:0,jours:0,sans:0,saisis:0,excès:0});
-    if(j&&j.repas>0){s.saisis++;const a=Number(j.alcool)||0;s.g+=a;if(a>0)s.jours++;else s.sans++;if(a>20)s.excès++;}
+  const a=auj(),res=[],ta=d.aujourdhui;
+  if(ta&&ta.repas>0&&!par[a])par[a]=Object.assign({date:a},ta);
+  for(let w=0;w<nbs;w++){
+    const l=plusJours(lundiJn(a),-7*w),s={date:l,g:0,avec:0,sans:0,suivis:0,ns:0,exces:0,cours:w===0,jours:[]};
+    for(let i=0;i<7;i++){
+      const x=plusJours(l,i),e=alcJour(par[x]);e.date=x;e.futur=x>a;e.auj=x===a;s.jours.push(e);
+      if(e.futur||e.st==='vide')continue;
+      if(e.st==='ns'){s.ns++;continue;}
+      s.suivis++;s.g+=e.g;
+      if(e.g>0){s.avec++;if(e.g>20)s.exces++;}else if(!e.auj)s.sans++;
+    }
+    res.push(s);
   }
-  return Object.values(sem).sort((a,b)=>a.date.localeCompare(b.date));
+  return res;
 }
-function blocAlcool(d,n){
-  const S7=semainesAlcool(d,n),cour=S7[S7.length-1],passees=S7.slice(0,-1).filter(s=>s.saisis>=4);
-  const moy=passees.length?passees.reduce((t,s)=>t+s.g,0)/passees.length:null;
-  const vs=verresNb(cour.g),c=vs<=10?'var(--under)':'var(--over)';
-  let h='<div class="tu tu-large"><small>Alcool</small><b style="color:'+c+'">'+verresTxt(cour.g)+' cette semaine</b><span>repère 10 par semaine · '+cour.jours+' jour'+(cour.jours>1?'s':'')+' avec, '+cour.sans+' sans'+
-    (moy!==null?' · moyenne '+String(verresNb(moy)).replace('.',',')+' par semaine':'')+'</span></div>';
-  return h;
+function coulVerres(v){return v<=0?'var(--under)':(v<=2?'var(--jaune)':'var(--over)');}
+function blocAlcool(d){
+  const W=semainesAlcool(d,2),c=W[0],p=W[1];
+  const cours='cette semaine : '+(c.suivis?vTxt(verresNb(c.g))+' pour l’instant':'rien de noté');
+  if(!p.suivis)return '<div class="tu tu-large" data-tu="alcool"><small>Alcool · repère 10 verres par semaine</small><b style="color:'+(verresNb(c.g)<=10?'var(--under)':'var(--over)')+'">'+verresTxt(c.g)+' cette semaine</b><span>pour l’instant · '+c.avec+' jour'+(c.avec>1?'s':'')+' avec, '+c.sans+' sans</span></div>';
+  const v=verresNb(p.g),inc=p.ns>0||p.suivis<5;
+  return '<div class="tu tu-large" data-tu="alcool"><small>Alcool · repère 10 verres par semaine</small><b style="color:'+(v<=10?'var(--under)':'var(--over)')+'">'+verresTxt(p.g)+' la semaine dernière</b><span>'+
+    p.avec+' jour'+(p.avec>1?'s':'')+' avec, '+p.sans+' sans'+(inc?' (semaine incomplète)':'')+' · '+cours+'</span></div>';
 }
+// Grille jour par jour : une ligne par semaine, la plus récente en haut.
 function graphiqueAlcool(d,n){
-  const S7=semainesAlcool(d,n);
-  const items=S7.map(s=>({date:s.date,v:verresNb(s.g),vide:!s.saisis}));
-  let h=barresSeuil(items,{seuil:10,bonSiHaut:false,libSeuil:'repère 10 verres',titre:'Verres d’alcool par semaine',cle:'alc',fmt:v=>String(v).replace('.',',')+' verres la semaine'});
-  const ex=S7.reduce((t,s)=>t+s.excès,0);
-  h+='<div class="micro">Une barre par semaine (du lundi au dimanche), sur '+S7.length+' semaines. '+(ex?ex+' jour'+(ex>1?'s':'')+' à plus de 2 verres sur la période.':'Aucun jour à plus de 2 verres sur la période.')+'</div>';
-  return h;
+  const nbS=Math.max(2,Math.min(6,Math.ceil(n/7)+1)),W=semainesAlcool(d,nbS),deb=alcDebut(d);
+  let h='<div class="alc"><div class="alc-t">Verres d’alcool par jour</div><div class="alc-l alc-tete"><span></span>'+['L','M','M','J','V','S','D'].map(x=>'<i>'+x+'</i>').join('')+'<span></span></div>';
+  W.forEach(s=>{
+    h+='<div class="alc-l"><span class="alc-d">'+(s.cours?'Cette sem.':jjmm(s.date))+'</span>';
+    s.jours.forEach(e=>{
+      const t=jjmm(e.date);
+      if(e.futur)h+='<i class="alc-c alc-f"></i>';
+      else if(e.st==='vide')h+='<i class="alc-c alc-v" title="'+t+' : pas de repas">–</i>';
+      else if(e.st==='ns')h+='<i class="alc-c alc-ns" title="'+t+' : non suivi">?</i>';
+      else{const v=verresNb(e.g);
+        h+='<i class="alc-c'+(e.auj?' alc-auj':'')+'" title="'+t+' : '+verresTxt(e.g)+'" style="'+(e.auj&&!v?'background:transparent;color:var(--soft)':'background:'+coulVerres(v))+'">'+(v?vTxt(v):(e.auj?'·':'0'))+'</i>';}
+    });
+    const v=verresNb(s.g),tot=s.suivis?'<b style="color:'+(v<=10?'var(--under)':'var(--over)')+'">'+vTxt(v)+'</b>':'<b>–</b>';
+    h+='<span class="alc-s">'+tot+'</span></div>';
+    h+='<div class="alc-r">'+(s.suivis?(s.cours?'En cours : ':'')+verresTxt(s.g)+(s.cours?' pour l’instant':'')+' · '+s.avec+' jour'+(s.avec>1?'s':'')+' avec, '+s.sans+' sans'+(s.exces?' · '+s.exces+' à plus de 2 verres':'')+(s.ns?' · '+s.ns+' non suivi'+(s.ns>1?'s':''):''):(s.ns?'Non suivi':'Pas de repas notés'))+'</div>';
+  });
+  h+='<div class="alc-leg"><span><i style="background:var(--under)"></i>aucun</span><span><i style="background:var(--jaune)"></i>1 à 2 verres</span><span><i style="background:var(--over)"></i>plus de 2</span><span><i class="alc-ns"></i>non suivi</span></div>';
+  // moyenne sur les semaines passées suivies au moins 5 jours
+  const pl=W.slice(1).filter(s=>s.suivis>=5&&!s.ns);
+  if(pl.length>1)h+='<div class="micro">Moyenne '+vTxt(Math.round(pl.reduce((t,s)=>t+verresNb(s.g),0)/pl.length*10)/10)+' verres par semaine sur '+pl.length+' semaines complètes.</div>';
+  if(deb&&W.some(s=>s.ns))h+='<div class="micro">Alcool suivi depuis le '+jjmm(deb)+' : les jours d’avant (?) ne comptent dans aucune moyenne.</div>';
+  else if(!deb)h+='<div class="micro">Pas encore de repas avec le suivi de l’alcool.</div>';
+  return h+'</div>';
 }
 
 function vueCoach(){
