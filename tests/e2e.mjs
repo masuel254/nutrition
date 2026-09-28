@@ -35,15 +35,17 @@ const jours = [...new Set(LIGNES.map(l => l.date))].sort().map(d => {
   return { date: d, kcal: k, prot: 61, lip: 12, gluc: 89, repas: ls.length, cible: 2100, tdee: 2700, ecart: k - 2700, valide: true,
     purines: ls.reduce((t, l) => t + l.purines, 0), purines_risque: ls.reduce((t, l) => t + l.purines_risque, 0), alcool: ls.reduce((t, l) => t + l.alcool, 0), boissons_sucrees: 0 };
 });
+jours.forEach((j, i) => { j.satures = i >= jours.length - 10 ? 18 + i % 9 : null; j.sucres_ajoutes = j.satures === null ? null : 25; j.sodium = 1800; j.fibres = 20; });
 const DATA = {
   ok: true, profil: { prenom: 'Test', sexe: 'H', taille: 180, naissance: 1980, age: 46, role: 'administrateur', telegram: true },
   reference: { date: jour(0), poids: 100, mb: 1900, tdee: 2700, cible: 2100, activite: 'Sedentaire', facteur: 1.2, mode: 'Seche', ecart: -600, repartition: '25/40/5/30', macros: '30/30/40', purines_max: 400, objectif_poids: 90, objectif: 'seche', ecart_kcal: -600 },
   cibles: { kcal: 2100, prot: 158, lip: 70, gluc: 210 },
-  aujourdhui: { date: jour(0), kcal: 0, prot: 0, lip: 0, gluc: 0, repas: 0, purines: 0, purines_risque: 0, alcool: 0, boissons_sucrees: 0, parRepas: {} },
+  aujourdhui: { date: jour(0), kcal: 900, prot: 50, lip: 30, gluc: 90, repas: 2, fibres: 12, sodium: 1500, satures: 26, sucres_ajoutes: 20, purines: 0, purines_risque: 0, alcool: 0, boissons_sucrees: 0, parRepas: {} },
   moyennes: { j3: {}, j7: {}, j30: {} }, deficit: { cumule: [] },
   poids: [-40, -30, -20, -10, -1].map((n, i) => ({ date: jour(n), poids: 102 - i * 0.5, mb: 1900, tdee: 2700 })),
   jours, journal: LIGNES.filter(l => l.date >= depuis).reverse(), journal_depuis: depuis,
   catalogue: [...AL.pdj, ...AL.midi].map((a, i) => Object.assign({}, a, { k: a.nom.toLowerCase(), n: 10 - i, cr: { matin: i < 2 ? 5 : 0, midi: i >= 2 ? 5 : 0, encas: 0, soir: 0 }, mode: a.quantite.endsWith('g') ? 'p' : 'n', u: a.quantite.replace(/^\d+\s*/, '').replace(/s$/, ''), up: a.quantite.replace(/^\d+\s*/, '') })),
+  crises: [{ id: 'g1', date: jour(-5), articulation: 'gros orteil', intensite: 4, remarque: '' }],
   suggestions: {}, parametres: [], activite: [], mesures: [], photos: []
 };
 
@@ -63,6 +65,7 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
+  if (q.action === 'crise') return json({ ok: true });
   if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
   if (q.action === 'admin') return json({ ok: true, comptes: [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true }], invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined });
   if (q.action === 'params') return json({ ok: true, objectif: q.objectif, cible: 3000, activite: 'Sedentaire', mode: 'Prise de masse' });
@@ -95,9 +98,28 @@ await page.click('[data-cong="purines"]');
 ok(/Plafond/i.test(await texte('.vue.on .tuiles')), 'Courbes : onglet Purines');
 await page.click('[data-cong="poids"]'); await page.click('[data-cper="30"]');
 await page.click('nav button[data-vue="corps"]');
-ok(/Pesée du jour/.test(await texte('.vue.on section')), 'Corps : pesée en tête');
+ok(await page.locator('.vue.on [data-ko="pesee"].on').count() === 1 && /Pesée du jour/.test(await texte('.vue.on section:nth-of-type(2)')), 'Corps : onglet Pesée ouvert par défaut');
 await page.click('#p-envoi'); await page.waitForTimeout(300);
 ok(appels.some(a => a.action === 'poids' && a.poids === 100) && /100 kg enregistrés/.test(await texte('.vue.on .bien')), 'Corps : pesée envoyée');
+
+console.log('Qualité et goutte');
+await page.click('nav button[data-vue="jour"]');
+ok(/Graisses saturées 26/.test(await texte('.qj')) && /3 g en trop/.test(await texte('.qj')), 'Jour : qualité du jour (saturées au-dessus du plafond)');
+await page.click('nav button[data-vue="courbes"]'); await page.click('[data-cong="qualite"]');
+ok(await page.locator('.vue.on .tuiles.t2 .tu').count() === 5 && await page.locator('[data-cnut="satures"].on').count() === 1, 'Courbes : onglet Qualité, quatre tuiles + alcool');
+await page.click('[data-cnut="fibres"]');
+ok(await page.locator('[data-cnut="fibres"].on').count() === 1, 'Courbes : choix du nutriment');
+await page.click('[data-cnut="alcool"]');
+ok(/verres? cette semaine/.test(await texte('.vue.on .tu-large')) && (await page.locator('.vue.on svg text', { hasText: 'repère 10 verres' }).count()) === 1, 'Courbes : alcool en verres par semaine, repère 10');
+await page.click('[data-cong="purines"]');
+ok(await page.locator('.vue.on svg path[fill="var(--rouge)"]').count() === 1, 'Purines : repère de la crise sur le graphique');
+await page.click('[data-cong="poids"]');
+await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="goutte"]');
+ok(await page.locator('.crise').count() === 1 && /gros orteil/.test(await texte('.crise')), 'Corps : onglet Goutte, crise listée avec son analyse');
+await page.click('[data-gq="hier"]'); await page.click('[data-ga="cheville"]'); await page.click('[data-gi="3"]'); await page.click('#g-noter'); await page.waitForTimeout(300);
+const cr = appels.filter(a => a.action === 'crise').pop();
+ok(cr && cr.op === 'ajouter' && cr.date === jour(-1) && cr.articulation === 'cheville' && cr.intensite === 3, 'Corps : crise notée (hier, cheville, 3)');
+await page.click('[data-ko="pesee"]');
 
 console.log('Réglages');
 await page.click('#b-reglages'); await page.waitForTimeout(300);
@@ -107,8 +129,13 @@ ok((await page.inputValue('#g-ecart')) === '+300', 'prise de masse : écart prop
 await page.click('#g-envoi'); await page.waitForTimeout(400);
 const pa = appels.filter(a => a.action === 'params').pop();
 ok(pa && pa.objectif === 'prise' && pa.ecart_kcal === 300 && !('cible' in pa), 'objectif et écart envoyés (plus de cible fixe)');
+ok(await page.locator('#rg-onglets [data-rg]').count() === 5 && await page.locator('[data-rgp="reperes"]').isHidden(), 'Réglages en onglets (5 pour l administrateur)');
+await page.click('[data-rg="reperes"]');
+ok(await page.locator('#ch-macros').isVisible() && await page.locator('#g-ecart').isHidden(), 'onglet Repères : macros visibles, objectif masqué');
+await page.click('[data-rg="inviter"]');
 await page.fill('#adm-prenom', 'Hugo'); await page.click('#adm-inviter'); await page.waitForTimeout(300);
 ok(/ZR4T-8HNW/.test(await texte('.adm-lien')) && await page.locator('[data-adm-part="ZR4T-8HNW"]').count() > 0, 'invitation créée et prête à envoyer');
+await page.click('[data-rg="objectif"]');
 await page.click('#b-reglages');
 
 console.log('Journal');

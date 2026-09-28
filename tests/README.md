@@ -6,7 +6,8 @@ ou qui comptent le plus :
 
 - écran Jour : pastille des calories, carte objectif et projection ;
 - Courbes : onglets Poids / Calories / Purines, période commune, tuiles ; Corps : pesée en tête et envoi ;
-- Réglages : objectif et écart (cible calculée), invitation créée ; inscription par lien d'invitation (page d'accueil, code, profil, compte créé) ;
+- Qualité (saturées, fibres, sodium, sucres ajoutés, alcool en verres) sur Jour et Courbes ; Corps en onglets, crises de goutte notées et repérées sur les purines ;
+- Réglages en onglets : objectif et écart (cible calculée), invitation créée ; inscription par lien d'invitation (page d'accueil, code, profil, compte créé) ;
 - Journal : bilan de la semaine dernière, semaines repliées, « Voir plus », chargement à la demande ;
 - Ajouter : refaire un repas, enregistrement rejoué sans doublon (même identifiant),
   modification de la même ligne, composer avec ses aliments, message si l'IA est indisponible ;
