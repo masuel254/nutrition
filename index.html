@@ -530,6 +530,22 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .crb-ac.ecart{border-left-color:var(--over);background:color-mix(in srgb,var(--over) 8%,var(--card))}
 .crb-ac b{font-weight:600}
 .crb-st{font-size:12px;color:var(--soft);margin:-6px 0 10px}
+.ins-code{font-size:30px;font-weight:700;letter-spacing:.08em;text-align:center;padding:14px 10px;margin:6px 0 4px;border:1px dashed var(--rule);border-radius:12px;background:var(--card);font-variant-numeric:tabular-nums;user-select:all;-webkit-user-select:all}
+.etapes{margin:16px 0 8px;padding-left:20px;font-size:14px;line-height:1.5}
+.etapes li{margin-bottom:8px}
+.etapes code{font-size:12.5px;background:var(--creux);padding:1px 5px;border-radius:4px}
+.ico{display:inline-block;width:17px;height:17px;vertical-align:-3px;color:var(--ink)}
+.ins details.aide{margin-top:22px}
+.ins .seg{margin-top:5px}
+.secondaire.danger{color:var(--over);border-color:var(--over)}
+.adm-lien{border:1px solid var(--rule);border-left:4px solid var(--under);border-radius:10px;background:var(--card);padding:12px 14px;margin-top:14px}
+.adm-lien-t{font-size:14px;font-weight:600}
+.adm-lien-t small{display:block;font-weight:400;color:var(--soft);font-size:12px;margin-top:2px}
+.adm-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin:18px 0 6px}
+.adm-l{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.adm-l small{display:block;color:var(--soft);font-size:12px}
+.adm-b{display:flex;gap:6px;flex:none}
+.adm-b button{padding:6px 10px;border:1px solid var(--rule);border-radius:999px;font-size:12.5px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -537,14 +553,15 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='28/09/2026 00h15';
+const APP_VERSION='28/09/2026 07h06';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
   foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
-  pesée:{etat:null,message:'',val:null},para:{etat:null,message:''},coach:{fil:[],etat:null},
+  pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},prof:{etat:null,message:'',sexe:null},
+  adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
   cam:{ouvert:false}};
 
@@ -989,10 +1006,7 @@ function serieCourbe(vals,opt){
     for(let i=1;i<n;i++){
       const dt=(jourNum(vals[i].date)-jourNum(vals[i-1].date))||1;
       const pente=((ms[i]-ms[i-1])/dt)*7; // variation par semaine sur la tendance
-      let c=colTend;
-      if(pente<-SEUIL)c='var(--under)';        // descend franchement -> vert
-      else if(pente>SEUIL)c='var(--over)';     // monte -> orange
-      else c='var(--ambre)';                   // stagne -> ambre
+      const c=coulPente(pente,SEUIL);          // selon l'objectif : vert dans le bon sens
       o+='<line x1="'+X(i-1).toFixed(1)+'" y1="'+Y(ms[i-1]).toFixed(1)+'" x2="'+X(i).toFixed(1)+'" y2="'+Y(ms[i]).toFixed(1)+
          '" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>';
     }
@@ -1033,12 +1047,12 @@ function barresHebdo(pes,opt){
   const zero=pt+(h-pt-pb)*(amp/(2*amp));   // ligne 0 au milieu
   const ech=((h-pt-pb)/2)/amp;
   const pasX=(w-pl-pr)/n,lg=Math.max(6,Math.min(26,pasX*0.6));
-  const coul=d=>d<-SEUIL?'var(--under)':(d>SEUIL?'var(--over)':'var(--ambre)');
+  const coul=d=>coulPente(d,SEUIL);
   let o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Variation hebdomadaire du poids">';
   // légende
-  o+='<rect x="'+pl+'" y="4" width="10" height="10" rx="2" fill="var(--under)"/><text x="'+(pl+14)+'" y="12.5" font-size="9.5" fill="var(--soft)">perte</text>';
-  o+='<rect x="'+(pl+52)+'" y="4" width="10" height="10" rx="2" fill="var(--ambre)"/><text x="'+(pl+66)+'" y="12.5" font-size="9.5" fill="var(--soft)">stagne</text>';
-  o+='<rect x="'+(pl+108)+'" y="4" width="10" height="10" rx="2" fill="var(--over)"/><text x="'+(pl+122)+'" y="12.5" font-size="9.5" fill="var(--soft)">prise</text>';
+  o+='<rect x="'+pl+'" y="4" width="10" height="10" rx="2" fill="'+coul(-1)+'"/><text x="'+(pl+14)+'" y="12.5" font-size="9.5" fill="var(--soft)">perte</text>';
+  o+='<rect x="'+(pl+52)+'" y="4" width="10" height="10" rx="2" fill="'+coul(0)+'"/><text x="'+(pl+66)+'" y="12.5" font-size="9.5" fill="var(--soft)">stagne</text>';
+  o+='<rect x="'+(pl+108)+'" y="4" width="10" height="10" rx="2" fill="'+coul(1)+'"/><text x="'+(pl+122)+'" y="12.5" font-size="9.5" fill="var(--soft)">prise</text>';
   // axe Y (graduations en kg)
   const pasY=amp>1?0.5:0.2;
   for(let v=-Math.floor(amp/pasY)*pasY;v<=amp+0.001;v+=pasY){
@@ -1075,7 +1089,7 @@ function barresLigne(items,h){
     const cx=pas*(i+0.5),ht=Math.abs(it.v)*ech,y=it.v<0?zero:zero-ht;
     const sel=(S.insp&&S.insp.date===it.date);
     o+='<rect data-jour="'+it.date+'" x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+
-       '" height="'+Math.max(1,ht).toFixed(1)+'" fill="'+(it.v<0?'var(--under)':'var(--over)')+'" rx="1"'+
+       '" height="'+Math.max(1,ht).toFixed(1)+'" fill="'+coulEcart(it.v)+'" rx="1"'+
        (sel?' stroke="var(--ink)" stroke-width="1.6"':'')+'/>';
     if(sel){selIt=it;selCx=cx;}
   });
@@ -1095,7 +1109,7 @@ function barresLigne(items,h){
   if(selIt){
     const txt=jjmm(selIt.date)+' : '+sgn(selIt.v)+' kcal';
     const bw=Math.max(104,txt.length*6.8),bx=Math.min(Math.max(2,selCx-bw/2),w-bw-2);
-    o+='<rect x="'+bx.toFixed(1)+'" y="1" width="'+bw.toFixed(1)+'" height="18" rx="4" fill="'+(selIt.v<0?'var(--under)':'var(--over)')+'"/>';
+    o+='<rect x="'+bx.toFixed(1)+'" y="1" width="'+bw.toFixed(1)+'" height="18" rx="4" fill="'+coulEcart(selIt.v)+'"/>';
     o+='<text x="'+(bx+bw/2).toFixed(1)+'" y="13.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--paper)">'+txt+'</text>';
   }
   return o+'</svg>';
@@ -1122,7 +1136,7 @@ function calendrier(jours){
       let f='var(--creux)',op=1,cadre='';
       if(saisi&&j.ecart!==null){
         const inten=Math.min(1,Math.abs(j.ecart)/900);
-        f=j.ecart<0?'var(--under)':'var(--over)';
+        f=coulEcart(j.ecart);
         op=0.3+inten*0.7;
       }else if(saisi){f='var(--soft)';op=0.4;}
       if(S.inspCal&&S.inspCal.date===k)cadre=' stroke="var(--ink)" stroke-width="1.6"';
@@ -1140,7 +1154,7 @@ function detailJour(d,date){
   if(!j||!j.repas)return '<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 aucune saisie ce jour-là.</div>';
   const lignes=(d.journal||[]).filter(r=>r.date===date);
   let o='<div class="detailjour"><b>'+jjmmJour(date)+'</b> \u00b7 '+nb(j.kcal)+' kcal';
-  if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+(j.ecart>0?'sur':'sous')+'">'+sgn(j.ecart)+'</span>';
+  if(j.tdee)o+=' \u00b7 besoins '+nb(j.tdee)+' \u00b7 <span class="'+clsEcart(j.ecart)+'">'+sgn(j.ecart)+'</span>';
   o+='<br><span style="color:var(--soft)">P '+nb(j.prot)+' \u00b7 L '+nb(j.lip)+' \u00b7 G '+nb(j.gluc)+
      ' \u00b7 '+j.repas+' repas'+(j.purines?' \u00b7 purines à risque '+nb(j.purines_risque||0)+' mg':'')+'</span>';
   lignes.forEach(r=>{o+='<br>'+esc(r.repas)+' \u00b7 '+esc((r.detail||'').slice(0,60))+' \u00b7 '+nb(r.kcal)+' kcal';});
@@ -1183,7 +1197,7 @@ function anneauCalories(mange,cible,sansPastille){
   const off=C*(1-pct);
   const trop=mange>cible;
   const reste=cible-mange;
-  const trait=couleurDepassement(mange,cible);
+  const trait=couleurKcal(mange,cible);
   let o='<div class="cal-anneau"><svg viewBox="0 0 '+t+' '+t+'" role="img" aria-label="'+nb(mange)+' kcal mangées sur une cible de '+nb(cible)+'">';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="var(--creux)" stroke-width="11"/>';
   o+='<circle cx="'+t/2+'" cy="'+t/2+'" r="'+R+'" fill="none" stroke="'+trait+
@@ -1193,7 +1207,7 @@ function anneauCalories(mange,cible,sansPastille){
   o+='<text x="50%" y="62%" text-anchor="middle" font-size="12.5" fill="var(--soft)">kcal mangées sur '+nb(cible)+'</text>';
   o+='</svg>';
   // pastille des restantes (ou du dépassement), sous l'anneau, bien lisible de loin
-  if(!sansPastille)o+='<div class="cal-pastille" style="background:'+(trop?trait:'var(--under)')+'">'+nb(Math.abs(reste))+' kcal '+(trop?'en trop':'restantes')+'</div>';
+  if(!sansPastille){const pk=pastilleKcal(mange,cible);o+='<div class="cal-pastille" style="background:'+pk.coul+'">'+pk.txt+'</div>';}
   o+='</div>';
   return o;
 }
@@ -1307,9 +1321,9 @@ function vueJour(d){
   const c=d.cibles,a=d.aujourdhui;
   let h=alertesGoutte(d)+'<section>';
   if(c.kcal){
-    const trop=a.kcal>c.kcal,trait=couleurDepassement(a.kcal,c.kcal);
+    const pk=pastilleKcal(a.kcal,c.kcal);
     h+='<div class="hero">'+anneauCalories(a.kcal,c.kcal,true)+'<div class="hero-d">'+
-      '<span class="cal-pastille" style="background:'+(trop?trait:'var(--under)')+'">'+nb(Math.abs(c.kcal-a.kcal))+' kcal '+(trop?'en trop':'restantes')+'</span>'+
+      '<span class="cal-pastille" style="background:'+pk.coul+'">'+pk.txt+'</span>'+
       barreMacro('prot','Prot.',a.prot||0,c.prot)+barreMacro('lip','Lip.',a.lip||0,c.lip)+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc)+
       '</div></div>';
     h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';
@@ -1336,7 +1350,7 @@ function vueJour(d){
       const cp=cibleRepas('prot',r[0]),cl=cibleRepas('lip',r[0]),cg=cibleRepas('gluc',r[0]);
       h+='<div class="rep-ligne" data-ouvre tabindex="0" role="button" aria-expanded="false"><div class="rep-tete">'+
          '<span class="rep-nom">'+r[1]+'<span class="rep-chev">›</span></span>'+
-         '<span class="rep-kcal">'+nb(p.kcal)+(ci?'<span class="rep-cible"> / '+nb(ci)+'</span> <span class="'+(p.kcal>ci?'sur':'sous')+'">'+sgn(p.kcal-ci)+'</span>':'')+'</span></div>'+
+         '<span class="rep-kcal">'+nb(p.kcal)+(ci?'<span class="rep-cible"> / '+nb(ci)+'</span> <span class="'+clsRepas(p.kcal,ci)+'">'+sgn(p.kcal-ci)+'</span>':'')+'</span></div>'+
          '<div class="rep-detail"><span>P '+cellPLG(p.prot||0,cp)+'</span><span>L '+cellPLG(p.lip||0,cl)+'</span><span>G '+cellPLG(p.gluc||0,cg)+'</span></div>'+
          '<div class="rep-micro">'+ligneMicro(p)+'</div>'+
          '</div>';
@@ -1352,7 +1366,7 @@ function vueJour(d){
     h+=b?b.replace(/^<section( class="obj")?>/,'<div class="obj">').replace(/<\/section>$/,'</div>'):'<p class="note">Enregistre une pesée pour suivre ton objectif.</p>';
   }else{
     const m=d.moyennes;
-    const fleche=v=>(v===null||v===undefined||!c.kcal)?'':(v>c.kcal?' <span class="sur">▲</span>':' <span class="sous">▼</span>');
+    const fleche=v=>(v===null||v===undefined||!c.kcal)?'':(' <span class="'+(bonJourApp(v,c.kcal)?'sous':'sur')+'">'+(v>c.kcal?'▲':'▼')+'</span>');
     h+='<table><thead><tr><th>Période</th><th>kcal</th><th>P</th><th>L</th><th>G</th></tr></thead><tbody>';
     h+='<tr><td>Aujourd\'hui</td><td>'+nb(a.kcal)+fleche(a.kcal)+'</td><td>'+nb(a.prot)+'</td><td>'+nb(a.lip)+'</td><td>'+nb(a.gluc)+'</td></tr>';
     [['3 jours','j3'],['7 jours','j7'],['30 jours','j30']].forEach(p=>{
@@ -1885,7 +1899,7 @@ function calcProgression(d,periode){
   return {reel,theoKg,ryth,nbJours,debutISO,refDate:pRef?pRef.date:null,finDate:pFin?pFin.date:null,refEstime};
 }
 const kgSigne=v=>(v<0?'−':v>0?'+':'±')+Math.abs(v).toFixed(1).replace('.',',');
-const coulKg=v=>v<0?'var(--under)':v>0?'var(--over)':'';
+const coulKg=v=>{const s=sensObj();if(!v||s===0)return '';return (v>0)===(s>0)?'var(--under)':'var(--over)';};
 function tuile(lib,val,sub,coul){
   return '<div class="tu"><small>'+lib+'</small><b'+(coul?' style="color:'+coul+'"':'')+'>'+val+'</b><span>'+sub+'</span></div>';
 }
@@ -1901,13 +1915,11 @@ function ongletPoids(d,P){
       tuile('Balance',pr.reel===null?'—':kgSigne(pr.reel)+' kg',
         pr.reel===null?'pas assez de pesées':'en '+pr.nbJours+' jour'+(pr.nbJours>1?'s':'')+(pr.refEstime?', début estimé':''),pr.reel===null?'':coulKg(pr.reel))+
       tuile('Rythme',pr.ryth===null?'—':kgSigne(pr.ryth)+' kg','par semaine',pr.ryth===null?'':coulKg(pr.ryth))+
-      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg','d’après le déficit',pr.theoKg===null?'':coulKg(pr.theoKg))+
+      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg','d’après ton écart',pr.theoKg===null?'':coulKg(pr.theoKg))+
       '</div>';
     if(pr.reel!==null&&pr.theoKg!==null){
       const diff=pr.reel-pr.theoKg,e=kgTxt(Math.abs(diff));
-      if(Math.abs(diff)<=0.8)h+='<p class="crb-ac ok">La balance et le calcul concordent (écart '+e+' kg) : ton estimation de besoins est fiable.</p>';
-      else if(diff>0)h+='<p class="crb-ac ecart"><b>Tu perds moins vite que prévu</b> ('+e+' kg d’écart) : besoins surestimés ou apports qui passent sous le radar.</p>';
-      else h+='<p class="crb-ac ecart"><b>Tu perds plus vite que prévu</b> ('+e+' kg d’écart) : garde un rythme tenable pour tes muscles.</p>';
+      h+=phraseAccord(diff);
     }
   }
   const deb=pr&&pr.debutISO;
@@ -1920,7 +1932,7 @@ function ongletPoids(d,P){
      '</div>';
   const peu='<p class="vide">Moins de deux pesées sur cette période. Choisis une période plus longue.</p>';
   const noteBase='<p class="note"><b>Balance</b> : différence de poids sur la période (sans pesée le jour de début, le poids de ce jour est estimé entre les deux pesées qui l\u2019encadrent). '+
-    '<b>Théorique</b> : ce que ton déficit prévoit, 7000 kcal = 1 kg. L’eau et la digestion font varier la balance au jour le jour, c’est la tendance qui compte.</p>';
+    '<b>Théorique</b> : ce que ton écart aux besoins prévoit, 7000 kcal = 1 kg. L’eau et la digestion font varier la balance au jour le jour, c’est la tendance qui compte.</p>';
   if(cv==='poids'){
     const pts=p.filter(dansPer).map(r=>({date:r.date,v:r.poids}));
     h+=pts.length<2?peu:serieCourbe(pts,{h:150,unite:' kg',dec:1,moyenne:true,titre:'poids',badgeW:58});
@@ -1939,10 +1951,7 @@ function ongletPoids(d,P){
     // semaines de la période, plus la précédente pour avoir une première variation
     const borne=deb?plusJours(lundiJn(deb),-7):null;
     h+=barresHebdo(p.filter(r=>!borne||r.date>=borne).map(r=>({date:r.date,poids:r.poids})),{h:150,seuilStagne:0.2});
-    h+=aide('<p class="note">Chaque barre est la variation de poids d’une semaine à l’autre. '+
-       '<span style="color:var(--under)">Vert</span> : tu perds. '+
-       '<span style="color:var(--ambre)">Ambre</span> : tu stagnes (moins de 0,2 kg). '+
-       '<span style="color:var(--over)">Orange</span> : tu reprends. La régularité compte plus que la vitesse.</p>'+noteBase);
+    h+=aide('<p class="note">'+noteRegulier()+'</p>'+noteBase);
   }
   return h;
 }
@@ -1959,14 +1968,14 @@ function ongletCalories(d,P){
   if(!js.length)return '<p class="vide">Pas encore de journée complète sur cette période.</p>';
   const moy=js.reduce((t,j)=>t+(Number(j.kcal)||0),0)/js.length;
   const som=js.reduce((t,j)=>t+(Number(j.ecart)||0),0);
-  const sous=js.filter(j=>j.ecart<0).length;
+  const sous=js.filter(j=>coulEcart(j.ecart)==='var(--under)').length;
   let h='<div class="tuiles">'+
     tuile('Moyenne',nb(moy),'kcal/j')+
     tuile('Écart cumulé',(som<0?'−':som>0?'+':'')+nb(Math.abs(Math.round(som))),'kcal ≈ '+kgSigne(som/7000)+' kg',coulKg(som))+
-    tuile('Sous besoins',sous+' / '+js.length,'jour'+(js.length>1?'s':''))+
+    tuile(['Sous besoins','Équilibre','Au-dessus'][sensObj()+1],sous+' / '+js.length,'jour'+(js.length>1?'s':''))+
     '</div>';
   h+=barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+detailJour(d,S.insp?S.insp.date:null);
-  h+=aide('<p class="note"><b>Chaque barre</b> = ce que tu as mangé moins tes besoins du jour. Vert = déficit (sous tes besoins, tu perds), orange = surplus. Touche une barre pour sa valeur. '+
+  h+=aide('<p class="note"><b>Chaque barre</b> = ce que tu as mangé moins tes besoins du jour. '+libCouleursEcart()+' Touche une barre pour sa valeur. '+
     '<b>La courbe blanche</b> lisse ces écarts sur 7 jours glissants : elle gomme les à-coups d’un repas de fête ou d’un jour léger et montre ta tendance de fond. '+
     'Seules les journées complètes (au moins deux repas) comptent dans les tuiles.</p>');
   return h;
@@ -1990,7 +1999,7 @@ function vueCourbes(d){
   if(o==='calories'){
     h+='<section><h2>Régularité</h2><p class="crb-st">4 dernières semaines</p>'+calendrier(d.jours||[])+
        detailJour(d,S.inspCal?S.inspCal.date:null)+
-       aide('<p class="note">Vert sous tes besoins, orange au-dessus, plus la case est foncée plus l’écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p>','Comment lire le calendrier ?')+
+       aide('<p class="note">'+libCouleursEcart()+' Plus la case est foncée plus l’écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p>','Comment lire le calendrier ?')+
        '</section>';
     h+=blocNutriscore(d);
   }
@@ -2036,7 +2045,7 @@ function detailJourJn(rows){
 function ligneJourJn(d,iso,J){
   const j=J[iso]||{kcal:0,repas:0,cible:0};
   const ouvert=!!S.jn.ouv['j:'+iso];
-  const c=j.cible||0,col=c?couleurDepassement(j.kcal,c):'var(--soft)';
+  const c=j.cible||0,col=c?(j.date===auj()?couleurKcal(j.kcal,c):couleurJourFini(j.kcal,c)):'var(--soft)';
   const pct=c?Math.min(100,j.kcal/c*100):0;
   let h='<button class="jn-j'+(ouvert?' o':'')+'" data-jt="'+iso+'" aria-expanded="'+(ouvert?'true':'false')+'">'+
     '<span class="jn-d">'+esc(libJourCourt(iso))+'<small>'+j.repas+' saisie'+(j.repas>1?'s':'')+'</small></span>'+
@@ -2083,13 +2092,13 @@ function vueJournal(d){
     const val=js.filter(j=>j.valide&&j.date!==auj());const base=val.length?val:js;
     const moy=base.reduce((t,j)=>t+j.kcal,0)/(base.length||1);
     const cibles=base.filter(j=>j.cible>0);const cm=cibles.length?cibles.reduce((t,j)=>t+j.cible,0)/cibles.length:0;
-    const sur=js.filter(j=>j.cible>0&&j.kcal>j.cible).length;
-    const col=cm?couleurDepassement(moy,cm):'var(--ink)';
+    const sur=js.filter(j=>j.cible>0&&!bonJourApp(j.kcal,j.cible)).length;
+    const col=cm?couleurJourFini(moy,cm):'var(--ink)';
     const o=!!S.jn.ouv['s:'+l];
     const m0=MOIS[Number(l.slice(5,7))-1],m1=MOIS[Number(fin.slice(5,7))-1];
     h+='<div class="jn-sem'+(o?' o':'')+'"><button class="jn-sem-t" data-st="'+l+'" aria-expanded="'+(o?'true':'false')+'">'+
       '<span class="jn-sem-n"><b>Semaine du '+Number(l.slice(8,10))+(m0!==m1?' '+m0:'')+' au '+Number(fin.slice(8,10))+' '+m1+'</b>'+
-      '<small>'+ds.length+' jour'+(ds.length>1?'s':'')+' saisi'+(ds.length>1?'s':'')+(cm?' · '+sur+' au-dessus de la cible':'')+'</small></span>'+
+      '<small>'+ds.length+' jour'+(ds.length>1?'s':'')+' saisi'+(ds.length>1?'s':'')+(cm?' · '+sur+' '+libRateApp():'')+'</small></span>'+
       '<span class="jn-moy"><b style="color:'+col+'">'+nb(moy)+'</b>&nbsp;<small>kcal/j</small>'+(cm?'<small class="e">'+sgn(moy-cm)+'&nbsp;/j</small>':'')+'</span>'+
       '<span class="jn-ch">›</span></button>';
     if(o){h+='<div class="jn-carte jn-dans">';ds.forEach(s=>{h+=ligneJourJn(d,s,J);});h+='</div>';}
@@ -2171,10 +2180,10 @@ function bilanSemaine(d){
   const val=js.filter(j=>j.valide),base=val.length?val:js;
   const moy=base.reduce((t,j)=>t+j.kcal,0)/base.length;
   const cib=base.filter(j=>j.cible>0),cm=cib.length?cib.reduce((t,j)=>t+j.cible,0)/cib.length:0;
-  const sous=val.filter(j=>j.cible>0&&j.kcal<=j.cible).length;
+  const sous=val.filter(j=>j.cible>0&&bonJourApp(j.kcal,j.cible)).length;
   const ec=val.filter(j=>j.ecart!==null&&j.ecart!==undefined),def=ec.reduce((t,j)=>t+j.ecart,0);
   const l=[];
-  l.push('<b>'+nb(moy)+' kcal/j</b> en moyenne'+(cm?' (cible '+nb(cm)+')':'')+(val.length?', '+sous+' jour'+(sous>1?'s':'')+' sur '+val.length+' sous la cible':''));
+  l.push('<b>'+nb(moy)+' kcal/j</b> en moyenne'+(cm?' (cible '+nb(cm)+')':'')+(val.length?', '+sous+' jour'+(sous>1?'s':'')+' sur '+val.length+' '+libBonApp():''));
   if(ec.length)l.push((def<0?'Déficit ':'Excédent ')+'<b>'+nb(Math.abs(def))+' kcal</b> sur '+ec.length+' jour'+(ec.length>1?'s':'')+' ≈ '+(def<0?'−':'+')+kgTxt(Math.abs(def)/7000)+' kg');
   const pes=(d.poids||[]).filter(p=>p&&typeof p.poids==='number').sort((a,b)=>a.date.localeCompare(b.date));
   const pw=pes.filter(p=>p.date>=lun&&p.date<=dim),av=pes.filter(p=>p.date<lun);
@@ -2191,6 +2200,251 @@ function bilanSemaine(d){
   return '<div class="bilan-s"><div class="bilan-t">Semaine dernière <small>du '+x0.getDate()+(x0.getMonth()!==x1.getMonth()?' '+MOIS[x0.getMonth()]:'')+' au '+x1.getDate()+' '+MOIS[x1.getMonth()]+'</small></div><ul>'+l.map(t=>'<li>'+t+'</li>').join('')+'</ul></div>';
 }
 
+/* ---------- Objectif de la personne : sèche (-1), stabilisation (0), prise de masse (+1) ----------
+   Toutes les couleurs « bien / pas bien » passent par ici, pour que l'appli lise juste quel que
+   soit l'objectif. Vert = va dans le sens de l'objectif, orange = va contre. */
+const OBJ_DEF={
+  seche:{lib:'Sèche',ecart:-500,min:-1000,max:-100,aide:'Perdre de la graisse : manger sous tes besoins.'},
+  stabilisation:{lib:'Stabilisation',ecart:0,min:-150,max:150,aide:'Garder ton poids : manger à hauteur de tes besoins.'},
+  prise:{lib:'Prise de masse',ecart:300,min:100,max:800,aide:'Prendre du muscle : manger un peu au-dessus de tes besoins, avec de la musculation.'}
+};
+function objectifApp(d){
+  const r=((d||S.data)||{}).reference||{};
+  if(OBJ_DEF[r.objectif])return r.objectif;
+  if(typeof r.ecart==='number')return r.ecart<-50?'seche':(r.ecart>50?'prise':'stabilisation');
+  return 'seche';
+}
+function sensObj(d){const o=objectifApp(d);return o==='prise'?1:(o==='stabilisation'?0:-1);}
+// Calories du jour en cours face à la cible : en prise de masse ou en stabilisation, être sous la
+// cible pendant la journée est normal (vert) ; seul un net dépassement se colore.
+function couleurKcal(v,t){
+  const s=sensObj();
+  if(s<0||!t)return couleurDepassement(v,t);
+  const tol=s>0?1.15:1.05;
+  return v<=t*tol?'var(--under)':couleurDepassement(v,t*tol);
+}
+function pastilleKcal(v,t){
+  const s=sensObj(),d=Math.round(Math.abs(t-v));
+  if(s>0){
+    if(v<t)return {coul:'var(--under)',txt:nb(d)+' kcal à manger encore'};
+    if(v<=t*1.15)return {coul:'var(--under)',txt:'Cible atteinte'+(d?' (+'+nb(d)+')':'')};
+    return {coul:couleurKcal(v,t),txt:nb(d)+' kcal au-delà'};
+  }
+  if(s===0){
+    if(v<t*0.95)return {coul:'var(--under)',txt:nb(d)+' kcal restantes'};
+    if(v<=t*1.05)return {coul:'var(--under)',txt:'Dans la cible'};
+    return {coul:couleurKcal(v,t),txt:nb(d)+' kcal en trop'};
+  }
+  return v>t?{coul:couleurDepassement(v,t),txt:nb(d)+' kcal en trop'}:{coul:'var(--under)',txt:nb(d)+' kcal restantes'};
+}
+// Journée terminée : réussie ou non au regard de l'objectif (mêmes règles que le serveur).
+function bonJourApp(kcal,cible){
+  if(!cible)return false;
+  const s=sensObj();
+  if(s>0)return kcal>=cible*0.95;
+  if(s===0)return Math.abs(kcal-cible)<=cible*0.1;
+  return kcal<=cible;
+}
+function libBonApp(){const s=sensObj();return s>0?'à la cible ou au-dessus':(s===0?'dans la cible (à 10 % près)':'sous la cible');}
+function libRateApp(){const s=sensObj();return s>0?'sous la cible':(s===0?'hors de la cible':'au-dessus de la cible');}
+function couleurJourFini(kcal,cible){
+  if(!cible)return 'var(--soft)';
+  const s=sensObj();
+  if(s<0)return couleurDepassement(kcal,cible);
+  if(bonJourApp(kcal,cible))return 'var(--under)';
+  const r=Math.abs(kcal-cible)/cible;
+  return r<=0.2?'var(--jaune)':'var(--over)';
+}
+// Écart du jour par rapport aux besoins (kcal mangées − besoins).
+function coulEcart(e){
+  const s=sensObj();
+  if(s<0)return e<0?'var(--under)':'var(--over)';
+  if(s>0)return e>0?'var(--under)':'var(--over)';
+  return Math.abs(e)<=150?'var(--under)':'var(--over)';
+}
+function clsEcart(e){return coulEcart(e)==='var(--under)'?'sous':'sur';}
+// Variation de poids (ou de pente) : descend en sèche, monte en prise, reste stable en stabilisation.
+function coulPente(p,seuil){
+  const s=sensObj(),sl=seuil||0.2;
+  if(s===0)return Math.abs(p)<=sl?'var(--under)':'var(--ambre)';
+  if(Math.abs(p)<=sl)return 'var(--ambre)';
+  return (p>0)===(s>0)?'var(--under)':'var(--over)';
+}
+// Calories d'un repas face à sa part de cible.
+function clsRepas(v,ci){
+  if(!ci)return 'sous';
+  const s=sensObj();
+  if(s>0)return 'sous';
+  if(s===0)return v>ci*1.1?'sur':'sous';
+  return v>ci?'sur':'sous';
+}
+function libCouleursEcart(){const s=sensObj();return s>0?'Vert = surplus (au-dessus de tes besoins, tu construis), orange = sous tes besoins.':(s===0?'Vert = à 150 kcal près de tes besoins, orange = plus loin.':'Vert = déficit (sous tes besoins, tu perds), orange = surplus.');}
+function noteRegulier(){
+  const s=sensObj(),c=k=>'<span style="color:'+coulPente(k,0.2)+'">';
+  if(s===0)return 'Chaque barre est la variation de poids d’une semaine à l’autre. '+c(0)+'Vert</span> : poids stable (moins de 0,2 kg). '+c(1)+'Ambre</span> : ça bouge, dans un sens ou dans l’autre.';
+  return 'Chaque barre est la variation de poids d’une semaine à l’autre. '+c(s)+'Vert</span> : tu '+(s>0?'prends':'perds')+'. '+c(0)+'Ambre</span> : tu stagnes (moins de 0,2 kg). '+c(-s)+'Orange</span> : tu '+(s>0?'perds':'reprends')+'. La régularité compte plus que la vitesse.';
+}
+function phraseAccord(diff){
+  const s=sensObj(),e=kgTxt(Math.abs(diff));
+  if(Math.abs(diff)<=0.8)return '<p class="crb-ac ok">La balance et le calcul concordent (écart '+e+' kg) : ton estimation de besoins est fiable.</p>';
+  if(s<0)return diff>0?'<p class="crb-ac ecart"><b>Tu perds moins vite que prévu</b> ('+e+' kg d’écart) : besoins surestimés ou apports qui passent sous le radar.</p>'
+                     :'<p class="crb-ac ecart"><b>Tu perds plus vite que prévu</b> ('+e+' kg d’écart) : garde un rythme tenable pour tes muscles.</p>';
+  if(s>0)return diff<0?'<p class="crb-ac ecart"><b>Tu prends moins vite que prévu</b> ('+e+' kg d’écart) : besoins plus élevés qu’estimé, ou portions surestimées. Augmente un peu l’écart.</p>'
+                     :'<p class="crb-ac ecart"><b>Tu prends plus vite que prévu</b> ('+e+' kg d’écart) : réduis un peu l’écart pour prendre surtout du muscle.</p>';
+  return '<p class="crb-ac ecart"><b>Ton poids '+(diff>0?'monte':'baisse')+' plus que prévu</b> ('+e+' kg d’écart) : ajuste un peu l’écart pour rester stable.</p>';
+}
+
+/* ---------- Première ouverture : connexion, invitation, inscription ----------
+   Un lien d'invitation a la forme …/#invite=CODE&api=ADRESSE. Sur iPhone, l'appli ajoutée à
+   l'écran d'accueil ne voit ni Safari ni ce lien : la page d'accueil fait donc copier le lien,
+   puis l'appli installée le lit (bouton « Coller »). Le code seul se tape aussi à la main. */
+const API_DEFAUT='https://vps-444b360b.vps.ovh.net/webhook/nutrition/api';
+function estInstallee(){try{return navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;}catch(e){return false;}}
+function lireInvite(txt){
+  const s=String(txt||'').trim();if(!s)return null;
+  const mc=s.match(/invite=([A-Za-z0-9-]+)/),ma=s.match(/[#&?]api=([^&\s]+)/);
+  if(mc)return {code:mc[1].toUpperCase(),api:ma?decodeURIComponent(ma[1]):''};
+  const c=s.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(c.length>=6&&c.length<=12)return {code:c.length===8?c.slice(0,4)+'-'+c.slice(4):c,api:''};
+  return null;
+}
+function oublierHash(){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
+const ICO_PARTAGE='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function accueilInvite(inv){
+  $('#racine').innerHTML='<div id="defile"><div class="ecran ins">'+
+    '<h1>Bienvenue</h1><p>Tu es invité à l\'appli de suivi nutrition. Trois étapes, une seule fois.</p>'+
+    '<div class="ins-code">'+esc(inv.code)+'</div>'+
+    '<button class="primaire" id="w-copier">1. Copier mon invitation</button>'+
+    '<ol class="etapes"><li><b>Copie ton invitation</b> avec le bouton ci-dessus.</li>'+
+    '<li>Touche '+ICO_PARTAGE+' <b>Partager</b> en bas de Safari, puis <b>Sur l\'écran d\'accueil</b>, puis <b>Ajouter</b>.</li>'+
+    '<li>Ouvre l\'appli <b>Suivi</b> depuis l\'écran d\'accueil, touche <b>J\'ai un code d\'invitation</b> puis <b>Coller</b>.</li></ol>'+
+    '<p class="note" id="w-msg"></p>'+
+    '<p class="note">Cette page s\'est ouverte dans WhatsApp ? Touche le menu ou l\'icône du navigateur pour l\'ouvrir dans <b>Safari</b> : l\'ajout à l\'écran d\'accueil n\'existe que là.</p>'+
+    '<button class="lien" id="w-ici">Continuer ici sans installer</button>'+
+    '</div></div>';
+  $('#w-copier').addEventListener('click',async()=>{
+    const m=$('#w-msg');
+    try{await navigator.clipboard.writeText(location.href);m.textContent='Invitation copiée. Passe à l\'étape 2.';m.className='bien';}
+    catch(e){m.textContent='Copie impossible : note le code affiché, tu pourras le taper.';m.className='alerte';}
+  });
+  $('#w-ici').addEventListener('click',()=>{S.ins=nouvelleIns(inv);oublierHash();renduIns();});
+}
+function nouvelleIns(inv){
+  return {etape:inv?'code':'choix',code:inv?inv.code:'',api:(inv&&inv.api)||API_DEFAUT,etat:null,msg:'',
+    f:{prenom:'',sexe:'',age:'',taille:'',poids:'',facteur:1.2,objectif:'',ecart:'',objp:''}};
+}
+function connexion(msg){S.ins=nouvelleIns(null);S.ins.msg=msg||'';renduIns();}
+async function appelInvite(corps){
+  S.cfg={api:S.ins.api||API_DEFAUT,token:''};
+  try{return await appel(Object.assign({action:'invite'},corps));}
+  finally{if(!S.cfg.token)S.cfg=null;}
+}
+function entrer(r){
+  ecrireCfg({api:S.ins.api||API_DEFAUT,token:r.token});
+  S.ins=null;oublierHash();demarrer();
+}
+function renduIns(){
+  const I=S.ins,F=I.f;
+  let h='<div id="defile"><div class="ecran ins">';
+  if(I.etape==='choix'){
+    h+='<h1>Suivi nutrition</h1><p>Première ouverture sur ce téléphone.</p>'+
+      '<button class="primaire" id="i-inv">J\'ai un code d\'invitation</button>'+
+      '<details class="aide" id="i-acces"><summary>J\'ai déjà un code d\'accès</summary>'+
+      '<label for="c-api">Adresse de l\'API</label>'+
+      '<input id="c-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(API_DEFAUT)+'">'+
+      '<label for="c-token">Code d\'accès</label>'+
+      '<input id="c-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="24 caractères">'+
+      '<button class="primaire" id="c-ok">Se connecter</button>'+
+      '<p class="note">Le code d\'accès vient du bot Telegram (menu Application) ou d\'une connexion précédente.</p></details>';
+  }else if(I.etape==='code'){
+    h+='<h1>Ton invitation</h1><p>Colle le lien reçu par SMS ou WhatsApp, ou tape le code de 8 caractères.</p>'+
+      '<label for="i-code">Invitation</label>'+
+      '<input id="i-code" type="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="ABCD-EFGH" value="'+esc(I.code)+'">'+
+      '<button class="secondaire" id="i-coller">Coller</button>'+
+      '<button class="primaire" id="i-suite"'+(I.etat==='envoi'?' disabled':'')+'>'+(I.etat==='envoi'?'<span class="attente"></span>Vérification':'Continuer')+'</button>'+
+      '<button class="lien" id="i-retour">Retour</button>';
+  }else{
+    const ob=F.objectif,B=OBJ_DEF[ob];
+    h+='<h1>'+(F.prenom?'Bonjour '+esc(F.prenom):'Ton profil')+'</h1><p>Ces informations servent à calculer tes besoins. Tu pourras les changer ensuite dans les Réglages.</p>'+
+      '<label for="i-prenom">Prénom</label><input id="i-prenom" data-if="prenom" type="text" autocomplete="given-name" value="'+esc(F.prenom)+'">'+
+      '<label>Sexe</label><div class="seg" id="i-sexe"><button data-isx="H" class="'+(F.sexe==='H'?'on':'')+'">Homme</button><button data-isx="F" class="'+(F.sexe==='F'?'on':'')+'">Femme</button></div>'+
+      '<div class="repart">'+
+        '<div class="repart-i"><span>Âge</span><input data-if="age" type="text" inputmode="numeric" value="'+esc(F.age)+'"></div>'+
+        '<div class="repart-i"><span>Taille (cm)</span><input data-if="taille" type="text" inputmode="numeric" value="'+esc(F.taille)+'"></div>'+
+        '<div class="repart-i"><span>Poids (kg)</span><input data-if="poids" type="text" inputmode="decimal" value="'+esc(F.poids)+'"></div></div>'+
+      '<label>Niveau d\'activité</label><div class="choix" id="i-act">';
+    ACTIV.forEach(x=>{h+='<button data-iact="'+x[0]+'" class="'+(Number(F.facteur)===x[0]?'on':'')+'">'+x[1]+'</button>';});
+    h+='</div><p class="note">Hors sport : sédentaire = travail assis ; peu actif = debout une partie de la journée ; très actif = métier physique ou sport intense presque tous les jours.</p>'+
+      '<label>Ce que tu veux faire</label><div class="seg" id="i-obj">';
+    Object.keys(OBJ_DEF).forEach(k=>{h+='<button data-iob="'+k+'" class="'+(ob===k?'on':'')+'">'+OBJ_DEF[k].lib+'</button>';});
+    h+='</div>';
+    if(B)h+='<p class="note" style="margin-top:0">'+B.aide+'</p>'+
+      '<label for="i-ecart">Écart par rapport à tes besoins (kcal par jour)</label>'+
+      '<input id="i-ecart" data-if="ecart" type="text" inputmode="numeric" value="'+esc(F.ecart)+'">'+
+      '<p class="note">Proposé : '+(B.ecart>0?'+':'')+B.ecart+'. Entre '+B.min+' et '+(B.max>0?'+':'')+B.max+'.</p>';
+    h+='<label for="i-objp">Objectif de poids (kg, facultatif)</label><input id="i-objp" data-if="objp" type="text" inputmode="decimal" value="'+esc(F.objp)+'">'+
+      '<p class="note">Tes repas, pesées et réglages sont enregistrés dans le tableau de suivi de l\'administrateur de l\'appli, qui peut les voir.</p>'+
+      '<button class="primaire" id="i-creer"'+(I.etat==='envoi'?' disabled':'')+'>'+(I.etat==='envoi'?'<span class="attente"></span>Création':'Créer mon compte')+'</button>';
+  }
+  if(I.msg)h+='<p class="alerte">'+esc(I.msg)+'</p>';
+  $('#racine').innerHTML=h+'</div></div>';
+  brancherIns();
+}
+function brancherIns(){
+  const I=S.ins,F=I.f,on=(s,e,f)=>{const x=$(s);if(x)x.addEventListener(e,f);};
+  on('#i-inv','click',()=>{I.etape='code';I.msg='';renduIns();});
+  on('#c-ok','click',()=>{
+    const api=$('#c-api').value.trim(),token=$('#c-token').value.trim();
+    if(!api||!token){I.msg='Renseigne les deux champs.';renduIns();return;}
+    S.ins=null;ecrireCfg({api:api,token:token});demarrer();
+  });
+  on('#i-retour','click',()=>{I.etape='choix';I.msg='';renduIns();});
+  on('#i-code','input',e=>{I.code=e.target.value;});
+  on('#i-coller','click',async()=>{
+    try{const t=await navigator.clipboard.readText();const v=lireInvite(t);
+      if(v){I.code=v.code;if(v.api)I.api=v.api;I.msg='';}else I.msg='Le presse-papiers ne contient pas d\'invitation.';}
+    catch(e){I.msg='Collage refusé : appuie longuement dans le champ puis « Coller ».';}
+    renduIns();
+  });
+  on('#i-suite','click',async()=>{
+    const v=lireInvite(($('#i-code')||{}).value||I.code);
+    if(!v){I.msg='Code incomplet : 8 caractères, par exemple ABCD-EFGH.';renduIns();return;}
+    I.code=v.code;if(v.api)I.api=v.api;I.etat='envoi';I.msg='';renduIns();
+    try{
+      const r=await appelInvite({invite:I.code});
+      I.etat=null;
+      if(r.token){entrer(r);return;}
+      I.etape='profil';if(r.prenom&&!F.prenom)F.prenom=r.prenom;
+    }catch(err){I.etat=null;I.msg=err.message;}
+    renduIns();
+  });
+  document.querySelectorAll('[data-if]').forEach(i=>i.addEventListener('input',()=>{F[i.dataset.if]=i.value;}));
+  document.querySelectorAll('[data-isx]').forEach(b=>b.addEventListener('click',()=>{F.sexe=b.dataset.isx;renduIns();}));
+  document.querySelectorAll('[data-iact]').forEach(b=>b.addEventListener('click',()=>{F.facteur=Number(b.dataset.iact);renduIns();}));
+  document.querySelectorAll('[data-iob]').forEach(b=>b.addEventListener('click',()=>{F.objectif=b.dataset.iob;F.ecart=String(OBJ_DEF[F.objectif].ecart);renduIns();}));
+  on('#i-creer','click',async()=>{
+    const n=v=>Number(String(v||'').replace(',','.'));
+    let m='';
+    if(!F.prenom.trim())m='Indique ton prénom.';
+    else if(!F.sexe)m='Choisis homme ou femme : le calcul du métabolisme en dépend.';
+    else if(!(n(F.age)>=14&&n(F.age)<=100))m='Âge attendu entre 14 et 100 ans.';
+    else if(!(n(F.taille)>=120&&n(F.taille)<=230))m='Taille attendue entre 120 et 230 cm.';
+    else if(!(n(F.poids)>=30&&n(F.poids)<=300))m='Poids attendu entre 30 et 300 kg.';
+    else if(!OBJ_DEF[F.objectif])m='Choisis ce que tu veux faire : sèche, stabilisation ou prise de masse.';
+    else{const B=OBJ_DEF[F.objectif],e=parseInt(String(F.ecart).replace(/[^0-9-]/g,''),10);
+      if(isNaN(e)||e<B.min||e>B.max)m='Écart attendu entre '+B.min+' et '+(B.max>0?'+':'')+B.max+' kcal par jour.';}
+    if(m){I.msg=m;renduIns();return;}
+    I.etat='envoi';I.msg='';renduIns();
+    try{
+      const r=await appelInvite({invite:I.code,profil:{prenom:F.prenom.trim(),sexe:F.sexe,age:n(F.age),taille:n(F.taille),poids:n(F.poids),
+        facteur:Number(F.facteur),objectif:F.objectif,ecart_kcal:parseInt(String(F.ecart).replace(/[^0-9-]/g,''),10),objectif_poids:F.objp?n(F.objp):''}});
+      if(r.token){entrer(r);return;}
+      I.etat=null;I.msg='Réponse inattendue du serveur.';
+    }catch(err){I.etat=null;I.msg=err.message;}
+    renduIns();
+  });
+}
+
 function vueCoach(){
   let h='<section>';
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
@@ -2202,37 +2456,61 @@ function vueCoach(){
   return h+'</section>';
 }
 
+function estAdmin(d){return /^admin/i.test(String(((d||S.data)||{}).profil&&(d||S.data).profil.role||''));}
+function bornerEcart(o,e){const b=OBJ_DEF[o];if(typeof e!=='number'||isNaN(e))return b.ecart;return Math.max(b.min,Math.min(b.max,Math.round(e/10)*10));}
+// Cible prévue pour l'aperçu des Réglages : besoins (métabolisme × activité choisie) + écart.
+function ciblePrevue(d,f,e){
+  const r=(d&&d.reference)||{};
+  const mb=Number(r.mb)||0;const td=mb?Math.round(mb*(f||r.facteur||1.2)):(Number(r.tdee)||0);
+  return td?{td:td,cible:Math.max(mb,td+e)}:null;
+}
+function texteApercu(d,f,e){
+  const p=ciblePrevue(d,f,e);
+  if(!p)return 'Enregistre une pesée pour calculer ta cible.';
+  return 'Besoins '+nb(p.td)+' kcal '+(e<0?'−':'+')+' '+nb(Math.abs(e))+' = <b>cible '+nb(p.cible)+' kcal</b> aujourd’hui. Elle suit tes besoins à chaque pesée.';
+}
+function lienInvite(code){
+  return location.origin+location.pathname+'#invite='+encodeURIComponent(code)+'&api='+encodeURIComponent(S.cfg.api||'');
+}
 function vueRéglages(d){
   const r=d?d.reference:{cible:0,facteur:1.2,tdee:0};
-  let h='<section><h2>Objectif</h2>'+
-    '<label for="g-cible">Cible calorique</label>'+
-    '<input id="g-cible" type="text" inputmode="numeric" value="'+(r.cible||'')+'" placeholder="entre 1000 et 5000">'+
+  const R=S.regl;
+  if(!R.obj){
+    R.obj=objectifApp(d);
+    const e0=(typeof r.ecart_kcal==='number')?r.ecart_kcal:((typeof r.ecart==='number')?r.ecart:null);
+    R.ecart=bornerEcart(R.obj,e0===null?NaN:e0);
+  }
+  let h='<section><h2>Objectif</h2><div class="seg" role="tablist" id="g-obj">';
+  Object.keys(OBJ_DEF).forEach(k=>{h+='<button role="tab" data-ob="'+k+'" aria-selected="'+(R.obj===k)+'" class="'+(R.obj===k?'on':'')+'">'+OBJ_DEF[k].lib+'</button>';});
+  const b=OBJ_DEF[R.obj];
+  h+='</div><p class="note" style="margin-top:0">'+b.aide+'</p>'+
+    '<label for="g-ecart">Écart par rapport à tes besoins (kcal par jour)</label>'+
+    '<input id="g-ecart" type="text" inputmode="numeric" value="'+(R.ecart>0?'+':'')+R.ecart+'" placeholder="'+b.ecart+'">'+
+    '<p class="note" id="g-apercu">'+texteApercu(d,r.facteur,R.ecart)+' Entre '+b.min+' et '+(b.max>0?'+':'')+b.max+'.</p>'+
     '<label>Niveau d\'activité</label><div class="choix" id="ch-act">';
   ACTIV.forEach(x=>{h+='<button data-f="'+x[0]+'" class="'+(Math.abs((r.facteur||1.2)-x[0])<0.001?'on':'')+'">'+x[1]+'</button>';});
-  h+='</div>';
-  if(r.tdee)h+='<p class="note">Tes besoins actuels sont de '+nb(r.tdee)+' kcal. En dessous tu sèches, au-dessus tu prends de la masse. Le niveau d\'activité inclut déjà tes séances : ne compte pas en plus les calories brûlées à la salle.</p>';
+  h+='</div><p class="note">Le niveau d\'activité inclut déjà tes séances : ne compte pas en plus les calories brûlées à la salle.</p>';
   // Repartition des cibles par repas (matin/midi/en-cas/soir), en %.
   const rp=repartPct(d);
-  h+='<label style="margin-top:16px">R\u00e9partition par repas (%)</label>'+
+  h+='<label style="margin-top:16px">Répartition par repas (%)</label>'+
      '<div class="repart" id="ch-repart">';
   [['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']].forEach(x=>{
     h+='<div class="repart-i"><span>'+x[1]+'</span>'+
        '<input type="text" inputmode="numeric" data-rp="'+x[0]+'" value="'+rp[x[0]]+'"></div>';
   });
-  h+='</div><p class="note" id="repart-tot">Total : '+(rp.matin+rp.midi+rp.encas+rp.soir)+' %. La somme doit faire 100. Ce d\u00e9coupage pilote les tableaux \u00ab Par repas \u00bb du jour, dans l\'appli et sur Telegram.</p>';
-
+  h+='</div><p class="note" id="repart-tot">Total : '+(rp.matin+rp.midi+rp.encas+rp.soir)+' %. La somme doit faire 100. Ce découpage pilote les tableaux « Par repas » du jour, dans l\'appli et sur Telegram.</p>';
   // Repartition des macros (proteines/lipides/glucides), en %.
   const mp=macrosPct(d);
-  const cibleNum=parseInt(String(r.cible||0),10)||0;
-  h+='<label style="margin-top:16px">R\u00e9partition des macros (%)</label>'+
+  const pv=ciblePrevue(d,r.facteur,R.ecart);
+  const cibleNum=pv?pv.cible:(parseInt(String(r.cible||0),10)||0);
+  h+='<label style="margin-top:16px">Répartition des macros (%)</label>'+
      '<div class="repart" id="ch-macros">';
   [['prot','Protéines'],['lip','Lipides'],['gluc','Glucides']].forEach(x=>{
     h+='<div class="repart-i"><span>'+x[1]+'</span>'+
        '<input type="text" inputmode="numeric" data-mp="'+x[0]+'" value="'+mp[x[0]]+'"></div>';
   });
-  h+='</div><p class="note" id="macros-tot">Total : '+(mp.prot+mp.lip+mp.gluc)+' %. La somme doit faire 100. '+
+  h+='</div><p class="note" id="macros-tot" data-cible="'+cibleNum+'">Total : '+(mp.prot+mp.lip+mp.gluc)+' %. La somme doit faire 100. '+
      'Aujourd\'hui : '+Math.round(cibleNum*mp.prot/100/4)+' g de protéines, '+Math.round(cibleNum*mp.lip/100/9)+' g de lipides, '+Math.round(cibleNum*mp.gluc/100/4)+' g de glucides.</p>';
-
   h+='<label for="g-purmax" style="margin-top:16px">Plafond de purines (mg par jour)</label>'+
      '<input id="g-purmax" type="text" inputmode="numeric" value="'+purMax(d)+'">'+
      '<p class="note">Purines animales et bière seulement. 400 mg est le repère courant d\'une alimentation pauvre en purines, 300 en période de crise. À valider avec ton médecin.</p>';
@@ -2246,19 +2524,101 @@ function vueRéglages(d){
   if(S.para.etat==='ok')h+='<p class="bien">'+esc(S.para.message)+'</p>';
   h+='</section>';
 
+  // ---- profil ----
+  const pf=(d&&d.profil)||{},P=S.prof;
+  const sx=P.sexe||String(pf.sexe||'H').toUpperCase().charAt(0);
+  h+='<section><h2>Profil</h2>'+
+     '<label for="m-prenom">Prénom</label><input id="m-prenom" type="text" autocomplete="given-name" value="'+esc(pf.prenom||'')+'">'+
+     '<label>Sexe</label><div class="seg" id="m-sexe"><button data-sx="H" class="'+(sx==='H'?'on':'')+'">Homme</button><button data-sx="F" class="'+(sx==='F'?'on':'')+'">Femme</button></div>'+
+     '<div class="repart"><div class="repart-i"><span>Taille (cm)</span><input id="m-taille" type="text" inputmode="numeric" value="'+esc(String(pf.taille||''))+'"></div>'+
+     '<div class="repart-i"><span>Année de naissance</span><input id="m-naiss" type="text" inputmode="numeric" value="'+esc(String(pf.naissance||''))+'"></div></div>'+
+     '<p class="note">Sexe, taille et âge servent au calcul du métabolisme.</p>'+
+     '<button class="secondaire" id="m-envoi"'+(P.etat==='envoi'?' disabled':'')+'>'+(P.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer le profil')+'</button>';
+  if(P.etat==='ko')h+='<p class="alerte">'+esc(P.message)+'</p>';
+  if(P.etat==='ok')h+='<p class="bien">'+esc(P.message)+'</p>';
+  h+='</section>';
+
+  // ---- invitations et comptes (administrateur) ----
+  if(estAdmin(d))h+=blocAdmin();
+
+  // ---- rappels et pas par Raccourci (utile surtout sans Telegram) ----
+  h+=blocRaccourci(pf);
+
   h+='<section><h2>Application</h2>'+
     '<p class="note">Dernière mise à jour le : '+esc(formatVersion(APP_VERSION))+'</p>'+
-    '<button class="primaire" id="g-actualiser">Actualiser l\'application</button></section>';
+    '<button class="primaire" id="g-actualiser">Actualiser l\'application</button>'+
+    aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir. '+
+      '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories et purines sur la période choisie. <b>Corps</b> : pesée, pas, mensurations et photos. '+
+      '<b>Journal</b> : tout ce qui est noté, semaine par semaine. <b>Coach</b> : une question sur ton alimentation.</p>'+
+      '<p class="note">Les couleurs suivent ton objectif : vert quand tu vas dans son sens, orange quand tu t\'en écartes.</p>','Comment ça marche ?')+
+    '</section>';
 
+  const C=S.cpt;
   h+='<section><h2>Connexion</h2>'+
     '<label for="r-api">Adresse de l\'API</label>'+
     '<input id="r-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(S.cfg.api)+'">'+
     '<label for="r-token">Code d\'accès</label>'+
     '<input id="r-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(S.cfg.token)+'">'+
     '<button class="primaire" id="r-ok">Enregistrer la connexion</button>'+
+    '<button class="secondaire" id="cpt-code"'+(C.etat==='envoi'?' disabled':'')+'>Changer mon code d\'accès</button>'+
     '<button class="lien" id="r-out">Oublier ce téléphone</button>'+
-    '<p class="note">Le code vient du bot Telegram, menu Application. Le régénérer là-bas invalide celui-ci.</p></section>';
-  return h;
+    '<p class="note">Le code d\'accès vient de ton lien d\'invitation ou du bot Telegram. En changer rend l\'ancien inutilisable, y compris dans un Raccourci.</p>';
+  if(!estAdmin(d))h+=aide('<p class="note">Ton compte ne sera plus accessible. Tes données restent chez l\'administrateur, qui peut les supprimer.</p>'+
+      '<input id="cpt-eff" type="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Tape EFFACER">'+
+      '<button class="secondaire danger" id="cpt-fermer">Fermer mon compte</button>','Fermer mon compte');
+  if(C.etat==='ko')h+='<p class="alerte">'+esc(C.message)+'</p>';
+  if(C.etat==='ok')h+='<p class="bien">'+esc(C.message)+'</p>';
+  return h+'</section>';
+}
+function blocAdmin(){
+  const A=S.adm;
+  let h='<section><h2>Invitations</h2>'+
+    '<label for="adm-prenom">Inviter quelqu\'un</label>'+
+    '<input id="adm-prenom" type="text" placeholder="Prénom (facultatif)" value="'+esc(A.prenom||'')+'">'+
+    '<button class="primaire" id="adm-inviter"'+(A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Création':'Créer un lien d\'invitation')+'</button>';
+  if(A.cree){
+    const c=A.cree;
+    h+='<div class="adm-lien"><div class="adm-lien-t">'+(c.type==='reconnexion'?'Lien de reconnexion':'Invitation')+(c.prenom?' pour '+esc(c.prenom):'')+
+       ' <small>valable jusqu\'au '+jjmm(c.expire)+'</small></div>'+
+       '<div class="ins-code">'+esc(c.code)+'</div>'+
+       '<button class="primaire" data-adm-part="'+esc(c.code)+'">Envoyer par SMS ou WhatsApp</button>'+
+       '<button class="lien" data-adm-copie="'+esc(c.code)+'">Copier le lien</button></div>';
+  }
+  if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+  if(A.etat==='ok'&&A.message)h+='<p class="bien">'+esc(A.message)+'</p>';
+  const inv=A.invitations||[];
+  if(inv.length){
+    h+='<div class="adm-t">En attente</div>';
+    inv.forEach(i=>{h+='<div class="adm-l"><span><b>'+esc(i.code)+'</b>'+(i.prenom?' · '+esc(i.prenom):'')+(i.type==='reconnexion'?' · reconnexion':'')+'<small>jusqu\'au '+jjmm(i.expire)+'</small></span>'+
+      '<span class="adm-b"><button data-adm-part="'+esc(i.code)+'">Envoyer</button><button data-adm-ann="'+esc(i.code)+'">Annuler</button></span></div>';});
+  }
+  if(A.comptes===null)h+='<p class="note">'+(A.etat==='charge'?'<span class="attente"></span>Chargement des comptes…':'')+'</p>';
+  else{
+    h+='<div class="adm-t">Comptes</div>';
+    A.comptes.forEach(u=>{
+      const actif=u.statut==='actif';
+      h+='<div class="adm-l"><span><b>'+esc(u.prenom||'(sans prénom)')+'</b> · '+(u.telegram?'Telegram':'appli seule')+(actif?'':' · '+esc(u.statut))+(u.depuis?'<small>depuis le '+jjmm(u.depuis)+'</small>':'')+'</span>'+
+        (actif&&!/^admin/i.test(u.role)?'<span class="adm-b"><button data-adm-rec="'+esc(u.uid)+'">Lien de reconnexion</button></span>':'')+'</div>';
+    });
+    h+='<p class="note">Un lien de reconnexion redonne l\'accès à un compte existant (nouveau téléphone, appli supprimée) sans rien ressaisir. Chaque lien ne sert qu\'une fois et expire au bout de 7 jours.</p>';
+  }
+  return h+'</section>';
+}
+function blocRaccourci(pf){
+  const api=esc(S.cfg.api||'');
+  const etapes='<ol class="etapes">'+
+    '<li>Ouvre l\'app <b>Raccourcis</b>, onglet <b>Automatisation</b>, puis <b>+</b> et <b>Heure de la journée</b>.</li>'+
+    '<li>Choisis <b>14:03</b>, tous les jours, et <b>Exécuter immédiatement</b>.</li>'+
+    '<li>Ajoute l\'action <b>Obtenir le contenu de l\'URL</b> : colle l\'adresse du serveur, touche <b>Afficher plus</b>, méthode <b>POST</b>, corps <b>JSON</b>, avec deux champs texte : <code>token</code> = ton code d\'accès et <code>action</code> = <code>rappel</code>.</li>'+
+    '<li>Ajoute <b>Obtenir la valeur du dictionnaire</b> pour la clé <code>texte</code>, puis <b>Si</b> « a une valeur » : <b>Afficher la notification</b> avec cette valeur.</li>'+
+    '<li>Duplique l\'automatisation pour <b>21:03</b> et pour <b>lundi 8:07</b> (bilan de la semaine).</li>'+
+    '<li>Pas du jour (facultatif) : dans la même automatisation, avant la notification, ajoute <b>Rechercher des échantillons de santé</b> (Nombre de pas, aujourd\'hui), puis <b>Calculer les statistiques</b> (Somme), puis un second <b>Obtenir le contenu de l\'URL</b> avec <code>token</code>, <code>action</code> = <code>activite</code> et <code>pas</code> = la somme.</li></ol>';
+  return '<section><h2>Rappels et pas</h2>'+
+    (pf.telegram?'<p class="note">Tu reçois les rappels et le bilan du lundi sur Telegram. Le Raccourci ci-dessous sert à ceux qui n\'ont pas Telegram.</p>':
+      '<p class="note">Sans Telegram, un Raccourci de l\'iPhone t\'envoie les rappels (14h et 21h si rien n\'est noté), le bilan du lundi et relève tes pas.</p>')+
+    aide(etapes+'<button class="secondaire" id="cpt-copie-code">Copier mon code d\'accès</button>'+
+      '<button class="secondaire" id="cpt-copie-api">Copier l\'adresse du serveur</button><p class="note" style="word-break:break-all">'+api+'</p>','Créer le Raccourci')+
+    '</section>';
 }
 
 /* ---------- purines ---------- */
@@ -2560,7 +2920,7 @@ function sectionMesures(d){
         if(pts.length>=2){
           h+=serieCourbe(pts.map(x=>({date:x.date,v:x.m})),{h:110,unite:' kg',dec:1,moyenne:false,titre:'masse maigre',legende:'masse maigre (kg)',couleur:'var(--under)',badgeW:62});
           h+=serieCourbe(pts.map(x=>({date:x.date,v:x.g})),{h:110,unite:' kg',dec:1,moyenne:false,titre:'masse grasse',legende:'masse grasse (kg)',couleur:'var(--over)',badgeW:62});
-          h+='<p class="note">En sèche, la masse maigre doit rester à peu près stable pendant que la masse grasse baisse. Si la maigre chute, remonte les protéines et garde la musculation.</p>';
+          h+='<p class="note">'+(sensObj()>0?'En prise de masse, la masse maigre doit monter plus vite que la masse grasse. Si c\'est la grasse qui monte surtout, réduis un peu l\'écart.':'En sèche, la masse maigre doit rester à peu près stable pendant que la masse grasse baisse. Si la maigre chute, remonte les protéines et garde la musculation.')+'</p>';
         }else h+='<p class="vide">Il faut deux relevés avec le tour de cou pour tracer cette courbe.</p>';
       }
     }
@@ -2834,7 +3194,7 @@ function bandeau(d){
       '<span>métabolisme <b>'+nb(r.mb)+'</b></span>'+
       '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
       '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
-      '</div><span class="badge '+(r.ecart>0?'sur':'sous')+'">'+esc(r.mode)+
+      '</div><span class="badge sous">'+esc(r.mode)+
       (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
@@ -2962,7 +3322,8 @@ function brancher(){
     catch(err){await modaleAlert(err.message||'Impossible de mettre à jour l’application.');}
     rendre();
   });
-  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;rendre();hautPage();});
+  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
+    S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
     e.target.disabled=true;e.target.textContent='Actualisation…';
     try{await actualiserApplication();await rafraichir();}
@@ -3409,6 +3770,24 @@ function brancher(){
       b.classList.add('on');
     });
   });
+  // ---- Réglages : objectif, écart et aperçu de la cible ----
+  function lireEcart(){const v=parseInt(String((($('#g-ecart')||{}).value)||'').replace(/[^0-9-]/g,''),10);return isNaN(v)?null:v;}
+  function facteurChoisi(){const s=$('#ch-act button.on');return s?Number(s.dataset.f):((S.data&&S.data.reference&&S.data.reference.facteur)||1.2);}
+  function majApercu(){
+    const e=lireEcart(),el=$('#g-apercu');if(!el)return;
+    const b=OBJ_DEF[S.regl.obj];
+    if(e!==null)S.regl.ecart=e;
+    el.innerHTML=(e===null?'Indique un écart en kcal.':texteApercu(S.data,facteurChoisi(),e))+' Entre '+b.min+' et '+(b.max>0?'+':'')+b.max+'.';
+    const p=e===null?null:ciblePrevue(S.data,facteurChoisi(),e),mt=$('#macros-tot');
+    if(p&&mt){mt.dataset.cible=p.cible;const ev=document.createEvent('Event');ev.initEvent('input',true,true);const i=$('#ch-macros input');if(i)i.dispatchEvent(ev);}
+  }
+  document.querySelectorAll('#g-obj [data-ob]').forEach(b=>b.addEventListener('click',()=>{
+    const o=b.dataset.ob;if(o===S.regl.obj)return;
+    const e=lireEcart();S.regl.obj=o;
+    const B=OBJ_DEF[o];S.regl.ecart=(e!==null&&e>=B.min&&e<=B.max)?e:B.ecart;S.para.etat=null;rendre();
+  }));
+  on('#g-ecart','input',majApercu);
+  document.querySelectorAll('#ch-act button').forEach(b=>b.addEventListener('click',()=>setTimeout(majApercu,0)));
   function lireRepart(){
     const o={};
     document.querySelectorAll('#ch-repart input[data-rp]').forEach(i=>{
@@ -3420,7 +3799,7 @@ function brancher(){
     i.addEventListener('input',()=>{
       const o=lireRepart(),t=(o.matin||0)+(o.midi||0)+(o.encas||0)+(o.soir||0);
       const el=document.getElementById('repart-tot');
-      if(el)el.innerHTML='Total : '+t+' %.'+(t===100?' \u2713':' La somme doit faire 100.')+' Ce d\u00e9coupage pilote les tableaux \u00ab Par repas \u00bb du jour, dans l\'appli et sur Telegram.';
+      if(el)el.innerHTML='Total : '+t+' %.'+(t===100?' ✓':' La somme doit faire 100.')+' Ce découpage pilote les tableaux « Par repas » du jour, dans l\'appli et sur Telegram.';
     });
   });
   function lireMacros(){
@@ -3433,16 +3812,17 @@ function brancher(){
   document.querySelectorAll('#ch-macros input[data-mp]').forEach(i=>{
     i.addEventListener('input',()=>{
       const o=lireMacros(),t=(o.prot||0)+(o.lip||0)+(o.gluc||0);
-      const cN=parseInt(String((($('#g-cible')||{}).value)||'0').replace(/[^0-9]/g,''),10)||0;
       const el=document.getElementById('macros-tot');
-      if(el)el.innerHTML='Total : '+t+' %.'+(t===100?' \u2713':' La somme doit faire 100.')+
+      const cN=el?(Number(el.dataset.cible)||0):0;
+      if(el)el.innerHTML='Total : '+t+' %.'+(t===100?' ✓':' La somme doit faire 100.')+
         ' Aujourd\'hui : '+Math.round(cN*(o.prot||0)/100/4)+' g de protéines, '+Math.round(cN*(o.lip||0)/100/9)+' g de lipides, '+Math.round(cN*(o.gluc||0)/100/4)+' g de glucides.';
     });
   });
   on('#g-envoi','click',async()=>{
-    const cible=(($('#g-cible')||{}).value)||'';
-    const sel=$('#ch-act button.on');
-    const f=sel?sel.dataset.f:'';
+    const f=facteurChoisi();
+    const B=OBJ_DEF[S.regl.obj],e=lireEcart();
+    if(e===null||e<B.min||e>B.max){S.para.etat='ko';S.para.message='Écart attendu entre '+B.min+' et '+(B.max>0?'+':'')+B.max+' kcal par jour pour '+B.lib.toLowerCase()+'.';rendre();return;}
+    S.regl.ecart=e;
     const o=lireRepart();
     const t=(o.matin||0)+(o.midi||0)+(o.encas||0)+(o.soir||0);
     if(t!==100){S.para.etat='ko';S.para.message='La répartition par repas doit totaliser 100 % (actuellement '+t+' %).';rendre();return;}
@@ -3458,14 +3838,97 @@ function brancher(){
     if(obTxt&&(isNaN(ob)||ob<40||ob>250)){S.para.etat='ko';S.para.message='Objectif de poids attendu entre 40 et 250 kg.';rendre();return;}
     S.para.etat='envoi';rendre();
     try{
-      const r=await appel({action:'params',cible:cible,facteur:f,repartition:repartition,macros:macros,purines_max:pmx,objectif_poids:ob===null?'':ob});
+      const r=await appel({action:'params',objectif:S.regl.obj,ecart_kcal:e,facteur:f,repartition:repartition,macros:macros,purines_max:pmx,objectif_poids:ob===null?'':ob});
       await rafraichir();
+      S.regl.obj=null;
       S.para.etat='ok';
-      S.para.message='Cible '+r.cible+' kcal, '+(r.activite||r.activité||'')+'. Programme en '+String(r.mode).toLowerCase()+
-        (r.ecart!==null?' de '+Math.abs(r.ecart)+' kcal par jour.':'.');
-    }catch(e){S.para.etat='ko';S.para.message=e.message;}
+      S.para.message=OBJ_DEF[r.objectif]?OBJ_DEF[r.objectif].lib+' : cible '+nb(r.cible)+' kcal aujourd’hui ('+(r.activite||'')+'), recalculée à chaque pesée.':'Cible '+r.cible+' kcal.';
+    }catch(err){S.para.etat='ko';S.para.message=err.message;}
     rendre();
   });
+  // ---- profil ----
+  document.querySelectorAll('#m-sexe [data-sx]').forEach(b=>b.addEventListener('click',()=>{
+    S.prof.sexe=b.dataset.sx;document.querySelectorAll('#m-sexe [data-sx]').forEach(x=>x.classList.toggle('on',x===b));}));
+  on('#m-envoi','click',async()=>{
+    const pf=(S.data&&S.data.profil)||{};
+    const corps={action:'compte',op:'profil',prenom:$('#m-prenom').value,sexe:S.prof.sexe||pf.sexe,taille:$('#m-taille').value,naissance:$('#m-naiss').value};
+    S.prof.etat='envoi';rendre();
+    try{await appel(corps);await rafraichir();S.prof.etat='ok';S.prof.message='Profil enregistré. Métabolisme et besoins recalculés.';S.prof.sexe=null;}
+    catch(err){S.prof.etat='ko';S.prof.message=err.message;}
+    rendre();
+  });
+  // ---- administration : invitations et liens de reconnexion ----
+  async function admin(corps,msgOk){
+    S.adm.etat='envoi';rendre();
+    try{
+      const r=await appel(Object.assign({action:'admin'},corps));
+      S.adm.comptes=r.comptes||[];S.adm.invitations=r.invitations||[];
+      if(r.cree)S.adm.cree=r.cree;
+      S.adm.etat='ok';S.adm.message=msgOk||'';
+    }catch(err){S.adm.etat='ko';S.adm.message=err.message;if(S.adm.comptes===null)S.adm.comptes=[];}
+    rendre();
+  }
+  if($('#adm-inviter')&&S.adm.comptes===null&&S.adm.etat!=='charge'&&S.adm.etat!=='ko'){
+    S.adm.etat='charge';
+    appel({action:'admin',op:'liste'}).then(r=>{S.adm.comptes=r.comptes||[];S.adm.invitations=r.invitations||[];S.adm.etat=null;})
+      .catch(err=>{S.adm.comptes=[];S.adm.etat='ko';S.adm.message=err.message;}).then(()=>{if(S.reglages)rendre();});
+  }
+  on('#adm-prenom','input',e=>{S.adm.prenom=e.target.value;});
+  on('#adm-inviter','click',()=>{S.adm.cree=null;admin({op:'inviter',prenom:S.adm.prenom||''},'');S.adm.prenom='';});
+  document.querySelectorAll('[data-adm-rec]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!await modaleConfirm('Créer un lien de reconnexion pour ce compte ? Il remplacera son code d\'accès actuel quand il sera utilisé.',{ok:'Créer'}))return;
+    admin({op:'reconnexion',uid:b.dataset.admRec},'');
+  }));
+  document.querySelectorAll('[data-adm-ann]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!await modaleConfirm('Annuler l\'invitation '+b.dataset.admAnn+' ? Le lien ne marchera plus.',{ok:'Annuler l\'invitation',annule:'Garder',danger:true}))return;
+    if(S.adm.cree&&S.adm.cree.code===b.dataset.admAnn)S.adm.cree=null;
+    admin({op:'annuler',code:b.dataset.admAnn},'Invitation annulée.');
+  }));
+  function invitation(code){return (S.adm.cree&&S.adm.cree.code===code)?S.adm.cree:(S.adm.invitations||[]).find(i=>i.code===code)||{code:code};}
+  function messageInvite(it){
+    const url=lienInvite(it.code),salut=it.prenom?'Salut '+it.prenom+' ! ':'';
+    const fin='Ouvre-le dans Safari et suis les étapes. Ton code : '+it.code+(it.expire?' (valable jusqu\'au '+jjmm(it.expire)+')':'')+'.';
+    return it.type==='reconnexion'
+      ?salut+'Voici ton lien pour retrouver ton compte sur l\'appli de suivi nutrition : '+url+'\n'+fin
+      :salut+'Voici ton invitation à l\'appli de suivi nutrition : '+url+'\n'+fin;
+  }
+  async function copier(txt,msg){
+    try{await navigator.clipboard.writeText(txt);S.adm.etat='ok';S.adm.message=msg;}
+    catch(e){S.adm.etat='ko';S.adm.message='Copie impossible : sélectionne le code à la main.';}
+    rendre();
+  }
+  document.querySelectorAll('[data-adm-part]').forEach(b=>b.addEventListener('click',()=>{
+    const it=invitation(b.dataset.admPart),txt=messageInvite(it);
+    // la feuille de partage doit s'ouvrir dans le geste, sans attente réseau avant
+    if(navigator.share)navigator.share({text:txt}).catch(()=>{});
+    else copier(txt,'Message copié : colle-le dans SMS ou WhatsApp.');
+  }));
+  document.querySelectorAll('[data-adm-copie]').forEach(b=>b.addEventListener('click',()=>copier(lienInvite(b.dataset.admCopie),'Lien copié.')));
+  // ---- compte : nouveau code, fermeture, Raccourci ----
+  on('#cpt-code','click',async()=>{
+    if(!await modaleConfirm('Créer un nouveau code d\'accès ? L\'ancien ne marchera plus, pense à le changer aussi dans ton Raccourci.',{ok:'Changer'}))return;
+    S.cpt.etat='envoi';rendre();
+    try{const r=await appel({action:'compte',op:'code'});ecrireCfg({api:S.cfg.api,token:r.token});S.cpt.etat='ok';S.cpt.message='Nouveau code enregistré sur ce téléphone.';}
+    catch(err){S.cpt.etat='ko';S.cpt.message=err.message;}
+    rendre();
+  });
+  on('#cpt-fermer','click',async()=>{
+    const v=String((($('#cpt-eff')||{}).value)||'').trim().toUpperCase();
+    if(v!=='EFFACER'){S.cpt.etat='ko';S.cpt.message='Tape EFFACER pour confirmer.';rendre();return;}
+    if(!await modaleConfirm('Fermer définitivement ton compte ?',{ok:'Fermer',danger:true}))return;
+    try{
+      await appel({action:'compte',op:'fermer',confirmation:'EFFACER'});
+      [S.cle,S.cache,S.chat,S.repas,S.foods,S.pending,'suivi.cam'].forEach(k=>localStorage.removeItem(k));
+      try{photoMem.clear();indexedDB.deleteDatabase(PHOTO_DB);photoDbP=null;}catch(e){}
+      S.cfg=null;S.data=null;S.reglages=false;connexion('Compte fermé.');
+    }catch(err){S.cpt.etat='ko';S.cpt.message=err.message;rendre();}
+  });
+  async function copierCpt(txt,msg){
+    try{await navigator.clipboard.writeText(txt);S.cpt.etat='ok';S.cpt.message=msg;}catch(e){S.cpt.etat='ko';S.cpt.message='Copie impossible sur ce navigateur.';}
+    rendre();
+  }
+  on('#cpt-copie-code','click',()=>copierCpt(S.cfg.token,'Code d\'accès copié : colle-le dans le champ token du Raccourci.'));
+  on('#cpt-copie-api','click',()=>copierCpt(S.cfg.api,'Adresse du serveur copiée.'));
 
   document.querySelectorAll('[data-sup]').forEach(b=>{
     b.addEventListener('click',async()=>{
@@ -3592,24 +4055,17 @@ function brancher(){
   }
 }
 
-function connexion(msg){
-  $('#racine').innerHTML=
-    '<div id="defile"><div class="ecran"><h1>Suivi</h1>'+
-    '<p>Colle l\'adresse de ton serveur et le code fourni par le bot, menu Application. Une seule fois.</p>'+
-    '<label for="c-api">Adresse de l\'API</label>'+
-    '<input id="c-api" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://\u2026/webhook/nutrition/api">'+
-    '<label for="c-token">Code d\'accès</label>'+
-    '<input id="c-token" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="24 caractères">'+
-    '<button class="primaire" id="c-ok">Se connecter</button>'+
-    (msg?'<p class="alerte">'+esc(msg)+'</p>':'')+'</div></div>';
-  $('#c-ok').addEventListener('click',()=>{
-    const api=$('#c-api').value.trim(),token=$('#c-token').value.trim();
-    if(!api||!token){connexion('Renseigne les deux champs.');return;}
-    ecrireCfg({api:api,token:token});demarrer();
-  });
-}
-
 async function demarrer(){
+  // lien d'invitation ouvert : page d'accueil dans Safari, inscription dans l'appli installée
+  if(!S.ins&&/invite=/.test(location.hash||'')){
+    const inv=lireInvite(location.hash),cfg=lireCfg();
+    if(inv&&!(cfg&&cfg.token)){
+      if(estInstallee()){S.ins=nouvelleIns(inv);oublierHash();renduIns();}
+      else accueilInvite(inv);
+      return;
+    }
+    oublierHash();
+  }
   S.ajout.repas=repasParHeure();
   S.cfg=S.cfg||lireCfg();
   if(!S.cfg||!S.cfg.api||!S.cfg.token){connexion();return;}
