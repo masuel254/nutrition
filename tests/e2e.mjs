@@ -36,8 +36,8 @@ const jours = [...new Set(LIGNES.map(l => l.date))].sort().map(d => {
     purines: ls.reduce((t, l) => t + l.purines, 0), purines_risque: ls.reduce((t, l) => t + l.purines_risque, 0), alcool: ls.reduce((t, l) => t + l.alcool, 0), boissons_sucrees: 0 };
 });
 const DATA = {
-  ok: true, profil: { prenom: 'Test', sexe: 'H', taille: 180, naissance: 1980, age: 46 },
-  reference: { date: jour(0), poids: 100, mb: 1900, tdee: 2700, cible: 2100, activite: 'Sedentaire', facteur: 1.2, mode: 'Seche', ecart: -600, repartition: '25/40/5/30', macros: '30/30/40', purines_max: 400, objectif_poids: 90 },
+  ok: true, profil: { prenom: 'Test', sexe: 'H', taille: 180, naissance: 1980, age: 46, role: 'administrateur', telegram: true },
+  reference: { date: jour(0), poids: 100, mb: 1900, tdee: 2700, cible: 2100, activite: 'Sedentaire', facteur: 1.2, mode: 'Seche', ecart: -600, repartition: '25/40/5/30', macros: '30/30/40', purines_max: 400, objectif_poids: 90, objectif: 'seche', ecart_kcal: -600 },
   cibles: { kcal: 2100, prot: 158, lip: 70, gluc: 210 },
   aujourdhui: { date: jour(0), kcal: 0, prot: 0, lip: 0, gluc: 0, repas: 0, purines: 0, purines_risque: 0, alcool: 0, boissons_sucrees: 0, parRepas: {} },
   moyennes: { j3: {}, j7: {}, j30: {} }, deficit: { cumule: [] },
@@ -63,6 +63,9 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
+  if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
+  if (q.action === 'admin') return json({ ok: true, comptes: [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true }], invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined });
+  if (q.action === 'params') return json({ ok: true, objectif: q.objectif, cible: 3000, activite: 'Sedentaire', mode: 'Prise de masse' });
   return json(DATA);
 });
 await page.addInitScript(() => localStorage.setItem('suivi.config', JSON.stringify({ api: 'https://api.test/x', token: 't' })));
@@ -95,6 +98,18 @@ await page.click('nav button[data-vue="corps"]');
 ok(/Pesée du jour/.test(await texte('.vue.on section')), 'Corps : pesée en tête');
 await page.click('#p-envoi'); await page.waitForTimeout(300);
 ok(appels.some(a => a.action === 'poids' && a.poids === 100) && /100 kg enregistrés/.test(await texte('.vue.on .bien')), 'Corps : pesée envoyée');
+
+console.log('Réglages');
+await page.click('#b-reglages'); await page.waitForTimeout(300);
+ok((await page.inputValue('#g-ecart')) === '-600' && /Besoins 2.280 kcal . 600 = cible 1.900 kcal/.test(await texte('#g-apercu')), 'objectif sèche : écart et cible calculée');
+await page.click('[data-ob="prise"]');
+ok((await page.inputValue('#g-ecart')) === '+300', 'prise de masse : écart proposé +300');
+await page.click('#g-envoi'); await page.waitForTimeout(400);
+const pa = appels.filter(a => a.action === 'params').pop();
+ok(pa && pa.objectif === 'prise' && pa.ecart_kcal === 300 && !('cible' in pa), 'objectif et écart envoyés (plus de cible fixe)');
+await page.fill('#adm-prenom', 'Hugo'); await page.click('#adm-inviter'); await page.waitForTimeout(300);
+ok(/ZR4T-8HNW/.test(await texte('.adm-lien')) && await page.locator('[data-adm-part="ZR4T-8HNW"]').count() > 0, 'invitation créée et prête à envoyer');
+await page.click('#b-reglages');
 
 console.log('Journal');
 await page.click('nav button[data-vue="journal"]');
@@ -129,6 +144,27 @@ ok(await page.locator('.resu-al li').count() >= 2, 'composer : résultat constru
 await page.click('#a-nouveau');
 await page.fill('#a-desc', 'test'); await page.click('#a-envoi'); await page.waitForTimeout(300);
 ok(/indisponible/.test(await texte('.alerte')), 'message clair si l\'IA est indisponible');
+
+console.log('Inscription par invitation');
+const pi = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
+pi.on('pageerror', e => erreurs.push(e.message));
+await pi.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+await pi.route('https://api.test/**', async r => { const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
+  if (q.action === 'invite') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(q.profil ? { ok: true, token: 'TOKNEUF' } : { ok: true, besoin_profil: true, prenom: 'Hugo' }) });
+  return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DATA) }); });
+await pi.goto('https://app.test/index.html#invite=ABCD-EFGH&api=' + encodeURIComponent('https://api.test/x'));
+await pi.waitForSelector('#w-copier');
+ok(/ABCD-EFGH/.test(await pi.locator('.ins-code').innerText()), 'lien ouvert dans Safari : page d accueil avec le code');
+await pi.click('#w-ici'); await pi.click('#i-suite'); await pi.waitForSelector('#i-creer');
+ok((await pi.inputValue('#i-prenom')) === 'Hugo', 'code vérifié : formulaire de profil prérempli');
+await pi.click('#i-creer'); await pi.waitForTimeout(100);
+ok(/sexe|homme/i.test(await pi.locator('.alerte').innerText()), 'profil incomplet : message clair');
+await pi.click('[data-isx="H"]'); await pi.fill('[data-if="age"]', '22'); await pi.fill('[data-if="taille"]', '178'); await pi.fill('[data-if="poids"]', '68,5'); await pi.click('[data-iob="prise"]');
+await pi.click('#i-creer'); await pi.waitForSelector('nav button');
+const iv = appels.filter(a => a.action === 'invite').pop();
+ok(iv.profil && iv.profil.objectif === 'prise' && iv.profil.ecart_kcal === 300 && iv.profil.poids === 68.5, 'profil envoyé avec objectif et écart');
+ok(JSON.parse(await pi.evaluate(() => localStorage.getItem('suivi.config'))).token === 'TOKNEUF' && (await pi.evaluate(() => location.hash)) === '', 'compte créé : code enregistré, lien effacé');
+await pi.close();
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
