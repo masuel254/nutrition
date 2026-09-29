@@ -617,6 +617,15 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .aj-pan{margin-top:10px}
 .aj-pan-t{display:flex;justify-content:space-between;align-items:center;padding:12px 12px 0}
 .aj-pan-t b{font-size:15px}.aj-pan-t .lien{margin:0}
+.br-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.br-t h2{margin:0}.br-t .br-vide{background:none;border:0;color:var(--over);font-weight:700;font-size:13.5px;padding:4px 0}
+.br-l{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:10px 10px 10px 12px;display:flex;align-items:center;gap:8px;margin-top:8px}
+.br-l .i{flex:1;min-width:0;cursor:pointer}.br-l .i b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.br-l .i small{display:block;font-size:12px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.br-l .k{font-weight:700;font-size:14px;white-space:nowrap}
+.br-l .ok{border:0;border-radius:8px;background:var(--under);color:var(--paper);font-weight:800;width:38px;height:36px;font-size:16px}
+.br-l .x{border:0;background:transparent;color:var(--soft);font-size:20px;width:30px;height:36px}
+.br-msg{margin-top:8px}
 </style>
 </head>
 <body>
@@ -624,7 +633,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='29/09/2026 23h02';
+const APP_VERSION='29/09/2026 23h13';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -675,7 +684,8 @@ function lireCache(){try{return JSON.parse(localStorage.getItem(S.cache));}catch
    On garde le repas actif (celui avec les boutons d'enregistrement) et
    jusqu'à 2 repas précédents, pour les retrouver et pouvoir les ré-enregistrer.
    Structure stockée : {actif:{...}|null, histo:[{...}, ...]} */
-const MAX_HISTO=2;
+const MAX_HISTO=8;
+function pousserHisto(p){if(!p||p.confirm==='fait')return;S.ajout.histo=[p].concat(S.ajout.histo||[]).slice(0,MAX_HISTO);}
 function paquetRepas(){
   const A=S.ajout;
   if(!A.resultat)return null;
@@ -1843,28 +1853,30 @@ function vueAjout(d){
       h+='</div>';
       h+='<button class="secondaire" id="e-ajout-al">+ Ajouter un aliment</button>';
     }
+    if(A.confirm!=='fait'&&A.confirm!=='envoi')h+='<button class="lien" id="a-abandon">\u2715 Abandonner ce repas</button>';
     h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';
   }
   h+=historiqueRepas(A);
   return h;
 }
 function historiqueRepas(A){
-  const hi=A.histo||[];
-  if(!hi.length)return '';
-  let h='<section class="histo"><h2>Repas précédents</h2>'+
-    '<p class="note">Les deux dernières analyses, gardées même après fermeture. Tu peux les reprendre pour les enregistrer, ou tout effacer plus bas.</p>';
-  hi.forEach((it,i)=>{
-    const r=it.resultat;if(!r||!r.total)return;
-    h+='<div class="repas-cache"><div class="tt"><span>'+esc(r.repas||it.repas||'Repas')+'</span><b>'+nb(r.total.kcal)+' kcal</b></div>';
+  const hi=(A.histo||[]).filter(it=>it&&it.resultat&&it.resultat.total);
+  if(!hi.length&&!A.msgHisto)return '';
+  let h='<section class="histo">';
+  if(hi.length)h+='<div class="br-t"><h2>Brouillons non enregistrés · '+hi.length+'</h2><button class="br-vide" id="a-vider-histo">Tout effacer</button></div>';
+  (A.histo||[]).forEach((it,i)=>{
+    const r=it&&it.resultat;if(!r||!r.total)return;
     const q=it.quand?new Date(it.quand):null;
-    if(q)h+='<div class="quand">analysé le '+jjmm(isoLocal(q))+' à '+p2(q.getHours())+'h'+p2(q.getMinutes())+'</div>';
-    const noms=(r.aliments||[]).map(a=>esc(a.nom)).slice(0,6).join(', ');
-    if(noms)h+='<div class="liste">'+noms+'</div>';
-    h+='<div class="liste">P '+nb(r.total.prot)+' · L '+nb(r.total.lip)+' · G '+nb(r.total.gluc)+' g'+(it.confirm==='fait'?' · déjà enregistré':'')+'</div>';
-    if(r.ligne)h+='<button class="reenr" data-histo-enr="'+i+'">Reprendre pour enregistrer</button>';
-    h+='</div>';
+    const noms=(r.aliments||[]).map(a=>a.nom).filter(Boolean);
+    const titre=noms.length?noms.slice(0,2).join(', ')+(noms.length>2?'…':''):(r.repas||'Repas');
+    const quand=q?(isoLocal(q)===auj()?'':jjmm(isoLocal(q))+' ')+p2(q.getHours())+'h'+p2(q.getMinutes()):'';
+    h+='<div class="br-l"><div class="i" data-histo-enr="'+i+'" role="button"><b>'+esc(titre)+'</b><small>'+esc(r.repas||it.repas||'')+(quand?' · '+quand:'')+' · P '+nb(r.total.prot)+' · L '+nb(r.total.lip)+' · G '+nb(r.total.gluc)+'</small></div>'+
+      '<span class="k">'+nb(r.total.kcal)+'</span>'+
+      (r.ligne?'<button class="ok" data-histo-ok="'+i+'" aria-label="Enregistrer ce brouillon">\u2713</button>':'')+
+      '<button class="x" data-histo-del="'+i+'" aria-label="Effacer ce brouillon">\u2715</button></div>';
   });
-  h+='<button class="secondaire" id="a-vider-histo">Tout effacer</button>';
+  if(A.msgHisto)h+='<p class="'+(A.msgHistoKo?'alerte':'bien')+' br-msg">'+esc(A.msgHisto)+'</p>';
+  if(hi.length)h+='<p class="note">\u2713 enregistre le brouillon tel quel, au jour et au repas où il a été analysé. Touche la ligne pour le rouvrir et le modifier. \u2715 l\u2019efface.</p>';
   return h+'</section>';
 }
 function blocNutriscore(d){
@@ -3881,7 +3893,7 @@ function brancher(){
     if(bad>=0){M.msg='Aliment '+(bad+1)+' : il faut au moins un nom et des calories.';rendre();return;}
     const als=M.als.map(alimentManuel),cr=M.cr||repasParHeure();
     const prec=paquetRepas();
-    if(prec)A.histo=[prec].concat(A.histo||[]).slice(0,MAX_HISTO);
+    pousserHisto(prec);
     A.enregistre=null;A.ajoutEnCours=false;A.repas=cr;
     A.resultat=resultatDepuis(als,cr,'Saisi à la main, sans analyse.');
     A.confirm=null;A.message='';A.dateAutre=M.date||auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
@@ -3927,7 +3939,7 @@ function brancher(){
     const l=g.l,cr=creneauDe(l.repas)||repasParHeure();
     const A=S.ajout;
     const prec=paquetRepas();
-    if(prec)A.histo=[prec].concat(A.histo||[]).slice(0,MAX_HISTO);
+    pousserHisto(prec);
     A.enregistre=null;A.ajoutEnCours=false;A.repas=cr;
     A.resultat=resultatDepuis(alimentsLigne(l),cr,'Repris de ton journal, sans nouvelle analyse.');
     A.confirm=null;A.message='';A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
@@ -3958,7 +3970,7 @@ function brancher(){
     }
     const cr=(R.crC&&R.crC!=='tous')?R.crC:repasParHeure();
     const prec=paquetRepas();
-    if(prec)A.histo=[prec].concat(A.histo||[]).slice(0,MAX_HISTO);
+    pousserHisto(prec);
     A.enregistre=null;A.repas=cr;
     A.resultat=resultatDepuis(als,cr,'Composé avec tes aliments enregistrés, sans nouvelle analyse.');
     A.confirm=null;A.message='';A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
@@ -4057,7 +4069,7 @@ function brancher(){
     A.repas=repasParHeure();               // créneau selon l'heure, corrigeable dans le résultat
     // basculer un éventuel repas actif en historique, comme une nouvelle analyse
     const precedent=paquetRepas();
-    if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
+    pousserHisto(precedent);
     const detail=p.nom+(p.marque?' ('+p.marque+')':'')+' · '+nb(g)+' g';
     A.resultat={
       repas:libelleRepas(A.repas),
@@ -4078,21 +4090,47 @@ function brancher(){
   on('#a-nouveau','click',()=>{
     const A=S.ajout;
     const actuel=paquetRepas();
-    if(actuel)A.histo=[actuel].concat(A.histo||[]).slice(0,MAX_HISTO);
+    pousserHisto(actuel);
     A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
-    A.enregistre=null;A.ajoutEnCours=false; // nouveau repas : pas une modification
+    A.enregistre=null;A.ajoutEnCours=false;A.msgHisto=''; // nouveau repas : pas une modification
     A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
     ecrireRepasCache();
     rendre();hautPage();
   });
   on('#a-vider-histo','click',async()=>{
-    if(!await modaleConfirm('Effacer le repas en cours et tout l\'historique ?',{ok:'Effacer',danger:true}))return;
-    const A=S.ajout;
-    A.histo=[];A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;
-    A.ajoutEnCours=false;A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
-    localStorage.removeItem(S.repas);
-    rendre();hautPage();
+    const n=(S.ajout.histo||[]).length;
+    if(!await modaleConfirm('Effacer '+(n>1?'les '+n+' brouillons':'le brouillon')+' non enregistré'+(n>1?'s':'')+' ?',{ok:'Effacer',danger:true}))return;
+    S.ajout.histo=[];S.ajout.msgHisto='';ecrireRepasCache();rendre();
   });
+  on('#a-abandon','click',async()=>{
+    if(!await modaleConfirm('Abandonner ce repas sans l\'enregistrer ?',{ok:'Abandonner',danger:true}))return;
+    const A=S.ajout;
+    A.resultat=null;A.confirm=null;A.message='';A.desc='';A.etat=null;A.enregistre=null;
+    A.ajoutEnCours=false;A.photo=null;A.apercu=null;A.taille=0;A.repas=repasParHeure();
+    ecrireRepasCache();rendre();hautPage();
+  });
+  document.querySelectorAll('[data-histo-del]').forEach(b=>b.addEventListener('click',()=>{
+    const i=Number(b.dataset.histoDel);S.ajout.histo=(S.ajout.histo||[]).filter((_,k)=>k!==i);S.ajout.msgHisto='';ecrireRepasCache();rendre();
+  }));
+  document.querySelectorAll('[data-histo-ok]').forEach(b=>b.addEventListener('click',async()=>{
+    const A=S.ajout,i=Number(b.dataset.histoOk),it=(A.histo||[])[i];
+    if(!it||!it.resultat||!it.resultat.ligne)return;
+    b.disabled=true;b.textContent='\u2026';
+    const r=it.resultat,l=r.ligne,q=it.quand?new Date(it.quand):new Date();
+    const date=isoLocal(q)>auj()?auj():isoLocal(q);
+    const id=r.id||(r.id=nouvelId());
+    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(r)});
+    const retirer=()=>{A.histo=(A.histo||[]).filter(x=>x!==it);ecrireRepasCache();};
+    try{
+      const w=await appel(payload);retirer();
+      A.msgHisto=nb((w&&w.kcal)||l.kcal)+' kcal enregistrées en '+((w&&w.repas)||l.repas)+' le '+jjmm((w&&w.date)||date)+'.';A.msgHistoKo=false;
+      try{await rafraichir();}catch(e){}
+    }catch(e){
+      if(e&&e.reseau){empilerPending(payload);retirer();A.msgHisto='Brouillon gardé, il sera enregistré dès que possible.';A.msgHistoKo=false;}
+      else{A.msgHisto=e.message;A.msgHistoKo=true;}
+    }
+    rendre();
+  }));
   document.querySelectorAll('[data-histo-enr]').forEach(b=>{
     b.addEventListener('click',()=>{
       const i=Number(b.dataset.histoEnr);
@@ -4102,7 +4140,7 @@ function brancher(){
       const A=S.ajout;
       const actuel=paquetRepas();
       A.histo=(A.histo||[]).filter((_,k)=>k!==i);
-      if(actuel)A.histo=[actuel].concat(A.histo).slice(0,MAX_HISTO);
+      pousserHisto(actuel);
       A.resultat=item.resultat;delete A.resultat.id;A.enregistre=null;A.repas=item.repas||A.repas;A.desc='';
       A.confirm=null;A.message='';A.dateAutre=auj();
       ecrireRepasCache();rendre();hautPage();
@@ -4140,7 +4178,7 @@ function brancher(){
     A.etat='envoi';A.resultat=null;rendre();
     try{
       const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
-      if(precedent)A.histo=[precedent].concat(A.histo||[]).slice(0,MAX_HISTO);
+      pousserHisto(precedent);
       A.etat=null;A.resultat=r;A.confirm=null;A.dateAutre=auj();
       A.photo=null;A.apercu=null;A.taille=0;A.desc='';
       pousserFoodRepas(r);
@@ -4607,7 +4645,7 @@ async function demarrer(){
   S.att=lireAttente();
   const cache=lireRepasCache();
   if(cache){
-    S.ajout.histo=Array.isArray(cache.histo)?cache.histo.slice(0,MAX_HISTO):[];
+    S.ajout.histo=Array.isArray(cache.histo)?cache.histo.filter(x=>x&&x.confirm!=='fait').slice(0,MAX_HISTO):[];
     const a=cache.actif;
     if(a&&a.resultat){
       S.ajout.repas=a.repas||S.ajout.repas;
