@@ -62,7 +62,7 @@ await page.route('https://api.test/**', async r => {
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
   if (q.action === 'journal') return json({ ok: true, journal: LIGNES.filter(l => l.date >= q.debut && l.date <= q.fin) });
   if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
-  if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'groq', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
+  if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'groq', echecs: 'Flash : 429 quota', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
@@ -206,7 +206,7 @@ secoursTest = true;
 await page.click('#a-nouveau').catch(() => {});
 if (!(await page.locator('#a-desc').count())) await page.click('nav button[data-vue="ajout"]');
 await page.fill('#a-desc', 'poulet'); await page.click('#a-envoi'); await page.waitForTimeout(400);
-ok(/modèle de secours \(Groq\)/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran');
+ok(/modèle de secours \(Groq\)/.test(await texte('.resu')) && /Pourquoi : Flash : 429 quota/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran, avec la cause');
 secoursTest = false;
 
 console.log('Pesées');
