@@ -26,3 +26,4 @@ Le workflow n8n n'est pas testé ici : son JSON contient la clé Gemini et ne do
 - Sans IA : repas mis en attente quand l'IA refuse, bandeau sur Jour, analyse et enregistrement au jour d'origine quand l'IA revient ; saisie à la main (total en direct, contrôle, purines calculées, aucun appel à l'IA).
 - Secours IA : une analyse faite par un modèle de secours (Gemma ou Groq) est signalée sur l'écran de résultat.
 - Pesées : historique dépliable sous la pesée du jour ; « Régulier ? » sans extrapolation des semaines courtes.
+- Brouillons : un repas non enregistré passe en ligne compacte ; ✓ l'enregistre et le retire.

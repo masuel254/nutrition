@@ -172,6 +172,10 @@ ok(/2 unités/.test(await texte('#rac-valide')), 'composer : compteur d\'unités
 await page.click('#rac-valide');
 ok(await page.locator('.resu-al li').count() >= 2, 'composer : résultat construit sans IA');
 await page.click('#a-nouveau');
+ok(await page.locator('.histo .br-l').count() === 1 && /Brouillons non enregistrés · 1/.test(await texte('.histo')), 'brouillons : le repas non enregistré passe en ligne compacte');
+const nEnr = appels.filter(a => a.action === 'enregistrer').length;
+await page.click('[data-histo-ok="0"]'); await page.waitForTimeout(500);
+ok(appels.filter(a => a.action === 'enregistrer').length === nEnr + 1 && await page.locator('.histo .br-l').count() === 0 && /enregistrées/.test(await texte('.histo')), 'brouillons : ✓ enregistre le brouillon et le retire de la liste');
 await page.fill('#a-desc', 'test'); await page.click('#a-envoi'); await page.waitForTimeout(300);
 ok(/indisponible/.test(await texte('.alerte')), 'message clair si l\'IA est indisponible');
 
