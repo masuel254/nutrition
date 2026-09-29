@@ -23,3 +23,6 @@ node tests/e2e.mjs
 
 Code de sortie 0 si tout est vert, 1 sinon. À lancer avant chaque mise en ligne.
 Le workflow n8n n'est pas testé ici : son JSON contient la clé Gemini et ne doit pas aller sur GitHub.
+- Sans IA : repas mis en attente quand l'IA refuse, bandeau sur Jour, analyse et enregistrement au jour d'origine quand l'IA revient ; saisie à la main (total en direct, contrôle, purines calculées, aucun appel à l'IA).
+- Secours IA : une analyse faite par un modèle de secours (Gemma ou Groq) est signalée sur l'écran de résultat.
+- Pesées : historique dépliable sous la pesée du jour ; « Régulier ? » sans extrapolation des semaines courtes.

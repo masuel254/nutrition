@@ -55,13 +55,14 @@ const ok = (cond, msg) => { console.log((cond ? '  ok   ' : '  ÉCHEC ') + msg);
 const navigateur = await chromium.launch();
 const page = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
 const erreurs = []; page.on('pageerror', e => erreurs.push(e.message));
-const appels = []; let reponseVide = 1, ia503 = true;
+const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false;
 await page.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
 await page.route('https://api.test/**', async r => {
   const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
   if (q.action === 'journal') return json({ ok: true, journal: LIGNES.filter(l => l.date >= q.debut && l.date <= q.fin) });
   if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
+  if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'groq', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
@@ -173,6 +174,47 @@ ok(await page.locator('.resu-al li').count() >= 2, 'composer : résultat constru
 await page.click('#a-nouveau');
 await page.fill('#a-desc', 'test'); await page.click('#a-envoi'); await page.waitForTimeout(300);
 ok(/indisponible/.test(await texte('.alerte')), 'message clair si l\'IA est indisponible');
+
+console.log('Sans IA : saisie à la main et repas en attente');
+ok(await page.locator('.att-ko #att-plus').count() === 1 && await page.locator('.att-ko #man-depuis').count() === 1, 'IA indisponible : analyser plus tard ou saisir à la main');
+await page.click('#att-plus'); await page.waitForTimeout(200);
+const att = await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.attente') || '[]'));
+ok(att.length === 1 && att[0].desc === 'test' && att[0].date && att[0].id, 'repas mis en attente sur l iPhone');
+await page.click('nav button[data-vue="jour"]');
+ok(/1 repas en attente/i.test(await texte('.att-z')), 'Jour : bandeau du repas en attente');
+ia503 = false;
+await page.click('#att-go'); await page.waitForTimeout(800);
+const enrAtt = appels.filter(a => a.action === 'enregistrer').pop();
+ok(enrAtt && enrAtt.id === att[0].id && enrAtt.date === att[0].date && /analysé/i.test(await texte('.att-z')) && (await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.attente') || '[]').length)) === 0, 'IA revenue : analysé et enregistré au jour d origine, file vidée');
+await page.click('#att-ok');
+await page.click('nav button[data-vue="ajout"]');
+if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+await page.click('#rac-tm');
+await page.fill('[data-mf="0.nom"]', 'Poulet rôti'); await page.fill('[data-mf="0.quantite"]', '230 g'); await page.fill('[data-mf="0.kcal"]', '500');
+await page.fill('[data-mf="0.prot"]', '58'); await page.fill('[data-mf="0.lip"]', '29'); await page.selectOption('[data-mf="0.famille"]', 'volaille');
+ok(/500 kcal/.test(await texte('#man-tot')), 'saisie à la main : total en direct');
+await page.click('#man-plus'); await page.click('#man-ok');
+ok(/Aliment 2/.test(await texte('.alerte')), 'saisie à la main : aliment incomplet refusé');
+await page.click('[data-mdel="1"]'); await page.click('#man-ok');
+ok(/500 kcal/.test(await texte('#e-total')) && /Saisi à la main/.test(await texte('.resu')), 'saisie à la main : écran de résultat habituel');
+await page.click('#e-auj'); await page.waitForTimeout(500);
+const enrMan = appels.filter(a => a.action === 'enregistrer').pop();
+const alm = enrMan && enrMan.aliments && enrMan.aliments[0];
+ok(alm && alm.famille === 'volaille' && alm.grammes === 230 && alm.purines === 345 && alm.purines_risque === 345 && enrMan.kcal === 500, 'saisie à la main : purines calculées (230 g de volaille = 345 mg) et enregistrée');
+ok(!appels.some(a => a.action === 'repas' && a.description === 'Poulet rôti'), 'saisie à la main : aucun appel à l IA');
+secoursTest = true;
+await page.click('#a-nouveau').catch(() => {});
+if (!(await page.locator('#a-desc').count())) await page.click('nav button[data-vue="ajout"]');
+await page.fill('#a-desc', 'poulet'); await page.click('#a-envoi'); await page.waitForTimeout(400);
+ok(/modèle de secours \(Groq\)/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran');
+secoursTest = false;
+
+console.log('Pesées');
+await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="pesee"]');
+await page.click('#pes-hist summary');
+ok(/Toutes mes pesées \(5\)/.test(await texte('#pes-hist')) && (await page.locator('#pes-hist .pes-l .k').count()) === 5 && /100,0 kg/.test(await texte('#pes-hist .pes-l')), 'Corps : historique dépliable de toutes les pesées, la plus récente en haut');
+await page.click('nav button[data-vue="courbes"]'); await page.click('[data-cong="poids"]'); await page.click('[data-cv="regulier"]');
+ok(await page.locator('.vue.on svg[aria-label="Variation hebdomadaire du poids"] rect[stroke-dasharray]').count() <= 1, 'Régulier ? : au plus une semaine « en cours »');
 
 console.log('Inscription par invitation');
 const pi = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
