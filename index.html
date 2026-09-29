@@ -609,7 +609,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='29/09/2026 21h48';
+const APP_VERSION='29/09/2026 21h51';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3146,9 +3146,12 @@ function alertesGoutte(d){
   const jAlc=gAuj>40?{g:gAuj,q:'aujourd\u2019hui'}:(gHier>40?{g:gHier,q:'hier'}:null);
   if(jAlc)al.push('<b>'+verresTxt(jAlc.g)+' d\u2019alcool '+jAlc.q+'.</b> Au-delà de 4 verres dans la journée, l\'alcool freine l\'élimination de l\'acide urique pendant 24 à 48 h : c\'est un déclencheur de crise classique. Bois de l\'eau et évite la viande et la bière d\'ici demain.');
   const v=sept(d).filter(j=>j.valide&&j.ecart!==null);
-  if(v.length>=5){
-    const m=v.reduce((t,j)=>t+j.ecart,0)/v.length;
-    if(m<-1200)al.push('<b>Déficit moyen de '+nb(Math.abs(m))+' kcal par jour</b> sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.');
+  // au moins 5 des 7 derniers jours complets (hier et les 6 jours d'avant) à plus de 1 000 kcal de déficit
+  const d7=plusJours(ajd,-7);
+  const gros=(d.jours||[]).filter(j=>j.date>=d7&&j.date<ajd&&j.valide&&j.ecart!==null&&j.ecart<-1000);
+  if(gros.length>=5){
+    const m=gros.reduce((t,j)=>t+j.ecart,0)/gros.length;
+    al.push('<b>'+gros.length+' jours sur 7 à plus de 1 000 kcal de déficit</b> (en moyenne '+nb(Math.abs(Math.round(m)))+' kcal ces jours-là). Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.');
   }
   if(!al.length)return '';
   const ouv=S.jour.alerteOuv;
