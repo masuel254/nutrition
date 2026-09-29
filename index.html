@@ -609,7 +609,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='29/09/2026 21h39';
+const APP_VERSION='29/09/2026 21h48';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3141,15 +3141,14 @@ function alertesGoutte(d){
   if(!(r>seuilA))x.setDate(x.getDate()-1);
   for(let i=0;i<30;i++){const j=par[isoLocal(x)];if(j&&(j.purines_risque||0)>seuilA){n++;x.setDate(x.getDate()-1);}else break;}
   if(n>=3)al.push('<b>'+n+' jours d\'affilée à plus de '+nb(seuilA)+' mg.</b> C\'est la répétition qui fait monter l\'acide urique : prévois une journée sans viande ni poisson.');
-  const s7=sept(d).concat([a]);
-  const jAlc=s7.filter(j=>(Number(j.alcool)||0)>0).length,gAlc=s7.reduce((t,j)=>t+(Number(j.alcool)||0),0);
-  if(jAlc>=3||gAlc>=70)al.push('<b>Alcool '+jAlc+' jour'+(jAlc>1?'s':'')+' sur 7</b> ('+verresTxt(gAlc)+'). La bière et les alcools forts freinent l\'élimination de l\'acide urique, la bière apporte en plus ses propres purines.');
-  const suc=s7.reduce((t,j)=>t+(Number(j.boissons_sucrees)||0),0);
-  if(suc>3)al.push('<b>'+suc+' boissons sucrées sur 7 jours.</b> Le fructose des sodas et des jus fait monter l\'acide urique, même sans purines.');
+  // alcool : plus de 4 verres (40 g) le même jour ; affichée le jour même et le lendemain, puis disparaît
+  const hier=plusJours(ajd,-1),gAuj=Number(a.alcool)||0,gHier=Number((par[hier]||{}).alcool)||0;
+  const jAlc=gAuj>40?{g:gAuj,q:'aujourd\u2019hui'}:(gHier>40?{g:gHier,q:'hier'}:null);
+  if(jAlc)al.push('<b>'+verresTxt(jAlc.g)+' d\u2019alcool '+jAlc.q+'.</b> Au-delà de 4 verres dans la journée, l\'alcool freine l\'élimination de l\'acide urique pendant 24 à 48 h : c\'est un déclencheur de crise classique. Bois de l\'eau et évite la viande et la bière d\'ici demain.');
   const v=sept(d).filter(j=>j.valide&&j.ecart!==null);
   if(v.length>=5){
     const m=v.reduce((t,j)=>t+j.ecart,0)/v.length;
-    if(m<-900)al.push('<b>Déficit moyen de '+nb(Math.abs(m))+' kcal par jour</b> sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.');
+    if(m<-1200)al.push('<b>Déficit moyen de '+nb(Math.abs(m))+' kcal par jour</b> sur '+v.length+' jours. Un déficit aussi marqué fait monter l\'acide urique et coûte du muscle : vise plutôt 500 à 700.');
   }
   if(!al.length)return '';
   const ouv=S.jour.alerteOuv;
