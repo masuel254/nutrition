@@ -603,6 +603,20 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .pes-l{text-align:left;display:grid;grid-template-columns:1fr auto auto;gap:4px 14px;font-size:14px;margin-top:8px;font-variant-numeric:tabular-nums}
 .pes-l .d{color:var(--soft)}.pes-l .k{font-weight:700;text-align:right}.pes-l .e{text-align:right;min-width:62px}
 .pes-l .e small{color:var(--soft);font-weight:400}
+.aj-photo{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.aj-photo button{border-radius:14px;padding:20px 10px;font-size:17px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:6px}
+.aj-photo button span{font-size:30px;line-height:1}
+.aj-photo .cam{border:0;background:var(--under);color:var(--paper)}
+.aj-photo .gal{border:1px solid var(--rule);background:var(--card);color:var(--ink);font-weight:600;font-size:16px}
+.aj-apercu{margin-bottom:10px;text-align:center}.aj-apercu img{max-width:100%;border-radius:12px;display:block;margin:0 auto}
+.aj-autres{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aj-tile{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:12px;display:flex;gap:10px;align-items:center;color:var(--ink);text-align:left;min-width:0}
+.aj-tile.on{border-color:var(--under);box-shadow:inset 0 0 0 1px var(--under)}
+.aj-tile i{font-style:normal;width:32px;height:32px;border-radius:8px;background:var(--creux);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.aj-tile span{min-width:0}.aj-tile b{display:block;font-size:14.5px}.aj-tile small{display:block;font-size:11.5px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aj-pan{margin-top:10px}
+.aj-pan-t{display:flex;justify-content:space-between;align-items:center;padding:12px 12px 0}
+.aj-pan-t b{font-size:15px}.aj-pan-t .lien{margin:0}
 </style>
 </head>
 <body>
@@ -610,7 +624,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='29/09/2026 21h57';
+const APP_VERSION='29/09/2026 23h02';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1664,35 +1678,30 @@ function blocRaccourcis(d){
   const crR=R.crR||repasParHeure();
   const nbCat=((d&&d.catalogue)||[]).length;
   const lib={matin:'du matin',midi:'du midi',encas:'en-cas',soir:'du soir',tous:''}[crR];
-  let h='<section class="rac">';
-  // --- Refaire un repas ---
-  h+='<div class="rac-acc'+(R.ouvR?' o':'')+'"><button class="rac-tete" id="rac-tr" aria-expanded="'+(R.ouvR?'true':'false')+'">'+
-    '<span class="rac-ic">↺</span><span class="rac-t"><b>Refaire un repas</b><small>'+(R.ouvR?'Tes derniers repas '+lib:'Reprendre un repas déjà enregistré')+'</small></span><span class="rac-ch">›</span></button>';
+  const tuile=(id,ic,t,s,on)=>'<button class="aj-tile'+(on?' on':'')+'" id="'+id+'" aria-expanded="'+(on?'true':'false')+'"><i>'+ic+'</i><span><b>'+t+'</b><small>'+s+'</small></span></button>';
+  let h='<section class="rac"><h2>Autres façons d\u2019ajouter</h2><div class="aj-autres">'+
+    tuile('rac-tr','↺','Refaire','un repas déjà noté',R.ouvR)+
+    tuile('rac-tc','▦','Composer',nbCat?nbCat+' aliments':'mes aliments',R.ouvC)+
+    tuile('rac-tm','✎','À la main','sans IA',S.man.ouvert)+
+    tuile('sc-ouvre','▥','Code-barres','produit emballé',false)+'</div>';
+  const pan=(t,c)=>'<div class="rac-acc o aj-pan"><div class="aj-pan-t"><b>'+t+'</b><button class="lien" id="rac-ferme">Fermer</button></div>'+c+'</div>';
   if(R.ouvR){
     const liste=repasARefaire(d,crR);R.liste=liste;
-    h+='<div class="rac-contenu">'+ongletsCr('rac-crr',crR,false);
-    if(!liste.length)h+='<p class="note">Aucun repas enregistré à ce moment de la journée ces dernières semaines.</p>';
+    let c='<div class="rac-contenu">'+ongletsCr('rac-crr',crR,false);
+    if(!liste.length)c+='<p class="note">Aucun repas enregistré à ce moment de la journée ces dernières semaines.</p>';
     liste.forEach((g,i)=>{
       const l=g.l,als=Array.isArray(l.aliments)&&l.aliments.length?l.aliments:null;
       const desc=als?als.map(a=>a.nom+(a.quantite?' '+a.quantite:'')).join(', '):(l.detail||'');
-      h+='<div class="rac-repas"><div class="rac-rt"><b>'+(g.hab?'Habituel · '+g.n+' fois':esc(libDate(l.date)))+'</b><span>'+nb(l.kcal)+' kcal</span></div>'+
+      c+='<div class="rac-repas"><div class="rac-rt"><b>'+(g.hab?'Habituel · '+g.n+' fois':esc(libDate(l.date)))+'</b><span>'+nb(l.kcal)+' kcal</span></div>'+
         '<small>'+esc(desc)+'</small>'+(als?'':'<small class="rac-ancien">Ancien repas : ajoutable tel quel, sans détail par aliment.</small>')+
         '<div class="rac-btns"><button class="p" data-rf-aj="'+i+'">+ Ajouter</button><button class="s" data-rf-mod="'+i+'">✎ Modifier</button></div></div>';
     });
-    if(R.msg)h+='<p class="alerte">'+esc(R.msg)+'</p>';
-    h+='<p class="note">+ Ajouter l’enregistre tout de suite pour aujourd’hui, en '+esc(libelleRepas(crR==='tous'?repasParHeure():crR))+'. Modifier l’ouvre pour ajuster les quantités avant.</p></div>';
-  }
-  h+='</div>';
-  // --- Composer avec mes aliments ---
-  h+='<div class="rac-acc'+(R.ouvC?' o':'')+'"><button class="rac-tete" id="rac-tc" aria-expanded="'+(R.ouvC?'true':'false')+'">'+
-    '<span class="rac-ic">▦</span><span class="rac-t"><b>Composer avec mes aliments</b><small>'+(R.ouvC?'Touche + pour ajouter une unité':(nbCat?nbCat+' aliment'+(nbCat>1?'s':'')+' enregistré'+(nbCat>1?'s':''):'Se remplit au fil des repas enregistrés'))+'</small></span><span class="rac-ch">›</span></button>';
-  if(R.ouvC)h+=blocComposer(d,false);
-  h+='</div>';
-  h+='<div class="rac-acc'+(S.man.ouvert?' o':'')+'"><button class="rac-tete" id="rac-tm" aria-expanded="'+(S.man.ouvert?'true':'false')+'">'+
-    '<span class="rac-ic">✎</span><span class="rac-t"><b>Saisir à la main</b><small>Sans IA : tu tapes les calories et les macros</small></span><span class="rac-ch">›</span></button>';
-  if(S.man.ouvert)h+=blocManuel();
-  h+='</div></section>';
-  return h;
+    if(R.msg)c+='<p class="alerte">'+esc(R.msg)+'</p>';
+    c+='<p class="note">+ Ajouter l’enregistre tout de suite pour aujourd’hui, en '+esc(libelleRepas(crR==='tous'?repasParHeure():crR))+'. Modifier l’ouvre pour ajuster les quantités avant.</p></div>';
+    h+=pan('Refaire un repas '+lib,c);
+  }else if(R.ouvC)h+=pan('Composer avec mes aliments',blocComposer(d,false));
+  else if(S.man.ouvert)h+=pan('Saisir à la main',blocManuel());
+  return h+'</section>';
 }
 // Filtre des tuiles sans re-rendu (garde le clavier ouvert).
 function filtrerTuiles(){
@@ -1763,27 +1772,26 @@ function vueAjout(d){
   // résultat, OU pendant un ajout d'aliment à un repas existant (A.ajoutEnCours).
   const saisieVisible=!A.resultat||A.ajoutEnCours;
   if(saisieVisible){
-    if(!A.ajoutEnCours)h+=blocRaccourcis(d);
     if(A.ajoutEnCours)h+='<section class="ajout-entete"><h2>Ajouter un aliment</h2>'+
       '<p class="note">Décris, photographie ou scanne l\'aliment à ajouter au repas. Il s\'ajoutera sans toucher au reste.</p>'+
       '<button class="lien" id="aj-annule">Annuler l\'ajout</button></section>';
     if(A.ajoutEnCours&&((d&&d.catalogue)||[]).length)h+='<section class="rac"><div class="rac-acc o"><div class="rac-tete"><span class="rac-ic">\u25a6</span>'+
       '<span class="rac-t"><b>Mes aliments</b><small>Touche + puis Ajouter à ce repas</small></span></div>'+blocComposer(d,true)+'</div></section>';
-    h+=sectionScan(A);
-    h+='<section><h2>Description</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
+    // photo en premier
+    h+='<section><h2>Photo du repas</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none">';
+    if(A.apercu)h+='<div class="aj-apercu"><img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div><button class="lien" id="a-retire">Retirer la photo</button></div>';
+    h+='<div class="aj-photo"><button class="cam" id="a-cam"><span>📷</span>'+(A.apercu?'Reprendre':'Appareil photo')+'</button><button class="gal" id="a-gal"><span>🖼️</span>Galerie</button></div></section>';
+    h+='<section><h2>'+(A.apercu?'Précision (facultatif)':'Ou décris-le')+'</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
     const pret=!!(A.photo||A.desc.trim());
     const lbl=A.ajoutEnCours?'Analyser et ajouter':'Analyser';
     h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':lbl)+'</button>';
-    if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l’analyse.</p>';
+    if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé.</p>';
     if(A.etat==='ko')h+=A.ajoutEnCours?'<p class="alerte">'+esc(A.message)+'</p>':blocEchecIA(A);
     if(A.etat==='att')h+='<p class="bien">'+esc(A.message)+'</p>';
     h+='</section>';
-    h+='<section><h2>Photo</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none"><div class="zone compact-photo">';
-    if(A.apercu)h+='<img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div>';
-    else h+='<div style="font-size:30px;line-height:1">📷</div><div class="taille">Aucune photo. Tu peux aussi décrire ton repas plus bas, l’analyse marche sans image.</div>';
-    h+='</div><div class="deux"><button id="a-cam">Appareil photo</button><button id="a-gal">Galerie</button></div>';
-    if(A.apercu)h+='<button class="lien" id="a-retire">Retirer la photo</button>';
-    h+='</section>';
+    // code-barres : en mode ajout d'aliment toujours visible ; sinon seulement quand un scan est en cours
+    if(A.ajoutEnCours||(A.scan&&A.scan.etat))h+=sectionScan(A);
+    if(!A.ajoutEnCours)h+=blocRaccourcis(d);
   }
   if(A.resultat&&!A.ajoutEnCours){
     const r=A.resultat;
@@ -3689,6 +3697,7 @@ function modaleAlert(message){
 }
 /* Défilement : uniquement dans #defile. recaler() remet le document à 0 si iOS l'a
    décalé (clavier, focus) — sans toucher pendant la saisie, pour ne pas masquer le champ. */
+function versPan(){const p=document.querySelector('.aj-pan');if(p)p.scrollIntoView({block:'start'});}
 function hautPage(){const d=$('#defile');if(d)d.scrollTop=0;recaler();}
 function basPage(){const d=$('#defile');if(d)d.scrollTop=d.scrollHeight;recaler();}
 function saisieActive(){const a=document.activeElement;return !!(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable));}
@@ -3854,10 +3863,11 @@ function brancher(){
     });
   }
   // --- raccourcis : refaire un repas / composer avec mes aliments ---
-  on('#rac-tr','click',()=>{S.rac.ouvR=!S.rac.ouvR;S.rac.msg='';rendre();});
-  on('#rac-tc','click',()=>{S.rac.ouvC=!S.rac.ouvC;rendre();});
+  on('#rac-tr','click',()=>{const o=!S.rac.ouvR;S.rac.ouvC=false;S.man.ouvert=false;S.rac.ouvR=o;S.rac.msg='';rendre();versPan();});
+  on('#rac-ferme','click',()=>{S.rac.ouvR=false;S.rac.ouvC=false;S.man.ouvert=false;rendre();});
+  on('#rac-tc','click',()=>{const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;rendre();versPan();});
   // --- sans IA : saisie à la main, repas en attente ---
-  on('#rac-tm','click',()=>{const M=S.man;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();});
+  on('#rac-tm','click',()=>{const M=S.man;S.rac.ouvR=false;S.rac.ouvC=false;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();versPan();});
   document.querySelectorAll('[data-mf]').forEach(el=>{
     const maj=()=>{const p=el.dataset.mf.split('.'),i=Number(p[0]),m=S.man.als[i];if(!m)return;m[p[1]]=el.value;
       const k=$('#man-k-'+i);if(k)k.textContent=nb(Math.round(numSaisi(m.kcal)))+' kcal';const t=$('#man-tot');if(t)t.textContent=totalManuel();};
@@ -3880,7 +3890,7 @@ function brancher(){
   });
   on('#man-depuis','click',()=>{
     const A=S.ajout;S.man={ouvert:true,als:[manVide(String(A.desc||'').trim().slice(0,80))],msg:'',cr:A.repas||repasParHeure()};
-    A.etat=null;A.message='';rendre();hautPage();
+    A.etat=null;A.message='';rendre();versPan();
   });
   on('#att-plus','click',()=>{
     const A=S.ajout;S.att=lireAttente();
@@ -3901,7 +3911,7 @@ function brancher(){
     const L=lireAttente(),it=L.find(x=>x.id===b.dataset.attMan);if(!it)return;
     S.att=L.filter(x=>x.id!==it.id);ecrireAttente();
     S.man={ouvert:true,als:[manVide(String(it.desc||'').trim().slice(0,80))],msg:'',cr:it.repas,date:it.date};
-    S.vue='ajout';S.ajout.resultat=null;S.ajout.etat=null;rendre();hautPage();
+    S.vue='ajout';S.ajout.resultat=null;S.ajout.etat=null;rendre();versPan();
   }));
 
   document.querySelectorAll('#rac-crr button').forEach(b=>b.addEventListener('click',()=>{S.rac.crR=b.dataset.cr;S.rac.msg='';rendre();}));
