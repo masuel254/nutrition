@@ -581,6 +581,27 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .alc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--soft);margin:2px 0 6px}
 .alc-leg span{display:inline-flex;align-items:center;gap:5px}
 .alc-leg i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.man-al{border:1px solid var(--rule);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--paper)}
+.man-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.man-t span{margin-left:auto;font-size:13px;color:var(--soft)}
+.man-t .lien{margin:0;font-size:13px}
+.man-al label{margin-top:10px}
+.man-g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.man-g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.man-al select{width:100%;padding:11px 12px;font:inherit;font-size:16px;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:3px}
+.man-tot{display:flex;justify-content:space-between;gap:10px;margin-top:14px;font-size:14.5px}
+.att-z{padding-bottom:0}
+.att{border:1px solid var(--jaune);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.att.att-ko{border-color:var(--over);margin-top:14px}
+.att.att-bon{border-color:var(--under)}
+.att-titre{font-weight:700;font-size:15px}
+.att-ko .att-titre{color:var(--over)}
+.att-l{border-top:1px solid var(--rule);padding:8px 0;font-size:13px;color:var(--soft);margin-top:8px}
+.att-a{display:flex;gap:18px;justify-content:flex-start}.att-a .lien{margin:4px 0 0;font-size:13px;width:auto;flex:none;text-align:left;padding:0}
+.pes-hist{margin-top:18px}
+.pes-l{text-align:left;display:grid;grid-template-columns:1fr auto auto;gap:4px 14px;font-size:14px;margin-top:8px;font-variant-numeric:tabular-nums}
+.pes-l .d{color:var(--soft)}.pes-l .k{font-weight:700;text-align:right}.pes-l .e{text-align:right;min-width:62px}
+.pes-l .e small{color:var(--soft);font-weight:400}
 </style>
 </head>
 <body>
@@ -588,13 +609,13 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='28/09/2026 11h50';
+const APP_VERSION='29/09/2026 08h25';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],courbeVue:'poids',
+  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},regTab:'objectif',prof:{etat:null,message:'',sexe:null},
   adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,gt:{quand:'auj',date:'',art:null,int:null,rem:'',etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{onglet:'pesee',periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
@@ -1072,9 +1093,13 @@ function barresHebdo(pes,opt){
   // (évite qu'une pesée très espacée écrase l'échelle).
   const deltas=[];
   for(let i=1;i<sems.length;i++){
+    // différence réelle entre la dernière pesée de la semaine et celle de la semaine précédente
+    // Pas d'extrapolation quand l'écart est court (3 jours à +0,5 kg ne s'affichent plus +1,2) ;
+    // ramené à 7 jours seulement quand plus d'une semaine sépare les deux pesées.
     const dj=(jourNum(sems[i].date)-jourNum(sems[i-1].date))||7;
-    const dParSem=(sems[i].poids-sems[i-1].poids)/dj*7;
-    deltas.push({lundi:sems[i].lundi,delta:dParSem});
+    const brut=sems[i].poids-sems[i-1].poids;
+    deltas.push({lundi:sems[i].lundi,delta:Math.round((dj>7?brut/dj*7:brut)*10)/10,dj:dj,de:sems[i-1].date,a:sems[i].date,
+      cours:sems[i].lundi===lundiDe(auj())});
   }
   const n=deltas.length;
   const w=320,h=(opt.h||150)+20,legH=16,pt=14+legH,pb=24,pl=30,pr=8;
@@ -1099,14 +1124,15 @@ function barresHebdo(pes,opt){
   // barres
   deltas.forEach((d,i)=>{
     const cx=pl+pasX*(i+0.5),ht=Math.abs(d.delta)*ech,y=d.delta<0?zero:zero-ht;
-    o+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,ht).toFixed(1)+'" rx="2" fill="'+coul(d.delta)+'"/>';
+    o+='<rect x="'+(cx-lg/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+lg.toFixed(1)+'" height="'+Math.max(1,ht).toFixed(1)+'" rx="2" fill="'+coul(d.delta)+'"'+
+      (d.cours?' fill-opacity="0.45" stroke="'+coul(d.delta)+'" stroke-dasharray="3 2"':'')+'><title>'+jjmm(d.de)+' → '+jjmm(d.a)+' ('+d.dj+' j)</title></rect>';
     // valeur placée dans l'espace vide, du côté OPPOSÉ à la barre par rapport à
     // zéro (perte -> au-dessus de zéro ; prise -> en dessous). Jamais sur la barre
     // ni collée à l'axe des dates.
     const yTxt=d.delta<0?(zero-4):(zero+11);
     o+='<text x="'+cx.toFixed(1)+'" y="'+yTxt.toFixed(1)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="'+coul(d.delta)+'">'+(d.delta>0?'+':d.delta<0?'\u2212':'')+Math.abs(d.delta).toFixed(1)+'</text>';
     // label semaine (axe X)
-    o+='<text x="'+cx.toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+jjmm(d.lundi)+'</text>';
+    o+='<text x="'+cx.toFixed(1)+'" y="'+(h-6)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+(d.cours?'en cours':jjmm(d.lundi))+'</text>';
   });
   return o+'</svg>';
 }
@@ -1354,7 +1380,7 @@ function barreMacro(k,lib,v,t){
 }
 function vueJour(d){
   const c=d.cibles,a=d.aujourdhui;
-  let h=alertesGoutte(d)+'<section>';
+  let h=blocAttente()+alertesGoutte(d)+'<section>';
   if(c.kcal){
     const pk=pastilleKcal(a.kcal,c.kcal);
     h+='<div class="hero">'+anneauCalories(a.kcal,c.kcal,true)+'<div class="hero-d">'+
@@ -1658,6 +1684,10 @@ function blocRaccourcis(d){
   h+='<div class="rac-acc'+(R.ouvC?' o':'')+'"><button class="rac-tete" id="rac-tc" aria-expanded="'+(R.ouvC?'true':'false')+'">'+
     '<span class="rac-ic">▦</span><span class="rac-t"><b>Composer avec mes aliments</b><small>'+(R.ouvC?'Touche + pour ajouter une unité':(nbCat?nbCat+' aliment'+(nbCat>1?'s':'')+' enregistré'+(nbCat>1?'s':''):'Se remplit au fil des repas enregistrés'))+'</small></span><span class="rac-ch">›</span></button>';
   if(R.ouvC)h+=blocComposer(d,false);
+  h+='</div>';
+  h+='<div class="rac-acc'+(S.man.ouvert?' o':'')+'"><button class="rac-tete" id="rac-tm" aria-expanded="'+(S.man.ouvert?'true':'false')+'">'+
+    '<span class="rac-ic">✎</span><span class="rac-t"><b>Saisir à la main</b><small>Sans IA : tu tapes les calories et les macros</small></span><span class="rac-ch">›</span></button>';
+  if(S.man.ouvert)h+=blocManuel();
   h+='</div></section>';
   return h;
 }
@@ -1742,7 +1772,8 @@ function vueAjout(d){
     const lbl=A.ajoutEnCours?'Analyser et ajouter':'Analyser';
     h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':lbl)+'</button>';
     if(!pret)h+='<p class="aide">Prends une photo ou écris ce que tu as mangé pour lancer l’analyse.</p>';
-    if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
+    if(A.etat==='ko')h+=A.ajoutEnCours?'<p class="alerte">'+esc(A.message)+'</p>':blocEchecIA(A);
+    if(A.etat==='att')h+='<p class="bien">'+esc(A.message)+'</p>';
     h+='</section>';
     h+='<section><h2>Photo</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none"><div class="zone compact-photo">';
     if(A.apercu)h+='<img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div>';
@@ -1783,7 +1814,7 @@ function vueAjout(d){
       h+='</li>';
     });
     h+='<li class="al-plg"><span>Protéines / lipides / glucides</span><span id="e-plg">'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+
-       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>';
+       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+(r.secours==='groq'?'Groq':'Gemma')+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
       h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
@@ -2320,8 +2351,9 @@ function clsRepas(v,ci){
 function libCouleursEcart(){const s=sensObj();return s>0?'Vert = surplus (au-dessus de tes besoins, tu construis), orange = sous tes besoins.':(s===0?'Vert = à 150 kcal près de tes besoins, orange = plus loin.':'Vert = déficit (sous tes besoins, tu perds), orange = surplus.');}
 function noteRegulier(){
   const s=sensObj(),c=k=>'<span style="color:'+coulPente(k,0.2)+'">';
-  if(s===0)return 'Chaque barre est la variation de poids d’une semaine à l’autre. '+c(0)+'Vert</span> : poids stable (moins de 0,2 kg). '+c(1)+'Ambre</span> : ça bouge, dans un sens ou dans l’autre.';
-  return 'Chaque barre est la variation de poids d’une semaine à l’autre. '+c(s)+'Vert</span> : tu '+(s>0?'prends':'perds')+'. '+c(0)+'Ambre</span> : tu stagnes (moins de 0,2 kg). '+c(-s)+'Orange</span> : tu '+(s>0?'perds':'reprends')+'. La régularité compte plus que la vitesse.';
+  const base='Chaque barre compare ta dernière pesée de la semaine à celle de la semaine d’avant (différence réelle en kg ; ramenée à une semaine quand plus de 7 jours séparent les deux pesées). La semaine en cours est en transparence : elle bouge jusqu’à dimanche. ';
+  if(s===0)return base+c(0)+'Vert</span> : poids stable (moins de 0,2 kg). '+c(1)+'Ambre</span> : ça bouge, dans un sens ou dans l’autre.';
+  return base+c(s)+'Vert</span> : tu '+(s>0?'prends':'perds')+'. '+c(0)+'Ambre</span> : tu stagnes (moins de 0,2 kg). '+c(-s)+'Orange</span> : tu '+(s>0?'perds':'reprends')+'. La régularité compte plus que la vitesse.';
 }
 function phraseAccord(diff){
   const s=sensObj(),e=kgTxt(Math.abs(diff));
@@ -2537,7 +2569,7 @@ function ongletQualite(d,P){
   h+=blocAlcool(d)+'</div><div class="nut-sel" role="tablist">';
   NUTS.forEach(x=>{h+='<button data-cnut="'+x+'" class="'+(x===k?'on':'')+'">'+Q[x].court+'</button>';});
   h+='<button data-cnut="alcool" class="'+(k==='alcool'?'on':'')+'">Alcool</button></div>';
-  if(k==='alcool')return h+graphiqueAlcool(d,n)+aide('<p class="note">1 verre standard = 10 g d\'alcool pur : un demi de bière (25 cl à 5 %), un verre de vin (10 cl), une coupe de champagne, un petit verre d\'alcool fort (3 cl). Repères de Santé publique France : au plus 10 verres par semaine, 2 par jour, et des jours sans alcool. Pour l\'acide urique, la bière compte double : alcool et purines.</p>');
+  if(k==='alcool')return h+graphiqueAlcool(d,n)+aide('<p class="note">1 verre standard = 10 g d\'alcool pur : un demi de bière (25 cl à 5 %), un verre de vin (10 cl), une coupe de champagne, un petit verre d\'alcool fort (3 cl). Repères de Santé publique France : au plus 10 verres par semaine, 2 par jour, et des jours sans alcool. Pour l\'acide urique, la bière est un facteur aggravant : elle apporte à la fois de l\'alcool et des purines.</p>');
   const par={};js.forEach(j=>{if(j[k]!==null&&j[k]!==undefined)par[j.date]=Math.round(Number(j[k])||0);});
   h+=barresSeuil(joursCalendaires(n,par),{seuil:q.max,bonSiHaut:q.plancher,libSeuil:(q.plancher?'objectif ':'max ')+nb(q.max)+' '+q.u,titre:q.lib+' par jour',cle:'nut',fmt:v=>nb(v)+' '+q.u});
   // ce qui en apporte le plus : aliments des repas chargés (deux dernières semaines au plus)
@@ -2638,12 +2670,12 @@ function sectionGoutte(d){
 /* ---------- Alcool en verres standard ----------
    1 verre standard = 10 g d'alcool pur (25 cl de bière à 5 %, 10 cl de vin à 12 %, 3 cl d'alcool fort).
    Repères Santé publique France : 10 verres par semaine au maximum, 2 par jour, des jours sans. */
-function verresNb(g){return Math.round((Number(g)||0))/10;}
-function verresTxt(g){const v=verresNb(g);return String(v).replace('.',',')+' verre'+(v>1?'s':'');}
+function verresNb(g){return Math.round((Number(g)||0)/10);}
+function verresTxt(g){const v=verresNb(g);if(!v&&(Number(g)||0)>0)return 'moins d\u2019un verre';return v+' verre'+(v>1?'s':'');}
 function barreAlcool(g){
-  const v=verresNb(g),bon=v<=2,coul=bon?'var(--under)':(v<=3?'var(--jaune)':'var(--over)');
-  return '<div class="hm"><div class="hm-l"><span>Alcool <b>'+String(v).replace('.',',')+'</b> / 2 verres</span><span class="hm-e" style="color:'+coul+'">'+(bon?'dans le repère':'au-delà du repère')+'</span></div>'+
-    '<div class="hm-b"><i style="width:'+Math.min(100,v/2*100).toFixed(0)+'%;background:'+coul+'"></i></div></div>';
+  const x=Number(g)||0,v=verresNb(x),bon=x<=20,coul=bon?'var(--under)':(x<=30?'var(--jaune)':'var(--over)');
+  return '<div class="hm"><div class="hm-l"><span>Alcool <b>'+(!v&&x>0?'<1':v)+'</b> / 2 verres</span><span class="hm-e" style="color:'+coul+'">'+(bon?'dans le repère':'au-delà du repère')+'</span></div>'+
+    '<div class="hm-b"><i style="width:'+Math.min(100,x/20*100).toFixed(0)+'%;background:'+coul+'"></i></div></div>';
 }
 // Jours avec l'alcool : null = non suivi (repas antérieurs au suivi), sinon grammes d'alcool pur.
 function alcJour(j){if(!j||!(j.repas>0))return {st:'vide'};if(j.alcool===null||j.alcool===undefined)return {st:'ns'};return {st:'ok',g:Number(j.alcool)||0};}
@@ -2667,7 +2699,7 @@ function semainesAlcool(d,nbs){
   }
   return res;
 }
-function coulVerres(v){return v<=0?'var(--under)':(v<=2?'var(--jaune)':'var(--over)');}
+function coulVerres(g){return g<=0?'var(--under)':(g<=20?'var(--jaune)':'var(--over)');}
 function blocAlcool(d){
   const W=semainesAlcool(d,2),c=W[0],p=W[1];
   const cours='cette semaine : '+(c.suivis?vTxt(verresNb(c.g))+' pour l’instant':'rien de noté');
@@ -2687,8 +2719,8 @@ function graphiqueAlcool(d,n){
       if(e.futur)h+='<i class="alc-c alc-f"></i>';
       else if(e.st==='vide')h+='<i class="alc-c alc-v" title="'+t+' : pas de repas">–</i>';
       else if(e.st==='ns')h+='<i class="alc-c alc-ns" title="'+t+' : non suivi">?</i>';
-      else{const v=verresNb(e.g);
-        h+='<i class="alc-c'+(e.auj?' alc-auj':'')+'" title="'+t+' : '+verresTxt(e.g)+'" style="'+(e.auj&&!v?'background:transparent;color:var(--soft)':'background:'+coulVerres(v))+'">'+(v?vTxt(v):(e.auj?'·':'0'))+'</i>';}
+      else{const v=verresNb(e.g),peu=!v&&e.g>0;
+        h+='<i class="alc-c'+(e.auj?' alc-auj':'')+'" title="'+t+' : '+verresTxt(e.g)+'" style="'+(e.auj&&!e.g?'background:transparent;color:var(--soft)':'background:'+coulVerres(e.g))+'">'+(v?v:(peu?'<1':(e.auj?'·':'0')))+'</i>';}
     });
     const v=verresNb(s.g),tot=s.suivis?'<b style="color:'+(v<=10?'var(--under)':'var(--over)')+'">'+vTxt(v)+'</b>':'<b>–</b>';
     h+='<span class="alc-s">'+tot+'</span></div>';
@@ -2697,10 +2729,125 @@ function graphiqueAlcool(d,n){
   h+='<div class="alc-leg"><span><i style="background:var(--under)"></i>aucun</span><span><i style="background:var(--jaune)"></i>1 à 2 verres</span><span><i style="background:var(--over)"></i>plus de 2</span><span><i class="alc-ns"></i>non suivi</span></div>';
   // moyenne sur les semaines passées suivies au moins 5 jours
   const pl=W.slice(1).filter(s=>s.suivis>=5&&!s.ns);
-  if(pl.length>1)h+='<div class="micro">Moyenne '+vTxt(Math.round(pl.reduce((t,s)=>t+verresNb(s.g),0)/pl.length*10)/10)+' verres par semaine sur '+pl.length+' semaines complètes.</div>';
+  if(pl.length>1)h+='<div class="micro">Moyenne '+Math.round(pl.reduce((t,s)=>t+s.g,0)/pl.length/10)+' verres par semaine sur '+pl.length+' semaines complètes.</div>';
   if(deb&&W.some(s=>s.ns))h+='<div class="micro">Alcool suivi depuis le '+jjmm(deb)+' : les jours d’avant (?) ne comptent dans aucune moyenne.</div>';
   else if(!deb)h+='<div class="micro">Pas encore de repas avec le suivi de l’alcool.</div>';
   return h+'</div>';
+}
+
+/* ---------- Sans IA : saisie à la main et repas en attente d'analyse ----------
+   Saisie à la main : l'utilisateur tape les valeurs, l'appli calcule les purines avec la
+   même table que le workflow (famille × grammes), puis passe par l'écran de résultat
+   habituel et l'action « enregistrer » (aucun appel à l'IA).
+   En attente : quand l'IA refuse, la photo et la description sont gardées sur l'iPhone
+   (localStorage « suivi.attente ») ; l'appli relance l'analyse à l'ouverture, au retour
+   du réseau et toutes les 4 minutes, puis enregistre au jour et au créneau d'origine
+   avec un identifiant fixe (pas de doublon si l'enregistrement est rejoué). */
+const FAMILLES=[['autre','Autre / mélange'],['volaille','Volaille'],['viande_rouge','Viande rouge'],['porc','Porc'],['charcuterie','Charcuterie'],
+  ['abats','Abats'],['poisson_gras','Poisson gras'],['poisson_blanc','Poisson blanc'],['petits_poissons','Petits poissons (sardine, anchois)'],
+  ['fruits_de_mer','Fruits de mer'],['oeuf','Œuf'],['laitier','Laitage, fromage'],['legumes','Légumes'],['legumes_riches','Champignons, épinards, asperges'],
+  ['legumineuses','Légumineuses'],['soja','Soja, tofu'],['cereales_raffinees','Pain, pâtes, riz, pommes de terre'],['cereales_completes','Céréales complètes'],
+  ['fruits','Fruits'],['oleagineux','Oléagineux'],['sucreries','Sucreries, desserts'],['matiere_grasse','Matière grasse, sauce'],
+  ['boisson','Boisson (hors bière)'],['biere','Bière'],['bouillon_viande','Bouillon de viande']];
+const PUR_FAM={abats:[400,1],petits_poissons:[330,1],poisson_gras:[180,1],poisson_blanc:[110,1],fruits_de_mer:[150,1],viande_rouge:[120,1],
+  porc:[130,1],volaille:[150,1],charcuterie:[110,1],bouillon_viande:[40,1],biere:[15,1],oeuf:[5,0],laitier:[5,0],legumineuses:[70,0],soja:[70,0],
+  legumes_riches:[50,0],legumes:[15,0],fruits:[10,0],cereales_raffinees:[30,0],cereales_completes:[60,0],oleagineux:[60,0],sucreries:[20,0],
+  matiere_grasse:[0,0],boisson:[0,0],autre:[30,0]};
+function numSaisi(v){const x=Number(String(v==null?'':v).replace(/\s/g,'').replace(',','.'));return isNaN(x)||x<0?0:x;}
+// "230 g", "33 cl", "1,5 l", "50 ml" -> grammes (ou ml) ; sinon 0
+function grammesDe(q){
+  const m=String(q||'').toLowerCase().replace(',','.').match(/(\d+(?:\.\d+)?)\s*(kg|g|gr|grammes?|mg|ml|cl|dl|l|litres?)(?![a-zà-ÿ])/);
+  if(!m)return 0;const v=parseFloat(m[1]),u=m[2];
+  if(u==='kg'||u==='l'||u.indexOf('litre')===0)return v*1000;if(u==='cl')return v*10;if(u==='dl')return v*100;if(u==='mg')return v/1000;return v;
+}
+function manVide(nom){return {nom:nom||'',quantite:'',kcal:'',prot:'',lip:'',gluc:'',satures:'',fibres:'',sucres_ajoutes:'',sodium:'',verres:'',famille:'autre'};}
+function alimentManuel(m){
+  const R1=x=>Math.round(numSaisi(x)*10)/10;
+  const fam=PUR_FAM[m.famille]?m.famille:'autre',g=Math.round(grammesDe(m.quantite)),t=PUR_FAM[fam],pur=Math.round(g*t[0]/100);
+  return {nom:String(m.nom||'').trim().slice(0,80),quantite:String(m.quantite||'').trim().slice(0,40),kcal:Math.round(numSaisi(m.kcal)),
+    prot:R1(m.prot),lip:R1(m.lip),gluc:R1(m.gluc),fibres:R1(m.fibres),sucres:0,sodium:Math.round(numSaisi(m.sodium)),satures:R1(m.satures),
+    sucres_ajoutes:R1(m.sucres_ajoutes),famille:fam,grammes:g,purines:pur,purines_risque:t[1]?pur:0,alcool:Math.round(numSaisi(m.verres)*100)/10,sucree:0};
+}
+function totalManuel(){
+  const t={kcal:0,prot:0,lip:0,gluc:0};
+  (S.man.als||[]).forEach(m=>{t.kcal+=numSaisi(m.kcal);t.prot+=numSaisi(m.prot);t.lip+=numSaisi(m.lip);t.gluc+=numSaisi(m.gluc);});
+  return nb(Math.round(t.kcal))+' kcal · P '+nb(Math.round(t.prot))+' · L '+nb(Math.round(t.lip))+' · G '+nb(Math.round(t.gluc));
+}
+function blocManuel(){
+  const M=S.man;if(!M.als.length)M.als=[manVide('')];
+  const ch=(i,k,lib,ph,mode)=>'<div><label for="mf-'+i+'-'+k+'">'+lib+'</label><input id="mf-'+i+'-'+k+'" data-mf="'+i+'.'+k+'" value="'+esc(M.als[i][k])+'"'+
+    (ph?' placeholder="'+ph+'"':'')+(mode?' inputmode="'+mode+'"':'')+'></div>';
+  let h='<div class="rac-contenu">';
+  M.als.forEach((m,i)=>{
+    h+='<div class="man-al"><div class="man-t"><b>Aliment '+(i+1)+'</b><span id="man-k-'+i+'">'+nb(Math.round(numSaisi(m.kcal)))+' kcal</span>'+
+      (M.als.length>1?'<button class="lien" data-mdel="'+i+'">Retirer</button>':'')+'</div>'+
+      ch(i,'nom','Nom','Ex : poulet rôti avec la peau')+
+      '<div class="man-g2">'+ch(i,'quantite','Quantité','Ex : 230 g')+ch(i,'kcal','Calories','kcal','decimal')+'</div>'+
+      '<div class="man-g3">'+ch(i,'prot','Protéines g','0','decimal')+ch(i,'lip','Lipides g','0','decimal')+ch(i,'gluc','Glucides g','0','decimal')+'</div>'+
+      '<label for="mf-'+i+'-famille">Famille (pour les purines)</label><select id="mf-'+i+'-famille" data-mf="'+i+'.famille">'+
+        FAMILLES.map(f=>'<option value="'+f[0]+'"'+(m.famille===f[0]?' selected':'')+'>'+f[1]+'</option>').join('')+'</select>'+
+      '<details class="aide"><summary>Qualité et alcool (facultatif)</summary>'+
+        '<div class="man-g3">'+ch(i,'satures','Saturées g','0','decimal')+ch(i,'fibres','Fibres g','0','decimal')+ch(i,'sucres_ajoutes','Sucres aj. g','0','decimal')+'</div>'+
+        '<div class="man-g2">'+ch(i,'sodium','Sodium mg','0','decimal')+ch(i,'verres','Alcool (verres)','0','decimal')+'</div></details></div>';
+  });
+  h+='<button class="raccourci" id="man-plus">+ Ajouter un aliment</button>'+
+    '<div class="man-tot"><span>Total</span><b id="man-tot">'+totalManuel()+'</b></div>';
+  if(M.msg)h+='<p class="alerte">'+esc(M.msg)+'</p>';
+  h+='<button class="primaire" id="man-ok">Continuer</button>'+
+    '<p class="note">Quantité en g, cl ou ml pour que les purines soient calculées. Continuer ouvre l’écran habituel : choix du repas et du jour, puis Enregistrer. Chaque aliment saisi rejoint ensuite « Mes aliments ».</p></div>';
+  return h;
+}
+function blocEchecIA(A){
+  const ia=/IA|indisponible|satur|quota|Google/i.test(A.message||'');
+  return '<div class="att att-ko"><div class="att-titre">'+(ia?'L’IA de Google ne répond pas':'L’analyse n’a pas abouti')+'</div>'+
+    '<p class="alerte" style="margin:4px 0 10px">'+esc(A.message)+'</p>'+
+    '<div class="rac-btns" style="margin-top:0"><button class="p" id="att-plus">⏳ Analyser plus tard</button><button class="s" id="man-depuis">✎ Saisir à la main</button></div>'+
+    '<p class="note" style="margin-top:8px;font-size:12px">Plus tard : l’appli relance l’analyse toute seule dès que l’IA répond et enregistre le repas au bon jour, en '+esc(libelleRepas(A.repas||repasParHeure()))+'.</p></div>';
+}
+function lireAttente(){try{const a=JSON.parse(localStorage.getItem('suivi.attente'));return Array.isArray(a)?a:[];}catch(e){return [];}}
+function ecrireAttente(){try{localStorage.setItem('suivi.attente',JSON.stringify(S.att||[]));return true;}catch(e){return false;}}
+function blocAttente(){
+  let h='';
+  if(S.attFait){const f=S.attFait;
+    h+='<div class="att att-bon"><div class="att-titre">✓ '+esc(f.repas)+' du '+jjmm(f.date)+' analysé : '+nb(f.kcal)+' kcal</div>'+
+      '<p class="note" style="margin:4px 0 8px">Enregistré dès que l’IA a répondu. Vérifie-le dans Journal si besoin.</p><button class="lien" id="att-ok">OK</button></div>';}
+  const L=S.att||[];
+  if(L.length){
+    h+='<div class="att"><div class="att-titre">⏳ '+L.length+' repas en attente d’analyse</div>';
+    L.forEach(it=>{
+      const quand=it.essai?' · dernier essai '+new Date(it.essai).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+      h+='<div class="att-l"><div>'+esc(libelleRepas(it.repas))+' du '+jjmm(it.date)+(it.photo?' · photo':'')+(it.desc?' · « '+esc(String(it.desc).slice(0,60))+' »':'')+quand+'</div>'+
+        '<div class="att-a"><button class="lien" data-att-man="'+esc(it.id)+'">Saisir à la main</button><button class="lien" data-att-del="'+esc(it.id)+'">Retirer</button></div></div>';
+    });
+    h+='<button class="raccourci" id="att-go"'+(S.attEtat==='envoi'?' disabled':'')+'>'+(S.attEtat==='envoi'?'<span class="attente"></span>Analyse en cours':'Réessayer maintenant')+'</button>'+
+      '<p class="note" style="margin-top:8px;font-size:12px">L’appli réessaie à chaque ouverture et toutes les 4 minutes quand elle est ouverte. Ces repas ne comptent dans ta journée qu’une fois analysés.</p></div>';
+  }
+  return h?'<section class="att-z">'+h+'</section>':'';
+}
+let attEnCours=false;
+async function traiterAttente(force){
+  if(attEnCours||!S.cfg)return;
+  S.att=lireAttente();if(!S.att.length)return;
+  if(typeof navigator!=='undefined'&&navigator.onLine===false)return;
+  if(!force&&Date.now()-(S.attDernier||0)<240000)return;
+  S.attDernier=Date.now();attEnCours=true;S.attEtat='envoi';
+  if(S.vue==='jour'&&!S.reglages)rendre();
+  let fait=0;
+  try{
+    for(const it of S.att.slice()){
+      try{
+        const r=await appel({action:'repas',repas:it.repas,description:it.desc||'',photo:it.photo||'',mime:'image/jpeg'});
+        const lib=libelleRepas(it.repas),t=r.total||{};
+        const l=Object.assign({detail:(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', '),kcal:t.kcal||0,prot:t.prot||0,lip:t.lip||0,gluc:t.gluc||0,
+          fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,satures:t.satures||0,sucres_ajoutes:t.sucres_ajoutes||0,nutriscore:''},r.ligne||{},{repas:lib});
+        const w=await appel(Object.assign({action:'enregistrer',date:it.date},l,{id:it.id,aliments:alimentsAEnvoyer(r)}));
+        S.att=S.att.filter(x=>x.id!==it.id);ecrireAttente();fait++;
+        S.attFait={repas:lib,kcal:(w&&w.kcal)||l.kcal,date:it.date};
+      }catch(e){it.essai=Date.now();it.err=(e&&e.message)||'';ecrireAttente();break;}
+    }
+  }finally{attEnCours=false;S.attEtat=null;}
+  if(fait){try{await rafraichir();}catch(e){}}
+  if(!S.reglages&&(S.vue==='jour'||(fait&&S.vue!=='ajout')))rendre();
 }
 
 function vueCoach(){
@@ -2810,7 +2957,7 @@ function vueRéglages(d){
   h+='<section><h2>Application</h2>'+
     '<p class="note">Dernière mise à jour le : '+esc(formatVersion(APP_VERSION))+'</p>'+
     '<button class="primaire" id="g-actualiser">Actualiser l\'application</button>'+
-    aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir. '+
+    aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir, « Saisir à la main » marche sans IA. '+
       '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories, purines et qualité (saturées, fibres, sodium, sucres ajoutés, alcool) sur la période choisie. <b>Corps</b> : pesée, pas, mensurations, photos et crises de goutte. '+
       '<b>Journal</b> : tout ce qui est noté, semaine par semaine. <b>Coach</b> : une question sur ton alimentation.</p>'+
       '<p class="note">Les couleurs suivent ton objectif : vert quand tu vas dans son sens, orange quand tu t\'en écartes.</p>','Comment ça marche ?')+
@@ -3258,6 +3405,18 @@ function sectionPesee(d){
     (S.pesée.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
   if(S.pesée.etat==='ko')h+='<p class="alerte">'+esc(S.pesée.message)+'</p>';
   if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
+  if(p.length){
+    const kg=v=>String((Math.round(v*10)/10).toFixed(1)).replace('.',',');
+    h+='<details class="aide pes-hist" id="pes-hist"'+(S.pesée.histOuv?' open':'')+'><summary>Toutes mes pesées ('+p.length+')</summary><div class="pes-l">';
+    for(let i=p.length-1;i>=0;i--){
+      const r=p[i],prec=p[i-1];
+      let e='<span class="e"></span>';
+      if(prec){const df=Math.round((r.poids-prec.poids)*10)/10,dj=jourNum(r.date)-jourNum(prec.date);
+        e='<span class="e" style="color:'+coulPente(df,0.2)+'">'+(df>0?'+':df<0?'\u2212':'')+kg(Math.abs(df))+' <small>'+dj+' j</small></span>';}
+      h+='<span class="d">'+jourSemaine(r.date)+' '+jjmm(r.date)+'</span><span class="k">'+kg(r.poids)+' kg</span>'+e;
+    }
+    h+='</div><p class="note">Écart avec la pesée précédente et nombre de jours entre les deux.</p></details>';
+  }
   return h+'</section>';
 }
 /* ---------- photos : stockage local (IndexedDB) + récupération serveur ---------- */
@@ -3685,6 +3844,54 @@ function brancher(){
   // --- raccourcis : refaire un repas / composer avec mes aliments ---
   on('#rac-tr','click',()=>{S.rac.ouvR=!S.rac.ouvR;S.rac.msg='';rendre();});
   on('#rac-tc','click',()=>{S.rac.ouvC=!S.rac.ouvC;rendre();});
+  // --- sans IA : saisie à la main, repas en attente ---
+  on('#rac-tm','click',()=>{const M=S.man;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();});
+  document.querySelectorAll('[data-mf]').forEach(el=>{
+    const maj=()=>{const p=el.dataset.mf.split('.'),i=Number(p[0]),m=S.man.als[i];if(!m)return;m[p[1]]=el.value;
+      const k=$('#man-k-'+i);if(k)k.textContent=nb(Math.round(numSaisi(m.kcal)))+' kcal';const t=$('#man-tot');if(t)t.textContent=totalManuel();};
+    el.addEventListener('input',maj);el.addEventListener('change',maj);
+  });
+  on('#man-plus','click',()=>{S.man.als.push(manVide(''));S.man.msg='';rendre();});
+  document.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click',()=>{S.man.als.splice(Number(b.dataset.mdel),1);rendre();}));
+  on('#man-ok','click',()=>{
+    const M=S.man,A=S.ajout;
+    const bad=M.als.findIndex(m=>!String(m.nom||'').trim()||!(numSaisi(m.kcal)>0));
+    if(bad>=0){M.msg='Aliment '+(bad+1)+' : il faut au moins un nom et des calories.';rendre();return;}
+    const als=M.als.map(alimentManuel),cr=M.cr||repasParHeure();
+    const prec=paquetRepas();
+    if(prec)A.histo=[prec].concat(A.histo||[]).slice(0,MAX_HISTO);
+    A.enregistre=null;A.ajoutEnCours=false;A.repas=cr;
+    A.resultat=resultatDepuis(als,cr,'Saisi à la main, sans analyse.');
+    A.confirm=null;A.message='';A.dateAutre=M.date||auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
+    S.man={ouvert:false,als:[],msg:'',cr:null};
+    ecrireRepasCache();rendre();hautPage();
+  });
+  on('#man-depuis','click',()=>{
+    const A=S.ajout;S.man={ouvert:true,als:[manVide(String(A.desc||'').trim().slice(0,80))],msg:'',cr:A.repas||repasParHeure()};
+    A.etat=null;A.message='';rendre();hautPage();
+  });
+  on('#att-plus','click',()=>{
+    const A=S.ajout;S.att=lireAttente();
+    const it={id:nouvelId(),date:auj(),repas:A.repas||repasParHeure(),desc:String(A.desc||''),photo:A.photo||'',cree:Date.now(),essai:Date.now(),err:''};
+    S.att.push(it);
+    if(!ecrireAttente()){S.att.pop();A.message='Impossible de garder la photo sur l’iPhone (mémoire pleine). Saisis ce repas à la main.';rendre();return;}
+    A.etat='att';A.message=libelleRepas(it.repas)+' mis en attente. Il sera analysé et enregistré dès que l’IA répondra : suis-le sur l’écran Jour.';
+    A.photo=null;A.apercu=null;A.taille=0;A.desc='';S.attDernier=Date.now();
+    rendre();
+  });
+  on('#att-go','click',()=>traiterAttente(true));
+  on('#att-ok','click',()=>{S.attFait=null;rendre();});
+  document.querySelectorAll('[data-att-del]').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm('Retirer ce repas en attente ? Il ne sera pas analysé.'))return;
+    S.att=lireAttente().filter(x=>x.id!==b.dataset.attDel);ecrireAttente();rendre();
+  }));
+  document.querySelectorAll('[data-att-man]').forEach(b=>b.addEventListener('click',()=>{
+    const L=lireAttente(),it=L.find(x=>x.id===b.dataset.attMan);if(!it)return;
+    S.att=L.filter(x=>x.id!==it.id);ecrireAttente();
+    S.man={ouvert:true,als:[manVide(String(it.desc||'').trim().slice(0,80))],msg:'',cr:it.repas,date:it.date};
+    S.vue='ajout';S.ajout.resultat=null;S.ajout.etat=null;rendre();hautPage();
+  }));
+
   document.querySelectorAll('#rac-crr button').forEach(b=>b.addEventListener('click',()=>{S.rac.crR=b.dataset.cr;S.rac.msg='';rendre();}));
   document.querySelectorAll('#rac-crc button').forEach(b=>b.addEventListener('click',()=>{S.rac.crC=b.dataset.cr;rendre();}));
   document.querySelectorAll('[data-cp]').forEach(b=>b.addEventListener('click',()=>{
@@ -4039,6 +4246,7 @@ function brancher(){
   on('#p-moins','click',()=>{const v=litPoids();S.pesée.val=Math.max(30,(v===null?S.pesée.val:v)-0.1);S.pesée.etat=null;rendre();});
   on('#p-plus','click',()=>{const v=litPoids();S.pesée.val=Math.min(300,(v===null?S.pesée.val:v)+0.1);S.pesée.etat=null;rendre();});
   on('#p-val','input',()=>{const v=litPoids();if(v!==null)S.pesée.val=v;});
+  on('#pes-hist','toggle',e=>{S.pesée.histOuv=e.target.open;});
   on('#p-envoi','click',async()=>{
     const v=litPoids();
     if(v===null||v<30||v>300){
@@ -4374,6 +4582,7 @@ async function demarrer(){
   S.crb=courbesInit();
   S.corps.onglet=corpsOngletInit();
   S.file=lirePending();
+  S.att=lireAttente();
   const cache=lireRepasCache();
   if(cache){
     S.ajout.histo=Array.isArray(cache.histo)?cache.histo.slice(0,MAX_HISTO):[];
@@ -4395,6 +4604,7 @@ async function demarrer(){
     connexion(e.message+' Vérifie l\'adresse et le code.');
   }
   rejouerPending();
+  traiterAttente(true);
 }
 
 function jourChange(){
@@ -4408,6 +4618,7 @@ document.addEventListener('visibilitychange',()=>{
   }
   if(!S.cfg||!S.data||S.reglages)return;
   rejouerPending();
+  traiterAttente();
   // on force le rafraichissement si on a changé de jour, sinon un par minute au plus
   if(!jourChange()&&Date.now()-dernierAppel<60000)return;
   rafraichir().then(rendre).catch(()=>{});
@@ -4418,9 +4629,10 @@ setInterval(()=>{
   if(jourChange())rafraichir().then(rendre).catch(()=>{});
   // relance la file d'attente si elle contient encore des repas (ex. apres un 429)
   if((S.file||[]).length)rejouerPending();
+  traiterAttente();
 },60000);
 // rejeu de la file d'attente hors ligne au retour du reseau
-window.addEventListener('online',()=>{if(S.cfg&&S.data)rejouerPending();});
+window.addEventListener('online',()=>{if(S.cfg&&S.data){rejouerPending();traiterAttente(true);}});
 async function actualiserApplication(){
   if(!('serviceWorker' in navigator))return;
   const registration=await navigator.serviceWorker.ready;
