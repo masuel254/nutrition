@@ -609,7 +609,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='29/09/2026 20h01';
+const APP_VERSION='29/09/2026 21h24';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3122,18 +3122,25 @@ function alertesGoutte(d){
   const a=d.aujourdhui||{},max=purMax(d),ajd=auj(),al=[];
   if(!(d.jours||[]).some(j=>j.purines>0)&&!(a.purines>0))return '';
   const r=Math.round(a.purines_risque||0);
-  if(r>max){
-    const top=(d.journal||[]).filter(x=>x.date===ajd&&(x.purines_risque||0)>0).sort((x,y)=>(y.purines_risque||0)-(x.purines_risque||0))[0];
-    al.push('<b>Plafond dépassé aujourd\'hui</b> : '+nb(r)+' mg pour '+nb(max)+' mg.'+
-      (top?' Le plus chargé : '+esc(top.repas)+', '+esc(String(top.detail||'').slice(0,60))+' ('+nb(top.purines_risque)+' mg).':'')+
+  // alerte seulement au-delà du plafond + 20 % (un léger dépassement n'est pas une alerte)
+  const seuilA=Math.round(max*1.2);
+  if(r>seuilA){
+    // l'aliment le plus chargé du jour (pas le début du texte du repas)
+    let top=null;
+    (d.journal||[]).filter(x=>x.date===ajd).forEach(x=>{
+      const als=Array.isArray(x.aliments)&&x.aliments.length?x.aliments:[{nom:x.detail,quantite:'',purines_risque:x.purines_risque}];
+      als.forEach(al=>{const v=Number(al.purines_risque)||0;if(v>0&&(!top||v>top.v))top={v:v,nom:String(al.nom||'').trim(),q:String(al.quantite||'').trim(),repas:x.repas};});
+    });
+    al.push('<b>Plafond dépassé de plus de 20 % aujourd\'hui</b> : '+nb(r)+' mg pour '+nb(max)+' mg.'+
+      (top?' Le plus chargé : '+esc(top.nom.slice(0,50))+(top.q?' ('+esc(top.q.slice(0,25))+')':'')+', '+nb(top.v)+' mg au '+esc(String(top.repas||'').toLowerCase())+'.':'')+
       ' Pour le reste de la journée : œufs, laitages, légumes, féculents.');
   }
   // jours consécutifs au-dessus du plafond, en remontant depuis aujourd'hui (ou hier si rien aujourd'hui)
   const par={};(d.jours||[]).forEach(j=>{par[j.date]=j;});
   let n=0;const x=new Date();x.setHours(12,0,0,0);
-  if(!(r>max))x.setDate(x.getDate()-1);
-  for(let i=0;i<30;i++){const j=par[isoLocal(x)];if(j&&(j.purines_risque||0)>max){n++;x.setDate(x.getDate()-1);}else break;}
-  if(n>=3)al.push('<b>'+n+' jours d\'affilée au-dessus du plafond.</b> C\'est la répétition qui fait monter l\'acide urique : prévois une journée sans viande ni poisson.');
+  if(!(r>seuilA))x.setDate(x.getDate()-1);
+  for(let i=0;i<30;i++){const j=par[isoLocal(x)];if(j&&(j.purines_risque||0)>seuilA){n++;x.setDate(x.getDate()-1);}else break;}
+  if(n>=3)al.push('<b>'+n+' jours d\'affilée à plus de 20 % au-dessus du plafond.</b> C\'est la répétition qui fait monter l\'acide urique : prévois une journée sans viande ni poisson.');
   const s7=sept(d).concat([a]);
   const jAlc=s7.filter(j=>(Number(j.alcool)||0)>0).length,gAlc=s7.reduce((t,j)=>t+(Number(j.alcool)||0),0);
   if(jAlc>=3||gAlc>=70)al.push('<b>Alcool '+jAlc+' jour'+(jAlc>1?'s':'')+' sur 7</b> ('+verresTxt(gAlc)+'). La bière et les alcools forts freinent l\'élimination de l\'acide urique, la bière apporte en plus ses propres purines.');
