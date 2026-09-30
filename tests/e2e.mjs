@@ -117,6 +117,14 @@ ok(/aujourd.hui en cours : 26 g/i.test(await texte('.vue.on .tuiles.t2')), 'Cour
 ok((await page.locator('.vue.on .alc .alc-ns').count()) > 0 && /suivi depuis le/i.test(await texte('.vue.on .alc')), 'Courbes : alcool, jours d avant le suivi en non suivi');
 await page.click('[data-cong="purines"]');
 ok(await page.locator('.vue.on svg path[fill="var(--rouge)"]').count() === 1, 'Purines : repère de la crise sur le graphique');
+await page.click('[data-cper="30"]');
+await page.locator('.vue.on [data-bar="pur|' + jour(-1) + '"]').click();
+ok(/Midi\s*225 mg/.test(await texte('.vue.on .jd')) && /Blanc de poulet · 150 g\s*225/.test(await texte('.vue.on .jd')) && await page.locator('.vue.on .pur-top').count() === 0, 'Purines : barre touchée, détail du jour par repas et par aliment');
+const nJ = appels.filter(a => a.action === 'journal').length;
+await page.locator('.vue.on [data-bar="pur|' + jour(-20) + '"]').click(); await page.waitForTimeout(600);
+ok(appels.filter(a => a.action === 'journal').length === nJ + 1 && /Blanc de poulet/.test(await texte('.vue.on .jd')), 'Purines : jour ancien, semaine chargée à la demande');
+await page.click('.vue.on [data-bar-off="pur"]');
+ok(await page.locator('.vue.on .jd').count() === 0 && await page.locator('.vue.on .pur-top').count() === 1, 'Purines : retour aux repas les plus chargés');
 await page.click('[data-cong="poids"]');
 await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="goutte"]');
 ok(await page.locator('.crise').count() === 1 && /gros orteil/.test(await texte('.crise')), 'Corps : onglet Goutte, crise listée avec son analyse');
