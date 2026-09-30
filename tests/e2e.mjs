@@ -67,6 +67,7 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
   if (q.action === 'crise') return json({ ok: true });
+  if (q.action === 'favoris') return json({ ok: true, favoris: q.favoris });
   if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
   if (q.action === 'admin') return json({ ok: true, comptes: [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true }], invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined });
   if (q.action === 'params') return json({ ok: true, objectif: q.objectif, cible: 3000, activite: 'Sedentaire', mode: 'Prise de masse' });
@@ -169,6 +170,13 @@ if (!(await page.locator('#rac-tc').count())) await page.click('nav button[data-
 await page.click('#rac-tc'); await page.click('#rac-crc button[data-cr="tous"]');
 await page.locator('[data-cp]').first().click(); await page.locator('[data-cp]').first().click();
 ok(/2 unités/.test(await texte('#rac-valide')), 'composer : compteur d\'unités');
+const barre = await page.locator('#rac-valide').boundingBox(), navH = await page.locator('nav').boundingBox();
+ok(barre && navH && barre.y + barre.height <= navH.y + 1 && barre.y > navH.y - 120, 'composer : barre de validation collée au-dessus du menu');
+await page.locator('.rac-l:not([hidden]) [data-fav]').nth(1).click(); await page.waitForTimeout(1200);
+const fv = appels.filter(a => a.action === 'favoris').pop();
+ok(await page.locator('.rac-l.fav').count() === 1 && /Mes favoris · 1/i.test(await texte('#rac-grille')) && fv && fv.favoris.length === 1, 'composer : ★ met en favori en tête de liste et l\'envoie au serveur');
+await page.locator('.rac-l.fav [data-fav]').click(); await page.waitForTimeout(1200);
+ok(await page.locator('.rac-l.fav').count() === 0 && appels.filter(a => a.action === 'favoris').pop().favoris.length === 0, 'composer : retoucher ★ retire le favori');
 await page.click('#rac-valide');
 ok(await page.locator('.resu-al li').count() >= 2, 'composer : résultat construit sans IA');
 await page.click('#a-nouveau');
