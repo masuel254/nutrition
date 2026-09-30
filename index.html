@@ -446,19 +446,26 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .rac-btns .p{background:var(--under);color:var(--paper)}
 .rac-btns .s{border:1px solid var(--rule);color:var(--ink)}
 .rac-cherche{margin-bottom:10px}
-.rac-grille{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.rac-tuile{border:1px solid var(--rule);border-radius:10px;padding:10px;background:var(--paper);display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
-.rac-tuile[hidden]{display:none}
-.rac-tn{min-width:0}.rac-tn b{display:block;font-size:14px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
-.rac-tn small{display:block;font-size:11.5px;color:var(--soft);margin-top:2px}
-.rac-tuile.sel{border:2px solid var(--under);padding:9px;background:color-mix(in srgb,var(--under) 12%,var(--paper))}
-.rac-pas{display:flex;align-items:center;justify-content:space-between}
-.rac-pas.zero{justify-content:flex-end}
-.rac-pas button{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--rule);font-size:20px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:center;line-height:1}
+.rac-liste{display:flex;flex-direction:column}
+.rac-grp[hidden],.rac-l[hidden],.rac-plus[hidden]{display:none}
+.rac-h{font-size:11.5px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px}
+.rac-grp:first-child .rac-h{margin-top:4px}
+.rac-l{display:flex;align-items:center;gap:6px;padding:6px 4px 6px 0;border-top:1px solid var(--rule)}
+.rac-l.sel{background:color-mix(in srgb,var(--under) 13%,transparent);border-radius:8px;border-top-color:transparent}
+.rac-st{width:36px;height:40px;flex:none;font-size:21px;line-height:1;color:var(--soft);display:flex;align-items:center;justify-content:center}
+.rac-st.on{color:#E8B21F}
+.rac-ln{flex:1;min-width:0}.rac-ln b{display:block;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rac-ln small{display:block;font-size:12px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rac-pas{display:flex;align-items:center;gap:6px;flex:none}
+.rac-pas button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--rule);font-size:20px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:center;line-height:1}
 .rac-pas button.pl{background:var(--under);border-color:var(--under);color:var(--paper)}
-.rac-pas span{font-size:17px;font-weight:700}
-.rac-barre{position:sticky;bottom:8px;z-index:2;width:100%;margin-top:12px;padding:13px 14px;border-radius:10px;background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600;font-size:15px}
-.rac-barre[disabled]{opacity:.55}
+.rac-pas span{font-size:16px;font-weight:700;min-width:16px;text-align:center}
+.rac-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+.rac-chip{border:1px solid var(--under);background:color-mix(in srgb,var(--under) 20%,var(--paper));border-radius:999px;padding:5px 10px;font-size:12.5px;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rac-plus{width:100%;margin-top:10px;border:1px dashed var(--rule);border-radius:10px;padding:10px;font-size:13.5px;color:var(--soft)}
+.rac-barre{flex:none;margin:6px 12px 8px;padding:11px 14px;border-radius:12px;background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;font-size:15px;text-align:left;box-shadow:0 -4px 14px rgba(0,0,0,.25)}
+.rac-barre small{display:block;font-weight:500;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rac-barre>span:first-child{min-width:0;flex:1}.rac-barre>span:last-child{white-space:nowrap}
 /* Journal par semaines */
 .jn-t{font-size:12px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px}
 .jn-t:first-child{margin-top:0}
@@ -633,7 +640,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='29/09/2026 23h13';
+const APP_VERSION='30/09/2026 08h59';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1650,6 +1657,35 @@ function ongletsCr(id,actif,avecTous){
   CRENEAUX.concat(avecTous?[['tous','Tous']]:[]).forEach(c=>{h+='<button data-cr="'+c[0]+'" class="'+(actif===c[0]?'on':'')+'">'+c[1]+'</button>';});
   return h+'</div>';
 }
+/* Favoris : clés du catalogue, gardées dans Users (colonne favoris). Chaque étoile
+   touchée part au serveur 0,8 s plus tard ; tant que l'envoi n'a pas réussi, la liste
+   reste dans l'iPhone (suivi.favoris, attente) et repart au prochain lancement. */
+const FAV_LS='suivi.favoris';let favMinuteur=null;let COMPO=null;const RAC_PAS=15;
+function favLireLocal(){try{const o=JSON.parse(localStorage.getItem(FAV_LS));return o&&Array.isArray(o.l)?o:null;}catch(e){return null;}}
+function favEcrireLocal(l,att){try{localStorage.setItem(FAV_LS,JSON.stringify({l:l,attente:!!att}));}catch(e){}}
+function favListe(){
+  if(S.favLoc===undefined){const o=favLireLocal();S.favLoc=(o&&o.attente)?o.l:null;}
+  if(Array.isArray(S.favLoc))return S.favLoc;
+  const f=S.data&&S.data.favoris;
+  if(Array.isArray(f))return f;
+  if(typeof f==='string'&&f){try{const a=JSON.parse(f);if(Array.isArray(a))return a;}catch(e){}}
+  return [];
+}
+function favBascule(k){
+  const l=favListe().slice();const i=l.indexOf(k);
+  if(i>=0)l.splice(i,1);else l.push(k);
+  S.favLoc=l;favEcrireLocal(l,true);
+  clearTimeout(favMinuteur);favMinuteur=setTimeout(favEnvoyer,800);
+}
+async function favEnvoyer(){
+  const o=favLireLocal();if(!o||!o.attente||!S.cfg)return;
+  try{
+    await appel({action:'favoris',favoris:o.l});
+    const cur=favLireLocal();
+    if(cur&&JSON.stringify(cur.l)===JSON.stringify(o.l))favEcrireLocal(o.l,false);
+    if(S.data){S.data.favoris=o.l;try{localStorage.setItem(S.cache,JSON.stringify(S.data));}catch(e){}}
+  }catch(e){/* reste en attente : repart à la prochaine étoile ou au prochain lancement */}
+}
 function totalCompo(d){
   const R=S.rac,cat=(d&&d.catalogue)||[];let u=0,k=0;
   cat.forEach(it=>{const c=R.sel[it.k]||0;if(c>0){u+=c;k+=(Number(it.kcal)||0)*c;}});
@@ -1657,31 +1693,50 @@ function totalCompo(d){
 }
 function blocComposer(d,modeAjout){
   const R=S.rac;const cr=R.crC||repasParHeure();
-  const cat=(d&&d.catalogue)||[];
-  const liste=catalogueDe(d,cr);const vus={};liste.forEach(it=>{vus[it.k]=1;});
-  const reste=cat.filter(it=>it&&it.k&&!vus[it.k]);
+  const cat=((d&&d.catalogue)||[]).filter(it=>it&&it.k&&it.nom);
   let h='<div class="rac-contenu">';
   if(!cat.length){
     return h+'<p class="note">Pas encore d’aliments enregistrés. Ils apparaîtront ici au fil des repas analysés, scannés et enregistrés à partir de maintenant.</p></div>';
   }
+  COMPO={modeAjout:modeAjout};
+  const fav={};favListe().forEach(k=>{fav[k]=1;});
+  const favs=cat.filter(it=>fav[it.k]).sort((a,b)=>String(a.nom).localeCompare(String(b.nom),'fr'));
+  const liste=catalogueDe(d,cr).filter(it=>!fav[it.k]);
+  const vus={};liste.forEach(it=>{vus[it.k]=1;});
+  const reste=cat.filter(it=>!fav[it.k]&&!vus[it.k]);
+  const lim=R.lim||RAC_PAS;
   h+=ongletsCr('rac-crc',cr,true);
   h+='<div class="rac-cherche"><input id="rac-q" type="search" placeholder="Chercher dans mes '+cat.length+' aliments" value="'+esc(R.q||'')+'" autocomplete="off"></div>';
-  h+='<div class="rac-grille" id="rac-grille">';
-  const tuile=(it,hors)=>{
-    const c=R.sel[it.k]||0;
-    let t='<div class="rac-tuile'+(c?' sel':'')+(hors?' hors':'')+'" data-nom="'+esc(normNom(it.nom))+'">'+
-      '<div class="rac-tn"><b>'+esc(it.nom)+'</b><small>'+esc(qteUnite(it,1))+' · '+nb(it.kcal)+' kcal</small></div>';
+  const choisis=cat.filter(it=>(R.sel[it.k]||0)>0);
+  if(choisis.length)h+='<div class="rac-chips">'+choisis.map(it=>'<button class="rac-chip" data-cx="'+esc(it.k)+'" aria-label="Retirer '+esc(it.nom)+'">'+esc(it.nom)+' ×'+R.sel[it.k]+' ✕</button>').join('')+'</div>';
+  const ligne=(it,cl)=>{
+    const c=R.sel[it.k]||0,f=!!fav[it.k];
+    let t='<div class="rac-l'+(c?' sel':'')+(cl?' '+cl:'')+'" data-nom="'+esc(normNom(it.nom))+'">'+
+      '<button class="rac-st'+(f?' on':'')+'" data-fav="'+esc(it.k)+'" aria-pressed="'+f+'" aria-label="'+(f?'Retirer des favoris':'Mettre en favori')+'">'+(f?'★':'☆')+'</button>'+
+      '<div class="rac-ln"><b>'+esc(it.nom)+'</b><small>'+esc(qteUnite(it,1))+' · '+nb(it.kcal)+' kcal</small></div>';
     t+=c?'<div class="rac-pas"><button data-cm="'+esc(it.k)+'" aria-label="Moins">−</button><span>'+c+'</span><button class="pl" data-cp="'+esc(it.k)+'" aria-label="Plus">+</button></div>'
-        :'<div class="rac-pas zero"><button class="pl" data-cp="'+esc(it.k)+'" aria-label="Ajouter">+</button></div>';
+        :'<div class="rac-pas"><button class="pl" data-cp="'+esc(it.k)+'" aria-label="Ajouter">+</button></div>';
     return t+'</div>';
   };
-  liste.forEach(it=>{h+=tuile(it,false);});
-  reste.forEach(it=>{h+=tuile(it,true);});
-  h+='</div><p class="note rac-vide" id="rac-vide" hidden>Aucun aliment ne correspond. Essaie l’onglet Tous ou un autre mot.</p>';
+  h+='<div class="rac-liste" id="rac-grille">';
+  if(favs.length)h+='<div class="rac-grp"><p class="rac-h">★ Mes favoris · '+favs.length+'</p>'+favs.map(it=>ligne(it,'fav')).join('')+'</div>';
+  const libCr={matin:' · les plus pris le matin',midi:' · les plus pris le midi',encas:' · les plus pris en en-cas',soir:' · les plus pris le soir',tous:' · les plus pris'}[cr]||'';
+  h+='<div class="rac-grp"><p class="rac-h">'+(favs.length?'Les autres':'Mes aliments')+libCr+'</p>';
+  liste.forEach((it,i)=>{h+=ligne(it,i<lim?'':'loin');});
+  reste.forEach(it=>{h+=ligne(it,'hors');});
+  h+='</div></div>';
+  if(liste.length>lim)h+='<button class="rac-plus" id="rac-plus">Voir '+Math.min(RAC_PAS,liste.length-lim)+' autres · ou cherche</button>';
+  h+='<p class="note rac-vide" id="rac-vide" hidden>Aucun aliment ne correspond. Essaie un autre mot.</p>';
   if(!liste.length&&cr!=='tous')h+='<p class="note">Rien encore pour ce moment de la journée : regarde l’onglet Tous.</p>';
-  const t=totalCompo(d);
-  h+='<button class="rac-barre" id="rac-valide"'+(t.u?'':' disabled')+'><span>'+(t.u?t.u+' unité'+(t.u>1?'s':'')+' · '+nb(t.kcal)+' kcal':'Touche + pour choisir')+'</span><span>'+(modeAjout?'Ajouter à ce repas':'Continuer')+' ›</span></button>';
+  if(!favs.length)h+='<p class="note">Touche ☆ devant un aliment pour le mettre en favori : il passera en tête de liste. Touche ★ pour l’enlever.</p>';
   return h+'</div>';
+}
+// Barre de validation : hors de la zone qui défile, juste au-dessus du menu, toujours visible.
+function barreCompo(d){
+  if(!COMPO||S.reglages||S.vue!=='ajout')return '';
+  const t=totalCompo(d);if(!t.u)return '';
+  const noms=((d&&d.catalogue)||[]).filter(it=>(S.rac.sel[it.k]||0)>0).map(it=>it.nom);
+  return '<button class="rac-barre" id="rac-valide"><span>'+t.u+' unité'+(t.u>1?'s':'')+' · '+nb(t.kcal)+' kcal<small>'+esc(noms.join(', '))+'</small></span><span>'+(COMPO.modeAjout?'Ajouter à ce repas':'Continuer')+' ›</span></button>';
 }
 function blocRaccourcis(d){
   const R=S.rac;
@@ -1716,10 +1771,13 @@ function blocRaccourcis(d){
 // Filtre des tuiles sans re-rendu (garde le clavier ouvert).
 function filtrerTuiles(){
   const q=normNom(S.rac.q||'');let vis=0;
-  document.querySelectorAll('#rac-grille .rac-tuile').forEach(t=>{
-    const ok=q?t.dataset.nom.indexOf(q)>=0:(!t.classList.contains('hors')||t.classList.contains('sel'));
+  document.querySelectorAll('#rac-grille .rac-l').forEach(t=>{
+    const c=t.classList;
+    const ok=q?t.dataset.nom.indexOf(q)>=0:(c.contains('fav')||c.contains('sel')||(!c.contains('hors')&&!c.contains('loin')));
     t.hidden=!ok;if(ok)vis++;
   });
+  document.querySelectorAll('#rac-grille .rac-grp').forEach(g=>{g.hidden=!g.querySelector('.rac-l:not([hidden])');});
+  const p=document.getElementById('rac-plus');if(p)p.hidden=!!q;
   const v=document.getElementById('rac-vide');if(v)v.hidden=!!vis||!q;
 }
 // Extrait le nombre d'une quantité texte ("200 g" -> 200, "2 oeufs" -> 2).
@@ -2980,7 +3038,7 @@ function vueRéglages(d){
   h+='<section><h2>Application</h2>'+
     '<p class="note">Dernière mise à jour le : '+esc(formatVersion(APP_VERSION))+'</p>'+
     '<button class="primaire" id="g-actualiser">Actualiser l\'application</button>'+
-    aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir, « Saisir à la main » marche sans IA. '+
+    aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir (★ met un aliment en tête de Composer), « Saisir à la main » marche sans IA. '+
       '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories, purines et qualité (saturées, fibres, sodium, sucres ajoutés, alcool) sur la période choisie. <b>Corps</b> : pesée, pas, mensurations, photos et crises de goutte. '+
       '<b>Journal</b> : tout ce qui est noté, semaine par semaine. <b>Coach</b> : une question sur ton alimentation.</p>'+
       '<p class="note">Les couleurs suivent ton objectif : vert quand tu vas dans son sens, orange quand tu t\'en écartes.</p>','Comment ça marche ?')+
@@ -3745,6 +3803,7 @@ function dezoomer(){
 function rendre(){
   const d=S.data,r=$('#racine');
   const ancien=$('#defile'),y=ancien?ancien.scrollTop:0;
+  COMPO=null;
   let h='<div id="defile">'+bandeau(d)+'<main>';
   if(S.reglages){
     h+='<div class="vue on">'+vueRéglages(d)+'</div>';
@@ -3756,7 +3815,7 @@ function rendre(){
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
     h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
   }
-  h+='</main></div><nav>';
+  h+='</main></div>'+barreCompo(d)+'<nav>';
   VUES.forEach(v=>{h+='<button data-vue="'+v[0]+'" class="'+(!S.reglages&&S.vue===v[0]?'on':'')+'" aria-label="'+v[1]+'">'+v[2]+v[1]+'</button>';});
   r.innerHTML=h+'</nav>'+overlayScan();
   const nd=$('#defile');if(nd&&y)nd.scrollTop=y;
@@ -3877,7 +3936,7 @@ function brancher(){
   // --- raccourcis : refaire un repas / composer avec mes aliments ---
   on('#rac-tr','click',()=>{const o=!S.rac.ouvR;S.rac.ouvC=false;S.man.ouvert=false;S.rac.ouvR=o;S.rac.msg='';rendre();versPan();});
   on('#rac-ferme','click',()=>{S.rac.ouvR=false;S.rac.ouvC=false;S.man.ouvert=false;rendre();});
-  on('#rac-tc','click',()=>{const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;rendre();versPan();});
+  on('#rac-tc','click',()=>{const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;S.rac.lim=0;rendre();versPan();});
   // --- sans IA : saisie à la main, repas en attente ---
   on('#rac-tm','click',()=>{const M=S.man;S.rac.ouvR=false;S.rac.ouvC=false;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();versPan();});
   document.querySelectorAll('[data-mf]').forEach(el=>{
@@ -3927,7 +3986,10 @@ function brancher(){
   }));
 
   document.querySelectorAll('#rac-crr button').forEach(b=>b.addEventListener('click',()=>{S.rac.crR=b.dataset.cr;S.rac.msg='';rendre();}));
-  document.querySelectorAll('#rac-crc button').forEach(b=>b.addEventListener('click',()=>{S.rac.crC=b.dataset.cr;rendre();}));
+  document.querySelectorAll('#rac-crc button').forEach(b=>b.addEventListener('click',()=>{S.rac.crC=b.dataset.cr;S.rac.lim=0;rendre();}));
+  document.querySelectorAll('[data-fav]').forEach(b=>b.addEventListener('click',()=>{favBascule(b.dataset.fav);rendre();}));
+  document.querySelectorAll('[data-cx]').forEach(b=>b.addEventListener('click',()=>{delete S.rac.sel[b.dataset.cx];rendre();}));
+  on('#rac-plus','click',()=>{S.rac.lim=(S.rac.lim||RAC_PAS)+RAC_PAS;rendre();});
   document.querySelectorAll('[data-cp]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.dataset.cp;S.rac.sel[k]=Math.min(50,(S.rac.sel[k]||0)+1);rendre();}));
   document.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{
@@ -4665,6 +4727,7 @@ async function demarrer(){
   }
   rejouerPending();
   traiterAttente(true);
+  favEnvoyer();
 }
 
 function jourChange(){
@@ -4679,6 +4742,7 @@ document.addEventListener('visibilitychange',()=>{
   if(!S.cfg||!S.data||S.reglages)return;
   rejouerPending();
   traiterAttente();
+  favEnvoyer();
   // on force le rafraichissement si on a changé de jour, sinon un par minute au plus
   if(!jourChange()&&Date.now()-dernierAppel<60000)return;
   rafraichir().then(rendre).catch(()=>{});
