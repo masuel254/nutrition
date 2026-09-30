@@ -238,8 +238,10 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .al-ctrl .al-mm{width:30px;height:30px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .al-q{font-size:13px;color:var(--soft);min-width:0}
 .al-q.fixe{margin-top:2px}
-.resu-al .al-plg{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
-.resu-al .al-plg span:last-child{color:var(--soft)}
+.resu .resu-al li.al-plg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px;padding-top:12px}
+.al-plg .t{border:1px solid var(--rule);border-radius:10px;padding:8px 10px;background:var(--paper);min-width:0}
+.al-plg .t small{display:block;font-size:13px;color:var(--soft)}
+.al-plg .t b{font-size:20px;font-weight:700;color:var(--ink)}.al-plg .t b span{font-size:13px;font-weight:500;color:var(--soft);margin-left:3px}
 
 .attente{display:inline-block;width:13px;height:13px;border:2px solid var(--rule);
   border-top-color:currentColor;border-radius:50%;vertical-align:-2px;margin-right:7px}
@@ -696,7 +698,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='30/09/2026 21h17';
+const APP_VERSION='30/09/2026 21h33';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1974,7 +1976,7 @@ function vueAjout(d){
       }
       h+='</li>';
     });
-    h+='<li class="al-plg"><span>Protéines / lipides / glucides</span><span id="e-plg">'+nb(r.total.prot)+' / '+nb(r.total.lip)+' / '+nb(r.total.gluc)+' g</span></li></ul>'+
+    h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+
        '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+(r.secours==='groq'?'Groq':'Gemma')+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
@@ -3065,6 +3067,11 @@ async function traiterAttente(force){
   if(!S.reglages&&(S.vue==='jour'||(fait&&S.vue!=='ajout')))rendre();
 }
 
+function etapeCoach(){
+  const s=Math.max(0,Math.round((Date.now()-(S.coach.t0||Date.now()))/1000));
+  return (s<30?'Le coach réfléchit… ':(s<50?'Gemini tarde, essai d’un autre modèle… ':'Modèle de secours en cours… '))+s+' s';
+}
+setInterval(()=>{if(S.coach&&S.coach.etat==='envoi'){const e=document.getElementById('c-etape');if(e)e.textContent=etapeCoach();}},1000);
 function suggestionsCoach(d){
   if(!d)return [];
   const out=[],c=d.cibles||{},a=d.aujourdhui||{};
@@ -3080,7 +3087,7 @@ function vueCoach(){
   let h='<section>';
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
   S.coach.fil.forEach(m=>{h+='<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
-  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span>Le coach réfléchit</div>';
+  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
   if(S.coach.etat!=='envoi'){const sg=suggestionsCoach(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(q=>'<button data-csug="'+esc(q)+'">'+esc(q)+'</button>').join('')+'</div>';}
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
      '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>';
@@ -4829,7 +4836,7 @@ function brancher(){
     const q=((($('#c-q')||{}).value)||'').trim();
     if(!q)return;
     S.coach.fil.push({role:'moi',texte:q});
-    S.coach.etat='envoi';rendre();
+    S.coach.etat='envoi';S.coach.t0=Date.now();rendre();
     try{
       const r=await appel({action:'conseil',question:q,
         historique:S.coach.fil.slice(-6).map(m=>({role:m.role,texte:m.texte}))});
