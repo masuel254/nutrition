@@ -640,7 +640,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='30/09/2026 08h59';
+const APP_VERSION='30/09/2026 09h12';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3828,7 +3828,7 @@ function brancher(){
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{
       if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;}
-      S.vue=b.dataset.vue;S.reglages=false;rendre();hautPage();
+      S.vue=b.dataset.vue;S.reglages=false;S.rac.q='';rendre();hautPage();
     });
   });
   on('#b-maj','click',async e=>{
@@ -3934,11 +3934,11 @@ function brancher(){
     });
   }
   // --- raccourcis : refaire un repas / composer avec mes aliments ---
-  on('#rac-tr','click',()=>{const o=!S.rac.ouvR;S.rac.ouvC=false;S.man.ouvert=false;S.rac.ouvR=o;S.rac.msg='';rendre();versPan();});
-  on('#rac-ferme','click',()=>{S.rac.ouvR=false;S.rac.ouvC=false;S.man.ouvert=false;rendre();});
-  on('#rac-tc','click',()=>{const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;S.rac.lim=0;rendre();versPan();});
+  on('#rac-tr','click',()=>{S.rac.q='';const o=!S.rac.ouvR;S.rac.ouvC=false;S.man.ouvert=false;S.rac.ouvR=o;S.rac.msg='';rendre();versPan();});
+  on('#rac-ferme','click',()=>{S.rac.q='';S.rac.ouvR=false;S.rac.ouvC=false;S.man.ouvert=false;rendre();});
+  on('#rac-tc','click',()=>{S.rac.q='';const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;S.rac.lim=0;rendre();versPan();});
   // --- sans IA : saisie à la main, repas en attente ---
-  on('#rac-tm','click',()=>{const M=S.man;S.rac.ouvR=false;S.rac.ouvC=false;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();versPan();});
+  on('#rac-tm','click',()=>{S.rac.q='';const M=S.man;S.rac.ouvR=false;S.rac.ouvC=false;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();versPan();});
   document.querySelectorAll('[data-mf]').forEach(el=>{
     const maj=()=>{const p=el.dataset.mf.split('.'),i=Number(p[0]),m=S.man.als[i];if(!m)return;m[p[1]]=el.value;
       const k=$('#man-k-'+i);if(k)k.textContent=nb(Math.round(numSaisi(m.kcal)))+' kcal';const t=$('#man-tot');if(t)t.textContent=totalManuel();};
@@ -4345,7 +4345,7 @@ function brancher(){
     ecrireRepasCache();rendre();hautPage();
   });
   // annuler l'ajout en cours
-  on('#aj-annule','click',()=>{
+  on('#aj-annule','click',()=>{S.rac.q='';
     const A=S.ajout;
     A.ajoutEnCours=false;A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;A.message='';
     ecrireRepasCache();rendre();hautPage();
