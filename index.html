@@ -633,6 +633,16 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .br-l .ok{border:0;border-radius:8px;background:var(--under);color:var(--paper);font-weight:800;width:38px;height:36px;font-size:16px}
 .br-l .x{border:0;background:transparent;color:var(--soft);font-size:20px;width:30px;height:36px}
 .br-msg{margin-top:8px}
+.jd{margin-top:12px;border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:11px 13px}
+.jd-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.jd-t b{font-size:15px}.jd-t .v{font-weight:700;font-size:16px;white-space:nowrap}
+.jd-s{font-size:12px;color:var(--soft);margin-top:1px}
+.jd-r{padding:8px 0 4px;border-top:1px solid var(--rule);margin-top:8px}
+.jd-r+.jd-r{margin-top:0}
+.jd-h{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700}
+.jd-a{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--soft);padding:3px 0 0 10px}
+.jd-a span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jd-a b{font-weight:600;color:var(--ink);white-space:nowrap}
+.jd-n{font-size:12.5px;color:var(--soft);margin-top:8px}
+.jd .lien{margin-top:10px}
 </style>
 </head>
 <body>
@@ -640,7 +650,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='30/09/2026 09h12';
+const APP_VERSION='30/09/2026 20h05';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2272,7 +2282,7 @@ async function chargerSemaine(lun){
     d.__sem=d.__sem||{};d.__sem[lun]=true;delete S.jn.err[lun];
   }catch(e){S.jn.err[lun]='Détail indisponible : '+e.message;}
   finally{delete S.jn.charge[lun];}
-  if(S.vue==='journal')rendre();
+  if(S.vue==='journal'||S.vue==='courbes')rendre();
 }
 
 /* ---------- Objectif de poids et projection ----------
@@ -2652,7 +2662,8 @@ function ongletQualite(d,P){
   h+='<button data-cnut="alcool" class="'+(k==='alcool'?'on':'')+'">Alcool</button></div>';
   if(k==='alcool')return h+graphiqueAlcool(d,n)+aide('<p class="note">1 verre standard = 10 g d\'alcool pur : un demi de bière (25 cl à 5 %), un verre de vin (10 cl), une coupe de champagne, un petit verre d\'alcool fort (3 cl). Repères de Santé publique France : au plus 10 verres par semaine, 2 par jour, et des jours sans alcool. Pour l\'acide urique, la bière est un facteur aggravant : elle apporte à la fois de l\'alcool et des purines.</p>');
   const par={};js.forEach(j=>{if(j[k]!==null&&j[k]!==undefined)par[j.date]=Math.round(Number(j[k])||0);});
-  h+=barresSeuil(joursCalendaires(n,par),{seuil:q.max,bonSiHaut:q.plancher,libSeuil:(q.plancher?'objectif ':'max ')+nb(q.max)+' '+q.u,titre:q.lib+' par jour',cle:'nut',fmt:v=>nb(v)+' '+q.u});
+  const itemsQ=joursCalendaires(n,par);
+  h+=barresSeuil(itemsQ,{seuil:q.max,bonSiHaut:q.plancher,libSeuil:(q.plancher?'objectif ':'max ')+nb(q.max)+' '+q.u,titre:q.lib+' par jour',cle:'nut',fmt:v=>nb(v)+' '+q.u});
   // ce qui en apporte le plus : aliments des repas chargés (deux dernières semaines au plus)
   const tot={};
   (d.journal||[]).filter(r=>r.date>=debut&&Array.isArray(r.aliments)).forEach(r=>r.aliments.forEach(a=>{
@@ -2660,13 +2671,20 @@ function ongletQualite(d,P){
     const nom=String(a.nom||'').trim();if(!nom)return;
     const cle=nom.toLowerCase();tot[cle]=tot[cle]||{nom:nom,v:0};tot[cle].v+=v;}));
   const top=Object.values(tot).sort((x,y)=>y.v-x.v).slice(0,6);
-  if(top.length){
+  const selQ=(S.corps.selBar||{}).nut,itQ=selQ?itemsQ.find(i=>i.date===selQ):null;
+  if(itQ){
+    const e=etatNut(q,itQ.v);
+    const fx=x=>x>0&&x<10?String(Math.round(x*10)/10).replace('.',','):nb(x);
+    h+=detailApport(d,itQ.date,itQ.v,{champ:k,cle:'nut',retour:'à ce qui en apporte le plus',fmt:x=>fx(x)+' '+q.u,fmtA:fx,
+      coulTot:itQ.vide?'var(--soft)':e.coul,coulRepas:x=>q.plancher?'var(--under)':(x>q.max?'var(--rouge)':(x>q.max/2?'var(--over)':'var(--under)')),
+      sous:itQ.vide?'aucune donnée ce jour-là':(q.plancher?'objectif ':'repère ')+nb(q.max)+' '+q.u+' · '+e.txt});
+  }else if(top.length){
     h+='<div class="pur-top"><div class="pur-top-t">'+'Ce qui en apporte le plus'+(n>14?' (deux dernières semaines)':'')+'</div>';
     top.forEach(t=>{h+='<div class="pur-top-l"><span>'+esc(t.nom)+'</span><b'+(q.plancher?' style="color:var(--under)"':'')+'>'+nb(t.v)+' '+q.u+'</b></div>';});
     h+='</div>';
   }
   h+=aide('<p class="note">Tuiles : moyenne des journées complètes (au moins deux repas), sans aujourd\'hui, affiché à part tant que la journée n\'est pas finie. Barres : total de chaque jour, '+(q.plancher?'vert quand l\'objectif est atteint.':'vert sous le repère, orange au-dessus.')+
-    ' Graisses saturées : charcuterie, fromage, beurre, crème, viennoiseries, viandes grasses. Sucres ajoutés : sodas, jus, confiseries, pâtisseries, céréales sucrées ; les sucres des fruits entiers et du lait nature ne comptent pas. Fibres : légumes, légumineuses, céréales complètes, fruits, oléagineux.</p>');
+    ' Touche une barre pour le détail du jour, repas par repas et aliment par aliment. Graisses saturées : charcuterie, fromage, beurre, crème, viennoiseries, viandes grasses. Sucres ajoutés : sodas, jus, confiseries, pâtisseries, céréales sucrées ; les sucres des fruits entiers et du lait nature ne comptent pas. Fibres : légumes, légumineuses, céréales complètes, fruits, oléagineux.</p>');
   return h;
 }
 
@@ -3283,6 +3301,30 @@ function joursCalendaires(n,parDate){
     out.push({date:k,v:parDate[k]!==undefined?parDate[k]:0,vide:parDate[k]===undefined});}
   return out;
 }
+/* Détail du jour d'une barre touchée : repas du jour, puis leurs aliments, triés par apport.
+   o = {champ, u, fmt, coulTot, coulRepas, sous, cle, retour}. Le détail des repas n'est livré que
+   depuis journal_depuis : un jour plus ancien charge sa semaine (action journal). */
+function detailApport(d,date,v,o){
+  const lun=lundiJn(date);
+  let h='<div class="jd"><div class="jd-t"><b>'+esc(jourSemaine(date))+' '+jjmm(date)+'</b><span class="v" style="color:'+o.coulTot+'">'+o.fmt(v)+'</span></div>';
+  if(o.sous)h+='<div class="jd-s">'+esc(o.sous)+'</div>';
+  if(!semaineChargee(d,lun)){
+    if(S.jn.err[lun])h+='<p class="jd-n">'+esc(S.jn.err[lun])+'</p>';
+    else{h+='<p class="jd-n">Chargement du détail…</p>';if(!S.jn.charge[lun])setTimeout(()=>chargerSemaine(lun),0);}
+  }else{
+    const val=x=>Number(x&&x[o.champ])||0;
+    const rs=(d.journal||[]).filter(r=>r.date===date&&val(r)>0).sort((a,b)=>val(b)-val(a));
+    if(!rs.length)h+='<p class="jd-n">'+(v>0?'Le détail des repas de ce jour n\u2019est pas disponible.':'Rien ce jour-là.')+'</p>';
+    rs.forEach(r=>{
+      h+='<div class="jd-r"><div class="jd-h"><span>'+esc(r.repas||'Repas')+'</span><span style="color:'+o.coulRepas(val(r))+'">'+o.fmt(val(r))+'</span></div>';
+      const als=Array.isArray(r.aliments)?r.aliments.filter(a=>val(a)>0).sort((a,b)=>val(b)-val(a)):null;
+      if(als&&als.length)als.forEach(a=>{h+='<div class="jd-a"><span>'+esc(a.nom||'')+(a.quantite?' · '+esc(a.quantite):'')+'</span><b>'+(o.fmtA||nb)(val(a))+'</b></div>';});
+      else h+='<div class="jd-a"><span>'+esc(String(r.detail||'').slice(0,90))+(als?'':' (sans détail par aliment)')+'</span></div>';
+      h+='</div>';
+    });
+  }
+  return h+'<button class="lien" data-bar-off="'+o.cle+'">\u2715 Revenir '+esc(o.retour)+'</button></div>';
+}
 function blocPurinesCourbes(d,P){
   const js=(d.jours||[]).filter(j=>j.repas>0);
   if(!js.some(j=>j.purines>0))return '<p class="note">Les purines s\'afficheront ici au fil des nouveaux repas analysés (les repas enregistrés avant ce suivi n\'en ont pas).</p>';
@@ -3303,12 +3345,18 @@ function blocPurinesCourbes(d,P){
   // le détail des repas n'est chargé que depuis le lundi de la semaine précédente
   const debP=plusJours(auj(),-(n-1));
   const top=(d.journal||[]).filter(r=>r.date>=debP&&(r.purines_risque||0)>0).sort((a,b)=>(b.purines_risque||0)-(a.purines_risque||0)).slice(0,5);
-  if(top.length){
+  const selP=(S.corps.selBar||{}).pur,itP=selP?items.find(i=>i.date===selP):null;
+  if(itP){
+    const v=itP.v,pct=max?Math.round(v/max*100):0;
+    h+=detailApport(d,itP.date,v,{champ:'purines_risque',cle:'pur',retour:'aux repas les plus chargés',fmt:x=>nb(x)+' mg',
+      coulTot:itP.vide?'var(--soft)':coulPur(v,max),coulRepas:x=>x>seuilRougePur(max)?'var(--rouge)':(x>max/2?'var(--over)':'var(--under)'),
+      sous:itP.vide?'aucune saisie':(v<=max?'sous ton plafond de '+nb(max)+' mg · '+pct+' %':'au-dessus de ton plafond de '+nb(v-max)+' mg')});
+  }else if(top.length){
     h+='<div class="pur-top"><div class="pur-top-t">Repas les plus chargés'+(n>14?' (deux dernières semaines)':'')+'</div>';
     top.forEach(r=>{h+='<div class="pur-top-l"><span>'+jjmm(r.date)+' · '+esc(r.repas)+' · '+esc(String(r.detail||'').slice(0,70))+'</span><b'+(r.purines_risque>seuilRougePur(max)?' style="color:var(--rouge)"':'')+'>'+nb(r.purines_risque)+' mg</b></div>';});
     h+='</div>';
   }
-  h+=aide('<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus, rouge au-delà de 500 mg (seuil d\'alerte). Les jours pâles n\'ont aucune saisie. Touche une barre pour sa valeur. Les triangles rouges marquent les crises de goutte notées dans Corps. Le plafond se règle dans les Réglages. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>');
+  h+=aide('<p class="note">Chaque barre : purines à risque du jour (viandes, poissons, fruits de mer, charcuterie, bière). Les purines végétales ne sont pas comptées. Vert sous ton plafond, orange au-dessus, rouge au-delà de 500 mg (seuil d\'alerte). Les jours pâles n\'ont aucune saisie. Touche une barre pour le détail du jour, repas par repas et aliment par aliment. Les triangles rouges marquent les crises de goutte notées dans Corps. Le plafond se règle dans les Réglages. Pour réduire sans perdre en protéines : œufs, skyr, fromage blanc, tofu.</p>');
   return h;
 }
 
@@ -4650,6 +4698,7 @@ function brancher(){
     rendre();
   });
   document.querySelectorAll('#k-periode-pas button').forEach(b=>b.addEventListener('click',()=>{S.corps.periodePas=Number(b.dataset.kp);rendre();}));
+  document.querySelectorAll('[data-bar-off]').forEach(b=>b.addEventListener('click',()=>{if(S.corps.selBar)S.corps.selBar[b.dataset.barOff]=null;rendre();}));
   document.querySelectorAll('[data-bar]').forEach(r=>r.addEventListener('click',()=>{
     const [cle,date]=r.getAttribute('data-bar').split('|');
     S.corps.selBar=S.corps.selBar||{};
