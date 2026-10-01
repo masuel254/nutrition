@@ -26,7 +26,7 @@ for (let n = -60; n <= -1; n++) {
   const d = jour(n);
   [['Matin', AL.pdj], ['Midi', AL.midi]].forEach(([r, als], k) => {
     const t = tot(als);
-    LIGNES.push(Object.assign({ id: 'test' + (-n) + k, ia: k === 1 ? 'claude' : (n % 2 ? 'flash' : ''), date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 ? 0 : 12, boissons_sucrees: 0, aliments: als }, t));
+    LIGNES.push(Object.assign({ id: 'test' + (-n) + k, ia: k === 1 ? 'claude' : (n % 2 ? 'flash' : ''), date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 ? 0 : 12, boissons_sucrees: 0, aliments: n % 9 || k ? als : als.concat([{ nom: 'Vin rouge', quantite: '1 verre', kcal: 0, alcool: 12 }]) }, t));
   });
 }
 const depuis = (() => { const l = lundi(jour(0)); const x = new Date(l + 'T12:00:00'); x.setDate(x.getDate() - 7); return iso(x); })();
@@ -46,6 +46,7 @@ const DATA = {
   jours, journal: LIGNES.filter(l => l.date >= depuis).reverse(), journal_depuis: depuis,
   catalogue: [...AL.pdj, ...AL.midi].map((a, i) => Object.assign({}, a, { k: a.nom.toLowerCase(), n: 10 - i, cr: { matin: i < 2 ? 5 : 0, midi: i >= 2 ? 5 : 0, encas: 0, soir: 0 }, mode: a.quantite.endsWith('g') ? 'p' : 'n', u: a.quantite.replace(/^\d+\s*/, '').replace(/s$/, ''), up: a.quantite.replace(/^\d+\s*/, '') })),
   crises: [{ id: 'g1', date: jour(-5), articulation: 'gros orteil', intensite: 4, remarque: '' }],
+  ia_jours: [-1, -2, -3, -4, -5, -40].map((n, i) => ({ d: jour(n), c: i === 5 ? { '?': 2 } : { flash: 2, groq: i % 2, claude: i === 0 ? 1 : 0 } })),
   suggestions: {}, parametres: [], activite: [], mesures: [], photos: []
 };
 
@@ -262,7 +263,7 @@ if (!(await page.locator('#a-desc').count())) await page.click('nav button[data-
 await page.fill('#a-desc', 'poulet'); await page.click('#a-envoi'); await page.waitForTimeout(400);
 ok(/modèle de secours \(Claude Haiku, payant\)/.test(await texte('.resu')) && /Pourquoi : Flash : 429 quota/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran, avec la cause');
 ok(/Estimé par Claude Haiku/.test(await texte('.resu .ia-l')) && await page.locator('.resu .ia-tag.sec').count() === 1, 'carte résultat : « Estimé par Claude Haiku » avant d enregistrer');
-ok(JSON.stringify(appels.filter(a => a.action === 'repas').pop().ia_ordre) === JSON.stringify(['flash', 'lite', 'haiku', 'groq', 'gemma']), 'analyse : profil Défaut envoyé (Flash, Flash-Lite, Claude Haiku, Groq, Gemma)');
+ok(JSON.stringify(appels.filter(a => a.action === 'repas').pop().ia_ordre) === JSON.stringify(['flash', 'lite', 'groq', 'haiku', 'gemma']), 'analyse : profil Défaut envoyé (Flash, Flash-Lite, Groq, Claude Haiku, Gemma)');
 await page.click('#e-auj'); await page.waitForTimeout(500);
 ok(appels.filter(a => a.action === 'enregistrer').pop().ia === 'claude', 'secours : enregistré avec ia = claude');
 console.log('Profil IA');
@@ -310,10 +311,28 @@ const nJ2 = appels.filter(a => a.action === 'journal').length;
 await page.click('#jn-loin'); await page.waitForTimeout(600);
 ok(appels.filter(a => a.action === 'journal').length === nJ2 + 1, 'Journal : chercher plus loin charge 8 semaines');
 await page.fill('#jn-q', ''); await page.dispatchEvent('#jn-q', 'input');
+ok(await page.locator('[data-jf]').count() === 4 && !/cible/.test(await texte('.jn-f')), 'Journal : 4 filtres (purines, alcool, saturés, sodium), plus « au-dessus de la cible »');
 await page.click('[data-jf="alc"]');
-ok(await page.locator('#jn-res .jn-rl').count() > 0 && /verre/.test(await texte('#jn-res')), 'Journal : filtre alcool');
-await page.click('[data-jf="alc"]');
+ok(await page.locator('#jn-res .jn-al').count() > 0 && (await page.locator('#jn-res .jn-al .q').allInnerTexts()).every(t => /^Vin rouge/.test(t)) && /verre/.test(await texte('#jn-res')), 'Journal : filtre alcool = la boisson seule, pas le repas');
+await page.click('[data-jf="pur"]');
+const purs = await page.locator('#jn-res .jn-al .q').allInnerTexts();
+ok(purs.length > 0 && purs.every(t => /^Blanc de poulet/.test(t)) && /225 mg/.test(await texte('#jn-res')), 'Journal : purines élevées = l aliment seul (poulet), pas le riz');
+await page.click('[data-jtri="haut"]'); await page.waitForTimeout(100);
+ok(await page.locator('[data-jtri="haut"].on').count() === 1 && await page.locator('#jn-res .jn-al').count() === purs.length, 'Journal : tri « Plus élevés »');
+await page.click('[data-jf="na"]');
+ok(/0 aliment/.test(await texte('#jn-res')), 'Journal : sodium élevé, rien au-dessus de 600 mg');
+await page.click('[data-jf="na"]');
 ok(await page.locator('#jn-semaines').isVisible(), 'Journal : filtre retiré, semaines de retour');
+ok(/30 jours · 13 repas · 1 payant ≈ 1 ct/.test(await texte('#sia-t')) && await page.locator('.sia-b').count() === 0, 'Journal : graphique des IA replié, résumé 30 jours');
+await page.click('#sia-t');
+ok(await page.locator('.sia-b').count() === 3 && /Gemini Flash/.test(await texte('.sia-b')) && await page.locator('.sia-b.pay').count() === 1, 'Journal : une barre par IA, Claude Haiku en payant');
+await page.click('[data-siab="claude"]');
+ok(/Claude Haiku : 1 repas sur 13/.test(await texte('.sia-d')), 'Journal : toucher une barre donne le détail');
+await page.click('[data-siap="7"]');
+ok(/7 jours/.test(await texte('#sia-t')) && /sans l’info/.test(await texte('.sia-p')) === false, 'Journal : période 7 jours');
+await page.click('[data-siap="0"]');
+ok(/2 sans l’info/.test(await texte('.sia-p')), 'Journal : repas anciens sans IA signalés');
+await page.click('#sia-t');
 
 console.log('Inscription par invitation');
 const pi = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
