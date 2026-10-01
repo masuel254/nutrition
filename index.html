@@ -698,6 +698,11 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .ev-l i.on{opacity:1;transform:scale(1.25);margin:0 4px}
 .ev b{display:block;font-size:15px}.ev p{font-size:14px;margin-top:4px;line-height:1.35}
 .ev-x{margin-top:8px;font-size:14px;padding:9px 11px;border-radius:8px;border:1px dashed var(--rule);line-height:1.35}.ev-x b{color:var(--under)}
+/* Journal : avis de l'IA sous le repas */
+button.ns-btn{border:0;padding:0;cursor:pointer;font-weight:800}
+button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
+.jn-ev{margin:2px 0 10px}.jn-ev .ev{margin:0}
+.jn-ev-vide{font-size:13px;color:var(--soft);padding:2px 0 10px}
 </style>
 </head>
 <body>
@@ -705,13 +710,13 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 07h45';
+const APP_VERSION='01/10/2026 14h01';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
+  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},regTab:'objectif',prof:{etat:null,message:'',sexe:null},
   adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,gt:{quand:'auj',date:'',art:null,int:null,rem:'',etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{onglet:'pesee',periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
@@ -2272,7 +2277,9 @@ function detailJourJn(rows){
     h+='<div class="jn-rt" style="--c:var(--c-'+c+')"><span class="e" aria-hidden="true">'+(ICO[c]||'\u2022')+'</span><b>'+esc(nom)+'</b><span class="k">'+nb(st)+' kcal<small>'+g.length+' saisie'+(g.length>1?'s':'')+'</small></span></div>';
     g.forEach(r=>{
       const ns=String(r.nutriscore||'').trim().toLowerCase();
-      const pastille=/^[abcde]$/.test(ns)?'<span class="nutri '+ns+'" style="width:20px;height:20px;font-size:12px;vertical-align:-4px;margin-right:6px">'+ns+'</span>':'';
+      const cle=r.id||(r.date+'|'+r.repas+'|'+r.kcal+'|'+String(r.detail||'').slice(0,24));
+      const evo=!!(S.jn.ev&&S.jn.ev[cle]);
+      const pastille=/^[abcde]$/.test(ns)?'<button class="nutri ns-btn '+ns+(evo?' on':'')+'" data-jev="'+esc(cle)+'" aria-expanded="'+evo+'" aria-label="Avis de l’IA, note '+ns.toUpperCase()+'" style="width:22px;height:22px;font-size:12px;vertical-align:-4px;margin-right:6px">'+ns+'</button>':'';
       h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
          '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
          '<div class="macro">P '+nb(r.prot)+' · L '+nb(r.lip)+' · G '+nb(r.gluc)+
@@ -2280,6 +2287,7 @@ function detailJourJn(rows){
          '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
          '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">✎</button>'+
          '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">×</button></div>';
+      if(evo)h+='<div class="jn-ev">'+(r.evaluation?blocEval({evaluation:r.evaluation}):'<p class="jn-ev-vide">Avis non conservé pour ce repas (analysé avant la mise à jour).</p>')+'</div>';
     });
   });
   return h;
@@ -3074,7 +3082,7 @@ async function traiterAttente(force){
         const lib=libelleRepas(it.repas),t=r.total||{};
         const l=Object.assign({detail:(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', '),kcal:t.kcal||0,prot:t.prot||0,lip:t.lip||0,gluc:t.gluc||0,
           fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,satures:t.satures||0,sucres_ajoutes:t.sucres_ajoutes||0,nutriscore:''},r.ligne||{},{repas:lib});
-        const w=await appel(Object.assign({action:'enregistrer',date:it.date},l,{id:it.id,aliments:alimentsAEnvoyer(r)}));
+        const w=await appel(Object.assign({action:'enregistrer',date:it.date},l,{id:it.id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null}));
         S.att=S.att.filter(x=>x.id!==it.id);ecrireAttente();fait++;
         S.attFait={repas:lib,kcal:(w&&w.kcal)||l.kcal,date:it.date};
       }catch(e){it.essai=Date.now();it.err=(e&&e.message)||'';ecrireAttente();break;}
@@ -4130,7 +4138,7 @@ function brancher(){
       } else l.classList.toggle('ouvert');
     };
     l.addEventListener('click',e=>{
-      if(e.target.closest('.sup')||e.target.closest('.jmod'))return;
+      if(e.target.closest('.sup')||e.target.closest('.jmod')||e.target.closest('.ns-btn'))return;
       bascule();
     });
     l.addEventListener('keydown',e=>{
@@ -4404,7 +4412,7 @@ function brancher(){
     const r=it.resultat,l=r.ligne,q=it.quand?new Date(it.quand):new Date();
     const date=isoLocal(q)>auj()?auj():isoLocal(q);
     const id=r.id||(r.id=nouvelId());
-    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(r)});
+    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null});
     const retirer=()=>{A.histo=(A.histo||[]).filter(x=>x!==it);ecrireRepasCache();};
     try{
       const w=await appel(payload);retirer();
@@ -4489,7 +4497,7 @@ function brancher(){
       try{await appel({action:'suppr',date:ancien.date,repas:ancien.repas,detail:ancien.detail,kcal:ancien.kcal});}
       catch(e){/* si la suppression échoue on continue : on préviendra du doublon éventuel */}
     }
-    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(A.resultat)});
+    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(A.resultat),evaluation:A.resultat.evaluation||null});
     try{
       const r=await appel(payload);
       // le repas est écrit : un échec de l'actualisation ne doit pas le faire passer pour non enregistré
@@ -4836,6 +4844,8 @@ function brancher(){
       if(Array.isArray(l.aliments)&&l.aliments.length){
         // aliments gardés dans le journal : on rouvre le repas tel quel, sans IA
         A.resultat=resultatDepuis(alimentsLigne(l),A.repas,'Repris de ton journal, sans nouvelle analyse.');
+        if(l.evaluation)A.resultat.evaluation=l.evaluation;
+        if(/^[abcde]$/.test(String(l.nutriscore||'')))A.resultat.ligne.nutriscore=l.nutriscore;
         A.desc='';A.etat=null;S.vue='ajout';ecrireRepasCache();rendre();hautPage();
         return;
       }
@@ -4865,6 +4875,7 @@ function brancher(){
     basPage();
   });
   document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
+  document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));
   on('#jn-q','input',e=>{S.jn.q=e.target.value;majRechJn();});
   document.querySelectorAll('[data-jf]').forEach(b=>b.addEventListener('click',()=>{S.jn.f=S.jn.f===b.dataset.jf?null:b.dataset.jf;rendre();}));
   on('#jn-res','click',e=>{if(e.target.closest('#jn-loin'))chargerPlusLoinJn();});
