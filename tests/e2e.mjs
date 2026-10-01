@@ -26,7 +26,7 @@ for (let n = -60; n <= -1; n++) {
   const d = jour(n);
   [['Matin', AL.pdj], ['Midi', AL.midi]].forEach(([r, als], k) => {
     const t = tot(als);
-    LIGNES.push(Object.assign({ id: 'test' + (-n) + k, date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 ? 0 : 12, boissons_sucrees: 0, aliments: als }, t));
+    LIGNES.push(Object.assign({ id: 'test' + (-n) + k, ia: k === 1 ? 'claude' : (n % 2 ? 'flash' : ''), date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 ? 0 : 12, boissons_sucrees: 0, aliments: als }, t));
   });
 }
 const depuis = (() => { const l = lundi(jour(0)); const x = new Date(l + 'T12:00:00'); x.setDate(x.getDate() - 7); return iso(x); })();
@@ -62,7 +62,7 @@ await page.route('https://api.test/**', async r => {
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
   if (q.action === 'journal') return json({ ok: true, journal: LIGNES.filter(l => l.date >= q.debut && l.date <= q.fin) });
   if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
-  if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'groq', echecs: 'Flash : 429 quota', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
+  if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'claude', ia: 'claude', echecs: 'Flash : 429 quota', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
@@ -181,6 +181,13 @@ await page.waitForTimeout(400);
 ok(appels.some(a => a.action === 'journal' && a.debut === vieux), 'détail ancien chargé à la demande');
 ok(await page.locator('.vue.on .jn-rt').count() >= 2 && /Matin/.test(await page.locator('.vue.on .jn-rt').first().textContent()), 'Journal : bandeau coloré par repas, dans l\'ordre de la journée');
 ok(await page.locator('.jn-det .ligne').count() > 0, 'repas affichés après chargement');
+{
+  const tags = await page.locator('.jn-det .ia-tag').allTextContents(), sec = await page.locator('.jn-det .ia-tag.sec').allTextContents();
+  const lignes = await page.locator('.jn-det .ligne').count();
+  ok(sec.length > 0 && sec.every(t => t === 'Claude · secours') && (tags.includes('Flash') || tags.length < lignes) && tags.every(t => t === 'Flash' || t === 'Claude · secours'), 'Journal : étiquette de l IA (Flash en gris, Claude en secours, rien pour un ancien repas)');
+  const coupe = await page.evaluate(() => [...document.querySelectorAll('.jn-det .ia-w')].every(e => getComputedStyle(e).whiteSpace === 'nowrap'));
+  ok(coupe, 'Journal : le « · » reste collé à l étiquette');
+}
 
 console.log('Ajouter');
 await page.click('nav button[data-vue="ajout"]');
@@ -193,6 +200,7 @@ ok(enr.length === 2 && enr[0].id && enr[0].id === enr[1].id, 'réponse vide rejo
 ok(/enregistrées/.test(await texte('.resu')), 'repas enregistré');
 await page.click('#e-modif'); await page.click('#e-auj'); await page.waitForTimeout(500);
 ok(appels.filter(a => a.action === 'enregistrer').pop().id === enr[0].id && !appels.some(a => a.action === 'suppr'), 'modifier met à jour la même ligne');
+ok(enr[0].ia === 'manuel', 'Refaire : enregistré avec ia = manuel');
 await page.click('#a-nouveau');
 if (!(await page.locator('#rac-tc').count())) await page.click('nav button[data-vue="ajout"]');
 await page.click('#rac-tc'); await page.click('#rac-crc button[data-cr="tous"]');
@@ -242,16 +250,20 @@ await page.click('#man-plus'); await page.click('#man-ok');
 ok(/Aliment 2/.test(await texte('.alerte')), 'saisie à la main : aliment incomplet refusé');
 await page.click('[data-mdel="1"]'); await page.click('#man-ok');
 ok(/500 kcal/.test(await texte('#e-total')) && /Saisi à la main/.test(await texte('.resu')), 'saisie à la main : écran de résultat habituel');
+ok((await page.locator('.resu .ia-tag').allTextContents()).join() === 'manuel' && !/Estimé par/.test(await texte('.resu')), 'saisie à la main : étiquette « manuel » sur la carte');
 await page.click('#e-auj'); await page.waitForTimeout(500);
 const enrMan = appels.filter(a => a.action === 'enregistrer').pop();
 const alm = enrMan && enrMan.aliments && enrMan.aliments[0];
-ok(alm && alm.famille === 'volaille' && alm.grammes === 230 && alm.purines === 345 && alm.purines_risque === 345 && enrMan.kcal === 500, 'saisie à la main : purines calculées (230 g de volaille = 345 mg) et enregistrée');
+ok(alm && alm.famille === 'volaille' && alm.grammes === 230 && alm.purines === 345 && alm.purines_risque === 345 && enrMan.kcal === 500 && enrMan.ia === 'manuel', 'saisie à la main : purines calculées (230 g de volaille = 345 mg) et enregistrée');
 ok(!appels.some(a => a.action === 'repas' && a.description === 'Poulet rôti'), 'saisie à la main : aucun appel à l IA');
 secoursTest = true;
 await page.click('#a-nouveau').catch(() => {});
 if (!(await page.locator('#a-desc').count())) await page.click('nav button[data-vue="ajout"]');
 await page.fill('#a-desc', 'poulet'); await page.click('#a-envoi'); await page.waitForTimeout(400);
-ok(/modèle de secours \(Groq\)/.test(await texte('.resu')) && /Pourquoi : Flash : 429 quota/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran, avec la cause');
+ok(/modèle de secours \(Claude Haiku, payant\)/.test(await texte('.resu')) && /Pourquoi : Flash : 429 quota/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran, avec la cause');
+ok(/Estimé par Claude · secours/.test(await texte('.resu .ia-l')) && await page.locator('.resu .ia-tag.sec').count() === 1, 'carte résultat : « Estimé par Claude · secours » avant d enregistrer');
+await page.click('#e-auj'); await page.waitForTimeout(500);
+ok(appels.filter(a => a.action === 'enregistrer').pop().ia === 'claude', 'secours : enregistré avec ia = claude');
 secoursTest = false;
 
 console.log('Pesées');
