@@ -702,7 +702,23 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 button.ns-btn{border:0;padding:0;cursor:pointer;font-weight:800}
 button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 .jn-ev{margin:2px 0 10px}.jn-ev .ev{margin:0}
-.ia-w{white-space:nowrap}.ia-l{display:block;margin-bottom:4px}.ia-tag{display:inline-block;white-space:nowrap;font-size:11.5px;line-height:1.5;color:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:0 5px;vertical-align:1px}
+.ia-w{white-space:nowrap}
+.pia{margin-top:6px}
+.pia-t{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;padding:11px 2px;background:none;border:none;border-bottom:1px solid var(--rule);color:var(--soft);font-size:13.5px;text-align:left}
+.pia-t b{color:var(--ink);font-weight:600}.pia-t .ch{flex:none;transition:transform .2s}.pia-t.o .ch{transform:rotate(90deg)}
+.pia-l{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.pia-n{width:22px;height:22px;border-radius:50%;background:var(--under);color:var(--paper);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.pia-l.off .pia-n{background:transparent;border:1px dashed var(--rule);color:transparent}.pia-l.pay:not(.off) .pia-n{background:var(--ambre)}
+.pia-m{flex:1;min-width:0;font-size:14.5px}.pia-m small{display:block;font-size:12px;color:var(--soft);margin-top:1px}.pia-l.off .pia-m{color:var(--soft)}
+.pia-m small.pay{color:var(--ambre)}
+.pia-f{background:none;border:1px solid var(--rule);color:var(--ink);width:34px;height:34px;border-radius:8px;font-size:15px;flex:none}.pia-f:disabled{opacity:.25}
+.pia-s{width:44px;height:26px;border-radius:13px;background:var(--creux);position:relative;flex:none;border:1px solid var(--rule)}
+.pia-s::after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:var(--soft);transition:left .15s}
+.pia-s.on{background:var(--under);border-color:var(--under)}.pia-s.on::after{left:21px;background:#fff}.pia-s.on.pay{background:var(--ambre);border-color:var(--ambre)}
+.pia-p{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 2px}
+.pia-p button{font-size:13px;border:1px solid var(--rule);border-radius:16px;padding:6px 12px;color:var(--soft);background:none}
+.pia-p button.on{border-color:var(--under);color:var(--ink);background:color-mix(in srgb,var(--under) 18%,transparent)}
+.pia-d{font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.4}.pia-vide{color:var(--rouge)}.ia-l{display:block;margin-bottom:4px}.ia-tag{display:inline-block;white-space:nowrap;font-size:11.5px;line-height:1.5;color:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:0 5px;vertical-align:1px}
 .ia-tag.sec{color:var(--ambre);border-color:color-mix(in srgb,var(--ambre) 55%,transparent);background:color-mix(in srgb,var(--ambre) 12%,transparent)}
 .jn-ev-vide{font-size:13px;color:var(--soft);padding:2px 0 10px}
 </style>
@@ -712,7 +728,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 21h17';
+const APP_VERSION='01/10/2026 21h50';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1573,9 +1589,36 @@ function blocEval(r){
   if(e.echange)h+='<div class="ev-x">\ud83d\udca1 Essaie plutôt : <b>'+esc(e.echange)+'</b></div>';
   return h;
 }
+/* Profil IA (Ajouter) : ordre d'essai des IA envoyé avec chaque analyse (ia_ordre).
+   Gardé tant qu'on reste sur Ajouter ; changer d'écran ou relancer l'appli revient à Défaut. */
+const PIA_M={flash:{n:'Gemini Flash',c:'Flash',d:'gratuit · le plus précis des gratuits'},lite:{n:'Gemini Flash-Lite',c:'Flash-Lite',d:'gratuit · rapide'},
+  haiku:{n:'Claude Haiku',c:'Claude Haiku',d:'~1 ct · rapide, stable',pay:1},groq:{n:'Groq (Qwen)',c:'Groq',d:'gratuit'},gemma:{n:'Gemma',c:'Gemma',d:'gratuit · dernier recours'},
+  sonnet:{n:'Claude Sonnet',c:'Claude Sonnet',d:'réfléchi · ~5 ct · plats complexes, 20 à 75 s',pay:1}};
+const PIA_PRE={defaut:['flash','lite','haiku','groq','gemma'],gratuits:['flash','lite','groq','gemma'],claude:['haiku','flash','lite','groq','gemma'],complexe:['sonnet']};
+const PIA_NOM={defaut:'Défaut',gratuits:'Gratuits',claude:'Claude d’abord',complexe:'Complexe'};
+const PIA_TXT={defaut:'Gemini Flash, Flash-Lite, Claude Haiku en secours (payant), Groq, Gemma. Claude Sonnet à part.',gratuits:'Jamais de modèle payant.',
+  claude:'Claude Haiku en premier, puis les gratuits.',complexe:'Claude Sonnet seul, avec réflexion : ~5 ct, 20 à 75 s. S’il échoue, rien d’autre n’est essayé.',mesure:'Ta propre sélection, dans l’ordre des numéros.'};
+function piaEtat(){if(!S.pia){const o=PIA_PRE.defaut.concat(['sonnet']),a={};PIA_PRE.defaut.forEach(k=>a[k]=1);S.pia={ordre:o,actif:a};}return S.pia;}
+function piaListe(){const p=piaEtat();return p.ordre.filter(k=>p.actif[k]);}
+function piaProfil(){const l=piaListe().join(',');for(const k in PIA_PRE)if(PIA_PRE[k].join(',')===l)return k;return 'mesure';}
+function piaApplique(k){const l=PIA_PRE[k];if(!l)return;const p=piaEtat();p.actif={};l.forEach(x=>p.actif[x]=1);p.ordre=l.concat(p.ordre.filter(x=>l.indexOf(x)<0));}
+function blocProfilIA(){
+  const p=piaEtat(),l=piaListe(),pr=piaProfil(),ouv=!!S.piaOuv;
+  let h='<div class="pia"><button class="pia-t'+(ouv?' o':'')+'" id="pia-t" aria-expanded="'+ouv+'"><span>Profil IA : '+(l.length?'<b>'+(PIA_NOM[pr]||'Sur mesure')+'</b>'+(ouv?' · '+l.length+(l.length>1?' modèles, dans cet ordre':' modèle'):''):'<b class="pia-vide">aucune IA choisie</b>')+'</span><span class="ch">▸</span></button>';
+  if(!ouv)return h+'</div>';
+  p.ordre.forEach((k,i)=>{const on=!!p.actif[k],m=PIA_M[k];
+    h+='<div class="pia-l'+(on?'':' off')+(m.pay?' pay':'')+'"><span class="pia-n">'+(on?l.indexOf(k)+1:'·')+'</span><div class="pia-m">'+m.n+'<small'+(m.pay?' class="pay"':'')+'>'+m.d+'</small></div>'+
+      '<button class="pia-f" data-pia-h="'+i+'"'+(i===0?' disabled':'')+' aria-label="Monter '+m.n+'">↑</button><button class="pia-f" data-pia-b="'+i+'"'+(i===p.ordre.length-1?' disabled':'')+' aria-label="Descendre '+m.n+'">↓</button>'+
+      '<button class="pia-s'+(on?' on':'')+(m.pay?' pay':'')+'" data-pia-s="'+k+'" role="switch" aria-checked="'+on+'" aria-label="'+m.n+'"></button></div>';});
+  h+='<div class="pia-p">'+Object.keys(PIA_PRE).map(k=>'<button data-pia-p="'+k+'"'+(pr===k?' class="on"':'')+'>'+PIA_NOM[k]+'</button>').join('')+'</div>';
+  h+='<p class="pia-d">'+(l.length?PIA_TXT[pr]:'<span class="pia-vide">Active au moins une IA pour analyser.</span>')+' Payants plafonnés à 20 appels par jour. Revient à Défaut quand tu quittes Ajouter.</p>';
+  return h+'</div>';
+}
 function etapeIA(A){
   const s=Math.max(0,Math.round((Date.now()-(A.envoiT0||Date.now()))/1000));
-  return (s<25?'Analyse par Gemini… ':(s<50?'Gemini tarde, essai d’un autre modèle… ':'Modèle de secours en cours… '))+s+' s';
+  const l=(A.envoiIA&&A.envoiIA.length)?A.envoiIA:PIA_PRE.defaut,n1=(PIA_M[l[0]]||PIA_M.flash).c;
+  if(l.length===1)return 'Analyse par '+n1+(l[0]==='sonnet'?', qui réfléchit… ':'… ')+s+' s';
+  return (s<25?'Analyse par '+n1+'… ':(s<50?n1+' tarde, essai d’une autre IA… ':'IA de secours en cours… '))+s+' s';
 }
 setInterval(()=>{
   const A=S.ajout;if(!A||A.etat!=='envoi'||!A.envoiT0)return;
@@ -1961,6 +2004,7 @@ function vueAjout(d){
     const pret=!!(A.photo||A.desc.trim());
     const lbl=A.ajoutEnCours?'Analyser et ajouter':'Analyser';
     h+='<button class="primaire" id="a-envoi"'+(!pret||A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Analyse en cours':lbl)+'</button>';
+    if(A.etat!=='envoi')h+=blocProfilIA();
     if(A.etat==='envoi'&&!A.ajoutEnCours)h+='<p class="aide" id="a-etape">'+etapeIA(A)+'</p><button class="secondaire" id="a-plus-tard"'+(Date.now()-(A.envoiT0||0)<15000?' hidden':'')+'>Analyser plus tard</button>';
     if(A.etat==='ko')h+=A.ajoutEnCours?'<p class="alerte">'+esc(A.message)+'</p>':blocEchecIA(A);
     if(A.etat==='att')h+='<p class="bien">'+esc(A.message)+'</p>';
@@ -2001,7 +2045,7 @@ function vueAjout(d){
       h+='</li>';
     });
     h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+blocEval(r)+
-       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+(tagIA(r)?'<span class="ia-w ia-l">'+(/^(manuel|code-barres)$/.test(r.ia)?'':'Estimé par ')+tagIA(r)+'</span> ':'')+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant'}[r.secours]||r.secours)+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
+       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+(tagIA(r)?'<span class="ia-w ia-l">'+(/^(manuel|code-barres)$/.test(r.ia)?'':'Estimé par ')+tagIA(r)+'</span> ':'')+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant',sonnet:'Claude Sonnet, payant'}[r.secours]||r.secours)+'), les IA précédentes n\u2019ayant pas répondu : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
       h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
@@ -2269,9 +2313,9 @@ function libJourCourt(iso){
   const x=new Date(iso+'T12:00:00');return JOURS[x.getDay()].slice(0,3)+'. '+jjmm(iso);
 }
 // Étiquette « quelle IA a estimé » (colonne ia du Journal) ; secours en orange, rien pour les anciens repas.
-const IA_LIB={flash:'Flash',lite:'Flash-Lite',claude:'Claude · secours',groq:'Groq · secours',gemma:'Gemma · secours',manuel:'manuel','code-barres':'code-barres'};
+const IA_LIB={flash:'Flash',lite:'Flash-Lite',claude:'Claude Haiku',sonnet:'Claude Sonnet',groq:'Groq',gemma:'Gemma',manuel:'manuel','code-barres':'code-barres'};
 function tagIA(r){const k=String((r&&r.ia)||'').toLowerCase();if(!IA_LIB[k])return '';
-  return '<span class="ia-tag'+(/^(claude|groq|gemma)$/.test(k)?' sec':'')+'">'+IA_LIB[k]+'</span>';}
+  return '<span class="ia-tag'+(/^(claude|sonnet|groq|gemma)$/.test(k)?' sec':'')+'">'+IA_LIB[k]+'</span>';}
 function detailJourJn(rows){
   let h='';const groupes={};
   rows.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
@@ -3084,7 +3128,7 @@ async function traiterAttente(force){
   try{
     for(const it of S.att.slice()){
       try{
-        const r=await appel({action:'repas',repas:it.repas,description:it.desc||'',photo:it.photo||'',mime:'image/jpeg'});
+        const r=await appel({action:'repas',repas:it.repas,description:it.desc||'',photo:it.photo||'',mime:'image/jpeg',ia_ordre:Array.isArray(it.ia_ordre)?it.ia_ordre:undefined});
         const lib=libelleRepas(it.repas),t=r.total||{};
         const l=Object.assign({detail:(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', '),kcal:t.kcal||0,prot:t.prot||0,lip:t.lip||0,gluc:t.gluc||0,
           fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,satures:t.satures||0,sucres_ajoutes:t.sucres_ajoutes||0,nutriscore:''},r.ligne||{},{repas:lib});
@@ -4033,6 +4077,7 @@ function dezoomer(){
   if(window.visualViewport)window.visualViewport.addEventListener('resize',tard);
 })();
 function rendre(){
+  if(S.vue!=='ajout'||S.reglages){S.pia=null;S.piaOuv=false;}
   const d=S.data,r=$('#racine');
   const ancien=$('#defile'),y=ancien?ancien.scrollTop:0;
   COMPO=null;
@@ -4200,7 +4245,7 @@ function brancher(){
   const mettreEnAttente=()=>{
     const A=S.ajout;A.envoiId=null;if(A.envoiPrec){pousserHisto(A.envoiPrec);A.envoiPrec=null;}
     S.att=lireAttente();
-    const it={id:nouvelId(),date:auj(),repas:A.repas||repasParHeure(),desc:String(A.desc||''),photo:A.photo||'',cree:Date.now(),essai:Date.now(),err:''};
+    const it={id:nouvelId(),date:auj(),repas:A.repas||repasParHeure(),desc:String(A.desc||''),photo:A.photo||'',cree:Date.now(),essai:Date.now(),err:'',ia_ordre:(A.envoiIA&&A.envoiIA.length?A.envoiIA:piaListe())};
     S.att.push(it);
     if(!ecrireAttente()){S.att.pop();A.message='Impossible de garder la photo sur l’iPhone (mémoire pleine). Saisis ce repas à la main.';rendre();return;}
     A.etat='att';A.message=libelleRepas(it.repas)+' mis en attente. Il sera analysé et enregistré dès que l’IA répondra : suis-le sur l’écran Jour.';
@@ -4209,6 +4254,11 @@ function brancher(){
   };
   on('#att-plus','click',mettreEnAttente);
   on('#a-plus-tard','click',mettreEnAttente);
+  on('#pia-t','click',()=>{S.piaOuv=!S.piaOuv;rendre();});
+  document.querySelectorAll('[data-pia-s]').forEach(b=>b.addEventListener('click',()=>{const p=piaEtat(),k=b.dataset.piaS;p.actif[k]=p.actif[k]?0:1;rendre();}));
+  document.querySelectorAll('[data-pia-h]').forEach(b=>b.addEventListener('click',()=>{const o=piaEtat().ordre,i=Number(b.dataset.piaH);if(i>0){[o[i-1],o[i]]=[o[i],o[i-1]];rendre();}}));
+  document.querySelectorAll('[data-pia-b]').forEach(b=>b.addEventListener('click',()=>{const o=piaEtat().ordre,i=Number(b.dataset.piaB);if(i<o.length-1){[o[i+1],o[i]]=[o[i],o[i+1]];rendre();}}));
+  document.querySelectorAll('[data-pia-p]').forEach(b=>b.addEventListener('click',()=>{piaApplique(b.dataset.piaP);rendre();}));
   on('#att-go','click',()=>traiterAttente(true));
   on('#att-ok','click',()=>{S.attFait=null;rendre();});
   document.querySelectorAll('[data-att-del]').forEach(b=>b.addEventListener('click',()=>{
@@ -4453,11 +4503,14 @@ function brancher(){
   on('#a-envoi','click',async()=>{
     const A=S.ajout;
     A.desc=(($('#a-desc')||{}).value)||'';
+    const iaOrdre=piaListe();
+    if(!iaOrdre.length){S.piaOuv=true;rendre();return;}
+    A.envoiIA=iaOrdre;
     // --- MODE AJOUT : on analyse le nouvel aliment et on le fusionne au repas en cours ---
     if(A.ajoutEnCours&&A.resultat){
       A.etat='envoi';rendre();
       try{
-        const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
+        const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg',ia_ordre:iaOrdre});
         // on greffe les aliments analysés sur le repas existant, sans écraser le reste
         (r.aliments||[]).forEach(a=>A.resultat.aliments.push(a));
         recalculeTotal(A.resultat);
@@ -4477,7 +4530,7 @@ function brancher(){
     const jeton=nouvelId();A.envoiId=jeton;A.envoiT0=Date.now();A.envoiPrec=precedent;
     A.etat='envoi';A.resultat=null;rendre();
     try{
-      const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg'});
+      const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:A.photo||'',mime:'image/jpeg',ia_ordre:iaOrdre});
       if(A.envoiId!==jeton)return;             // mis en attente pendant l'analyse : réponse ignorée
       A.envoiId=null;A.envoiPrec=null;
       pousserHisto(precedent);
@@ -4858,7 +4911,7 @@ function brancher(){
       }
       S.vue='ajout';A.etat='envoi';rendre();hautPage();
       try{
-        const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:'',mime:'image/jpeg'});
+        const r=await appel({action:'repas',repas:A.repas,description:A.desc,photo:'',mime:'image/jpeg',ia_ordre:piaListe()});
         A.etat=null;A.resultat=r;A.confirm=null;A.desc='';
         ecrireRepasCache();
       }catch(e){A.etat='ko';A.message=e.message;A.enregistre=null;}
