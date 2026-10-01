@@ -702,7 +702,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 button.ns-btn{border:0;padding:0;cursor:pointer;font-weight:800}
 button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 .jn-ev{margin:2px 0 10px}.jn-ev .ev{margin:0}
-.ia-w{white-space:nowrap}.ia-tag{display:inline-block;white-space:nowrap;font-size:11.5px;line-height:1.5;color:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:0 5px;vertical-align:1px}
+.ia-w{white-space:nowrap}.ia-l{display:block;margin-bottom:4px}.ia-tag{display:inline-block;white-space:nowrap;font-size:11.5px;line-height:1.5;color:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:0 5px;vertical-align:1px}
 .ia-tag.sec{color:var(--ambre);border-color:color-mix(in srgb,var(--ambre) 55%,transparent);background:color-mix(in srgb,var(--ambre) 12%,transparent)}
 .jn-ev-vide{font-size:13px;color:var(--soft);padding:2px 0 10px}
 </style>
@@ -712,7 +712,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 21h01';
+const APP_VERSION='01/10/2026 21h17';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2001,7 +2001,7 @@ function vueAjout(d){
       h+='</li>';
     });
     h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+blocEval(r)+
-       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant'}[r.secours]||r.secours)+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
+       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+(tagIA(r)?'<span class="ia-w ia-l">'+(/^(manuel|code-barres)$/.test(r.ia)?'':'Estimé par ')+tagIA(r)+'</span> ':'')+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant'}[r.secours]||r.secours)+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
       h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
