@@ -702,6 +702,8 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 button.ns-btn{border:0;padding:0;cursor:pointer;font-weight:800}
 button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 .jn-ev{margin:2px 0 10px}.jn-ev .ev{margin:0}
+.ia-w{white-space:nowrap}.ia-tag{display:inline-block;white-space:nowrap;font-size:11.5px;line-height:1.5;color:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:0 5px;vertical-align:1px}
+.ia-tag.sec{color:var(--ambre);border-color:color-mix(in srgb,var(--ambre) 55%,transparent);background:color-mix(in srgb,var(--ambre) 12%,transparent)}
 .jn-ev-vide{font-size:13px;color:var(--soft);padding:2px 0 10px}
 </style>
 </head>
@@ -710,7 +712,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 20h37';
+const APP_VERSION='01/10/2026 21h01';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1707,7 +1709,7 @@ function alimentsLigne(l){
 }
 function resultatDepuis(als,cr,note){
   const lib=libelleRepas(cr);
-  const r={repas:lib,aliments:als,total:{},incertitude:'faible',note:note,nutriscore:'',
+  const r={repas:lib,aliments:als,total:{},incertitude:'faible',note:note,nutriscore:'',ia:'manuel',
     ligne:{repas:lib,detail:'',kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0,sucres_ajoutes:0,nutriscore:''}};
   recalculeTotal(r);
   return r;
@@ -2266,6 +2268,10 @@ function libJourCourt(iso){
   if(iso===plusJours(auj(),-1))return 'Hier';
   const x=new Date(iso+'T12:00:00');return JOURS[x.getDay()].slice(0,3)+'. '+jjmm(iso);
 }
+// Étiquette « quelle IA a estimé » (colonne ia du Journal) ; secours en orange, rien pour les anciens repas.
+const IA_LIB={flash:'Flash',lite:'Flash-Lite',claude:'Claude · secours',groq:'Groq · secours',gemma:'Gemma · secours',manuel:'manuel','code-barres':'code-barres'};
+function tagIA(r){const k=String((r&&r.ia)||'').toLowerCase();if(!IA_LIB[k])return '';
+  return '<span class="ia-tag'+(/^(claude|groq|gemma)$/.test(k)?' sec':'')+'">'+IA_LIB[k]+'</span>';}
 function detailJourJn(rows){
   let h='';const groupes={};
   rows.forEach(r=>{(groupes[r.repas]=groupes[r.repas]||[]).push(r);});
@@ -2283,7 +2289,7 @@ function detailJourJn(rows){
       h+='<div class="ligne" data-ouvre="'+r.__i+'"><div class="quoi">'+
          '<div class="detail">'+pastille+esc(r.detail||'sans description')+'</div>'+
          '<div class="macro">P '+nb(r.prot)+' · L '+nb(r.lip)+' · G '+nb(r.gluc)+
-         ((r.purines_risque||0)>0?' · <span'+((r.purines_risque||0)>=150?' class="sur"':'')+'>purines '+nb(r.purines_risque)+' mg</span>':'')+'</div></div>'+
+         ((r.purines_risque||0)>0?' · <span'+((r.purines_risque||0)>=150?' class="sur"':'')+'>purines '+nb(r.purines_risque)+' mg</span>':'')+(tagIA(r)?' <span class="ia-w">· '+tagIA(r)+'</span>':'')+'</div></div>'+
          '<div class="kcal">'+nb(r.kcal)+' kcal</div>'+
          '<button class="jmod" data-jmod="'+r.__i+'" aria-label="Modifier ce repas">✎</button>'+
          '<button class="sup" data-sup="'+r.__i+'" aria-label="Supprimer cette ligne">×</button></div>';
@@ -2342,7 +2348,7 @@ function resultatsJn(d){
   rows.slice(0,80).forEach(r=>{
     const c=creneauDe(r.repas)||'autre';
     const extra=[];if((r.purines_risque||0)>0)extra.push('purines '+nb(r.purines_risque)+' mg');if((Number(r.alcool)||0)>0)extra.push(verresTxt(r.alcool));
-    h+='<div class="jn-rl"><i class="cr-dot" style="background:var(--c-'+c+');margin-top:5px"></i><div class="q"><small>'+esc(jourSemaine(r.date))+' '+jjmm(r.date)+' · '+esc(r.repas||'')+(extra.length?' · '+esc(extra.join(' · ')):'')+'</small>'+esc(String(r.detail||'').slice(0,140))+'</div><b>'+nb(r.kcal)+' kcal</b></div>';
+    h+='<div class="jn-rl"><i class="cr-dot" style="background:var(--c-'+c+');margin-top:5px"></i><div class="q"><small>'+esc(jourSemaine(r.date))+' '+jjmm(r.date)+' · '+esc(r.repas||'')+(extra.length?' · '+esc(extra.join(' · ')):'')+(tagIA(r)?' <span class="ia-w">· '+tagIA(r)+'</span>':'')+'</small>'+esc(String(r.detail||'').slice(0,140))+'</div><b>'+nb(r.kcal)+' kcal</b></div>';
   });
   if(rows.length>80)h+='<div class="jn-res-t">… '+(rows.length-80)+' de plus, précise ta recherche.</div>';
   const prem=((d.jours||[]).map(j=>j.date).sort()[0])||depuis;
@@ -3082,7 +3088,7 @@ async function traiterAttente(force){
         const lib=libelleRepas(it.repas),t=r.total||{};
         const l=Object.assign({detail:(r.aliments||[]).map(a=>a.nom+(a.quantite?' ('+a.quantite+')':'')).join(', '),kcal:t.kcal||0,prot:t.prot||0,lip:t.lip||0,gluc:t.gluc||0,
           fibres:t.fibres||0,sucres:t.sucres||0,sodium:t.sodium||0,satures:t.satures||0,sucres_ajoutes:t.sucres_ajoutes||0,nutriscore:''},r.ligne||{},{repas:lib});
-        const w=await appel(Object.assign({action:'enregistrer',date:it.date},l,{id:it.id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null}));
+        const w=await appel(Object.assign({action:'enregistrer',date:it.date},l,{id:it.id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null,ia:r.ia||''}));
         S.att=S.att.filter(x=>x.id!==it.id);ecrireAttente();fait++;
         S.attFait={repas:lib,kcal:(w&&w.kcal)||l.kcal,date:it.date};
       }catch(e){it.essai=Date.now();it.err=(e&&e.message)||'';ecrireAttente();break;}
@@ -4369,7 +4375,7 @@ function brancher(){
       aliments:[alScan],
       total:Object.assign({},c,c.purines!==undefined?{boissons_sucrees:c.sucree||0}:{}),incertitude:'faible',
       note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
-      nutriscore:p.nutriscore||'',
+      nutriscore:p.nutriscore||'',ia:'code-barres',
       ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,nutriscore:p.nutriscore||'',
         purines:c.purines||0,purines_risque:c.purines_risque||0,alcool:c.alcool||0,boissons_sucrees:c.sucree||0}
     };
@@ -4412,7 +4418,7 @@ function brancher(){
     const r=it.resultat,l=r.ligne,q=it.quand?new Date(it.quand):new Date();
     const date=isoLocal(q)>auj()?auj():isoLocal(q);
     const id=r.id||(r.id=nouvelId());
-    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null});
+    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null,ia:r.ia||''});
     const retirer=()=>{A.histo=(A.histo||[]).filter(x=>x!==it);ecrireRepasCache();};
     try{
       const w=await appel(payload);retirer();
@@ -4497,7 +4503,7 @@ function brancher(){
       try{await appel({action:'suppr',date:ancien.date,repas:ancien.repas,detail:ancien.detail,kcal:ancien.kcal});}
       catch(e){/* si la suppression échoue on continue : on préviendra du doublon éventuel */}
     }
-    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(A.resultat),evaluation:A.resultat.evaluation||null});
+    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(A.resultat),evaluation:A.resultat.evaluation||null,ia:A.resultat.ia||''});
     try{
       const r=await appel(payload);
       // le repas est écrit : un échec de l'actualisation ne doit pas le faire passer pour non enregistré
@@ -4845,6 +4851,7 @@ function brancher(){
         // aliments gardés dans le journal : on rouvre le repas tel quel, sans IA
         A.resultat=resultatDepuis(alimentsLigne(l),A.repas,'Repris de ton journal, sans nouvelle analyse.');
         if(l.evaluation)A.resultat.evaluation=l.evaluation;
+        A.resultat.ia=String(l.ia||'');
         if(/^[abcde]$/.test(String(l.nutriscore||'')))A.resultat.ligne.nutriscore=l.nutriscore;
         A.desc='';A.etat=null;S.vue='ajout';ecrireRepasCache();rendre();hautPage();
         return;
