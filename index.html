@@ -18,10 +18,11 @@
 :root{
   --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#5A6B6E; --nav:#7A8A8C;
   --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3; --ambre:#C79A2E; --jaune:#D6A400; --rouge:#C22E2E;
+  --ia-g:#1E8A70; --ia-p:#B07F12;
 }
 @media (prefers-color-scheme: dark){
   :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#9BA8A3; --nav:#AEBDBF;
-         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; --jaune:#E5B93A; --rouge:#E05555; }
+         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; --jaune:#E5B93A; --rouge:#E05555; --ia-g:#3DA88C; --ia-p:#B8892A; }
 }
 *{box-sizing:border-box}
 /* Coquille d'application : le document ne défile JAMAIS. Seul #defile défile, la barre
@@ -682,6 +683,24 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .jn-rl{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--rule)}
 .jn-rl .q{flex:1;min-width:0;font-size:14px;line-height:1.3}.jn-rl .q small{display:block;color:var(--soft);font-size:13px;margin-bottom:2px}
 .jn-rl b{white-space:nowrap;font-size:14px}
+.jn-res-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.jn-tri{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;flex:none}.jn-tri button{font-size:12px;padding:5px 8px;border:none;background:none;color:var(--soft)}.jn-tri button.on{background:var(--creux);color:var(--ink);font-weight:600}
+.jn-al .q .qte{color:var(--soft)}.jn-al b.haut{color:var(--over)}
+.sia{margin:0 0 14px}
+.sia-t{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;border:1px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);text-align:left;font-size:14.5px}
+.sia-t small{display:block;font-size:13px;color:var(--soft);margin-top:2px}.sia-t .ch{color:var(--soft);flex:none;transition:transform .2s}.sia-t.o{border-radius:12px 12px 0 0}.sia-t.o .ch{transform:rotate(90deg)}
+.sia-c{border:1px solid var(--rule);border-top:none;border-radius:0 0 12px 12px;background:var(--card);padding:12px}
+.sia-c .periode{margin-bottom:12px}
+.sia-k{display:flex;gap:8px;margin-bottom:12px}.sia-k div{flex:1;border:1px solid var(--rule);border-radius:10px;padding:9px 10px}
+.sia-k small{display:block;font-size:13px;color:var(--soft)}.sia-k b{font-size:22px}.sia-k span{font-size:13px;color:var(--soft);margin-left:3px}
+.sia-b{display:grid;grid-template-columns:108px 1fr 72px;align-items:center;gap:8px;padding:6px 4px;width:100%;border:none;background:none;color:var(--ink);text-align:left;font-size:14px;border-radius:6px}
+.sia-b small{display:block;font-size:12px;color:var(--soft)}
+.sia-b .tr{height:14px;position:relative}.sia-b .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--ia-g);min-width:3px}
+.sia-b.pay .tr i{background:var(--ia-p)}.sia-b.sel{background:var(--creux)}
+.sia-b .n{text-align:right;font-size:13px;color:var(--soft)}.sia-b .n b{color:var(--ink);font-size:14px}
+.sia-d{margin-top:8px;padding:9px 11px;border-radius:8px;background:var(--creux);font-size:13.5px;line-height:1.45}.sia-d.vide{color:var(--soft)}
+.sia-l{display:flex;gap:14px;font-size:13px;color:var(--soft);margin-top:10px}.sia-l span{display:flex;align-items:center;gap:5px}.sia-l i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.sia-p{font-size:13px;color:var(--soft);margin-top:8px;line-height:1.45}
 /* Réglages */
 .rg-pre{margin-top:8px}.rg-pre button{min-width:64px}
 .rg-barre{flex:none;margin:6px 12px 8px;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--over);box-shadow:0 -4px 14px rgba(0,0,0,.25)}
@@ -728,7 +747,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 21h50';
+const APP_VERSION='01/10/2026 22h17';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1594,9 +1613,9 @@ function blocEval(r){
 const PIA_M={flash:{n:'Gemini Flash',c:'Flash',d:'gratuit · le plus précis des gratuits'},lite:{n:'Gemini Flash-Lite',c:'Flash-Lite',d:'gratuit · rapide'},
   haiku:{n:'Claude Haiku',c:'Claude Haiku',d:'~1 ct · rapide, stable',pay:1},groq:{n:'Groq (Qwen)',c:'Groq',d:'gratuit'},gemma:{n:'Gemma',c:'Gemma',d:'gratuit · dernier recours'},
   sonnet:{n:'Claude Sonnet',c:'Claude Sonnet',d:'réfléchi · ~5 ct · plats complexes, 20 à 75 s',pay:1}};
-const PIA_PRE={defaut:['flash','lite','haiku','groq','gemma'],gratuits:['flash','lite','groq','gemma'],claude:['haiku','flash','lite','groq','gemma'],complexe:['sonnet']};
+const PIA_PRE={defaut:['flash','lite','groq','haiku','gemma'],gratuits:['flash','lite','groq','gemma'],claude:['haiku','flash','lite','groq','gemma'],complexe:['sonnet']};
 const PIA_NOM={defaut:'Défaut',gratuits:'Gratuits',claude:'Claude d’abord',complexe:'Complexe'};
-const PIA_TXT={defaut:'Gemini Flash, Flash-Lite, Claude Haiku en secours (payant), Groq, Gemma. Claude Sonnet à part.',gratuits:'Jamais de modèle payant.',
+const PIA_TXT={defaut:'Gemini Flash, Flash-Lite, Groq, puis Claude Haiku en secours (payant) et Gemma. Claude Sonnet à part. Si Google est en panne deux fois en 10 min, il est sauté 5 min.',gratuits:'Jamais de modèle payant.',
   claude:'Claude Haiku en premier, puis les gratuits.',complexe:'Claude Sonnet seul, avec réflexion : ~5 ct, 20 à 75 s. S’il échoue, rien d’autre n’est essayé.',mesure:'Ta propre sélection, dans l’ordre des numéros.'};
 function piaEtat(){if(!S.pia){const o=PIA_PRE.defaut.concat(['sonnet']),a={};PIA_PRE.defaut.forEach(k=>a[k]=1);S.pia={ordre:o,actif:a};}return S.pia;}
 function piaListe(){const p=piaEtat();return p.ordre.filter(k=>p.actif[k]);}
@@ -2367,7 +2386,46 @@ function ligneJourJn(d,iso,J){
 }
 /* Recherche dans le Journal : texte (plat ou aliment) et filtres. Porte sur le détail chargé
    (deux semaines au départ) ; « Chercher plus loin » charge 8 semaines de plus (action journal). */
-const JN_F=[['pur','Purines élevées'],['alc','Alcool'],['sur','Au-dessus de la cible']];
+const JN_F=[['pur','Purines élevées'],['alc','Alcool'],['sat','Saturés élevés'],['na','Sodium élevé']];
+// Filtres du Journal : un aliment (et non le repas entier) dès qu'il dépasse le seuil.
+const JN_S={pur:{k:'purines_risque',s:150,t:'≥ 150 mg de purines',v:x=>nb(x)+' mg'},alc:{k:'alcool',s:0.01,t:'boissons alcoolisées',v:x=>verresTxt(x)},
+  sat:{k:'satures',s:5,t:'≥ 5 g de graisses saturées',v:x=>(Math.round(x*10)/10).toLocaleString('fr-FR')+' g'},na:{k:'sodium',s:600,t:'≥ 600 mg de sodium',v:x=>nb(x)+' mg'}};
+function alimentsFiltres(rows,f,q){const S0=JN_S[f],out=[];
+  rows.forEach(r=>{const als=Array.isArray(r.aliments)&&r.aliments.length?r.aliments:null;let trouve=false;
+    (als||[]).forEach(a=>{const v=Number(a[S0.k])||0;if(v<S0.s)return;if(q&&normNom(a.nom).indexOf(q)<0)return;trouve=true;out.push({r,a,v,autres:als.filter(x=>x!==a).map(x=>x.nom)});});
+    // repas sans détail par aliment (ancien), ou aliments sans cette valeur : on montre le repas, signalé
+    const sansValeur=!als||als.every(a=>a[S0.k]===undefined||a[S0.k]===null||a[S0.k]==='');
+    if(!trouve&&sansValeur&&(Number(r[S0.k])||0)>=S0.s&&(!q||normNom(String(r.detail||'')).indexOf(q)>=0))out.push({r,a:{nom:String(r.detail||r.repas||'Repas').slice(0,90),quantite:''},v:Number(r[S0.k])||0,repasEntier:true});});
+  return out;}
+const SIA_L={flash:'Gemini Flash',lite:'Gemini Flash-Lite',groq:'Groq',claude:'Claude Haiku',sonnet:'Claude Sonnet',gemma:'Gemma',manuel:'Manuel','code-barres':'Code-barres'};
+const SIA_PRIX={claude:0.01,sonnet:0.05};
+const SIA_PER=[[7,'7 j'],[30,'30 j'],[90,'3 mois'],[0,'Tout']];
+function coutTxt(x){return x<1?Math.round(x*100)+' ct':(Math.round(x*100)/100).toLocaleString('fr-FR')+' $';}
+function statsIA(d){
+  const p=S.jn.iaPer===undefined?30:S.jn.iaPer,lim=p?plusJours(auj(),-(p-1)):'0000';
+  const c={};let sans=0;(d.ia_jours||[]).forEach(j=>{if(j.d<lim)return;Object.entries(j.c||{}).forEach(([k,n])=>{if(SIA_L[k])c[k]=(c[k]||0)+n;else sans+=n;});});
+  const L=Object.keys(SIA_L).map(k=>({k,n:c[k]||0})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
+  const tot=L.reduce((s,x)=>s+x.n,0),nPay=(c.claude||0)+(c.sonnet||0),cout=(c.claude||0)*SIA_PRIX.claude+(c.sonnet||0)*SIA_PRIX.sonnet;
+  const ia=tot-(c.manuel||0)-(c['code-barres']||0),goo=(c.flash||0)+(c.lite||0);
+  return {p,L,tot,sans,nPay,cout,ia,goo};
+}
+function blocStatsIA(d){
+  if(!d.ia_jours)return '';
+  const s=statsIA(d),ouv=!!S.jn.iaOuv,lib=(SIA_PER.find(x=>x[0]===s.p)||[0,''])[1].replace(' j',' jours');
+  let h='<div class="sia"><button class="sia-t'+(ouv?' o':'')+'" id="sia-t" aria-expanded="'+ouv+'"><span>Quelles IA ont estimé tes repas<small>'+(s.tot?lib+' · '+s.tot+' repas · '+(s.nPay?s.nPay+' payant'+(s.nPay>1?'s':'')+' ≈ '+coutTxt(s.cout):'aucun payant'):'Pas encore de repas avec cette info sur '+lib)+'</small></span><span class="ch">▸</span></button>';
+  if(!ouv)return h+'</div>';
+  h+='<div class="sia-c"><div class="periode">'+SIA_PER.map(([v,t])=>'<button data-siap="'+v+'"'+(s.p===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
+  if(!s.tot)return h+'<p class="sia-p">Aucun repas enregistré avec l’IA connue sur cette période. L’info existe depuis le 01/10/2026.</p></div></div>';
+  h+='<div class="sia-k"><div><small>Estimés par Gemini</small><b>'+(s.ia?Math.round(s.goo/s.ia*100):0)+'</b><span>% des analyses</span></div><div><small>IA payantes</small><b>'+s.nPay+'</b><span>repas ≈ '+coutTxt(s.cout)+'</span></div></div>';
+  const mx=Math.max(...s.L.map(x=>x.n));
+  s.L.forEach(x=>{const pay=!!SIA_PRIX[x.k];
+    h+='<button class="sia-b'+(pay?' pay':'')+(S.jn.iaSel===x.k?' sel':'')+'" data-siab="'+x.k+'"><span>'+SIA_L[x.k]+(pay?'<small>payant</small>':'')+'</span><span class="tr"><i style="width:'+(x.n/mx*100)+'%"></i></span><span class="n"><b>'+x.n+'</b> · '+Math.round(x.n/s.tot*100)+' %</span></button>';});
+  const t=s.L.find(x=>x.k===S.jn.iaSel);
+  h+='<div class="sia-d'+(t?'':' vide')+'">'+(t?'<b>'+SIA_L[t.k]+'</b> : '+t.n+' repas sur '+s.tot+' ('+Math.round(t.n/s.tot*100)+' %)'+(SIA_PRIX[t.k]?' · ≈ '+coutTxt(t.n*SIA_PRIX[t.k]):'')+(t.k==='manuel'?' · Composer, Refaire, saisie à la main':'')+(t.k==='code-barres'?' · produits scannés':''):'Touche une barre pour le détail.')+'</div>';
+  h+='<div class="sia-l"><span><i style="background:var(--ia-g)"></i>gratuit</span><span><i style="background:var(--ia-p)"></i>payant</span></div>';
+  h+='<p class="sia-p">Repas enregistrés seulement'+(s.sans?' ; '+s.sans+' sans l’info (avant le 01/10/2026)':'')+'. Coût estimé : ~1 ct par repas Claude Haiku, ~5 ct par Claude Sonnet ; le réel est dans la console Claude.</p>';
+  return h+'</div></div>';
+}
 function rechJnActive(){return !!(String(S.jn.q||'').trim()||S.jn.f);}
 function blocRechJn(d){
   let h='<div class="jn-rech"><input id="jn-q" type="search" placeholder="Chercher un plat, un aliment…" value="'+esc(S.jn.q||'')+'" autocomplete="off">'+
@@ -2379,11 +2437,26 @@ function resultatsJn(d){
   const q=normNom(S.jn.q||''),f=S.jn.f,max=purMax(d);
   const J={};(d.jours||[]).forEach(j=>{J[j.date]=j;});
   const ORD={matin:0,midi:1,encas:2,soir:3};
+  if(f&&JN_S[f]){
+    const S0=JN_S[f],dates0=(d.journal||[]).map(r=>r.date).sort(),dep0=dates0[0]||auj();
+    const L=alimentsFiltres(d.journal||[],f,q);
+    if(S.jn.tri==='haut')L.sort((x,y)=>y.v-x.v);else L.sort((x,y)=>y.r.date.localeCompare(x.r.date)||((ORD[creneauDe(x.r.repas)]??9)-(ORD[creneauDe(y.r.repas)]??9)));
+    const tot=L.reduce((s,x)=>s+x.v,0);
+    let g='<div class="jn-res"><div class="jn-res-t jn-res-h"><span><b style="color:var(--ink)">'+L.length+' aliment'+(L.length>1?'s':'')+'</b> · '+S0.t+(L.length?' · total '+S0.v(tot):'')+' · depuis le '+jjmm(dep0)+'</span>'+
+      '<span class="jn-tri"><button data-jtri="recent"'+(S.jn.tri!=='haut'?' class="on"':'')+'>Récents</button><button data-jtri="haut"'+(S.jn.tri==='haut'?' class="on"':'')+'>Plus élevés</button></span></div>';
+    if(!L.length)g+='<p class="note">Aucun aliment au-dessus du seuil sur la période chargée.</p>';
+    L.slice(0,80).forEach(x=>{const c=creneauDe(x.r.repas)||'autre';
+      g+='<div class="jn-rl jn-al"><i class="cr-dot" style="background:var(--c-'+c+');margin-top:5px"></i><div class="q">'+esc(x.a.nom)+(x.a.quantite?' <span class="qte">· '+esc(x.a.quantite)+'</span>':'')+
+        '<small>'+esc(jourSemaine(x.r.date))+' '+jjmm(x.r.date)+' · '+esc(x.r.repas||'')+(x.repasEntier?' · repas entier (détail par aliment non conservé)':(x.autres&&x.autres.length?' · avec '+esc(x.autres.join(', ').slice(0,90)):''))+'</small></div>'+
+        '<b'+(f!=='alc'&&x.v>=S0.s*1.8?' class="haut"':'')+'>'+S0.v(x.v)+'</b></div>';});
+    if(L.length>80)g+='<div class="jn-res-t">… '+(L.length-80)+' de plus.</div>';
+    const prem0=((d.jours||[]).map(j=>j.date).sort()[0])||dep0;
+    if(dep0>prem0)g+=S.jn.rechCharge?'<p class="note"><span class="attente"></span>Chargement…</p>':'<button class="jn-plus" id="jn-loin">Chercher 8 semaines plus loin</button>';
+    if(S.jn.rechErr)g+='<p class="alerte">'+esc(S.jn.rechErr)+'</p>';
+    return g+'</div>';
+  }
   const rows=(d.journal||[]).filter(r=>{
     if(q){const t=normNom(String(r.detail||'')+' '+(Array.isArray(r.aliments)?r.aliments.map(a=>a.nom).join(' '):''));if(t.indexOf(q)<0)return false;}
-    if(f==='pur'&&!((r.purines_risque||0)>=150))return false;
-    if(f==='alc'&&!((Number(r.alcool)||0)>0))return false;
-    if(f==='sur'){const j=J[r.date];if(!j||!j.cible||bonJourApp(j.kcal,j.cible))return false;}
     return true;
   }).sort((a,b)=>b.date.localeCompare(a.date)||((ORD[creneauDe(a.repas)]??9)-(ORD[creneauDe(b.repas)]??9)));
   const dates=(d.journal||[]).map(r=>r.date).sort();
@@ -2435,7 +2508,7 @@ function vueJournal(d){
     if(dates[0]){S.jn.ouv['j:'+dates[0]]=1;const l=lundiJn(dates[0]);if(l!==cur)S.jn.ouv['s:'+l]=1;}
   }
   const sem={};dates.forEach(s=>{const l=lundiJn(s);(sem[l]=sem[l]||[]).push(s);});
-  let h='<section class="jn">'+blocRechJn(d)+'<div id="jn-semaines"'+(rechJnActive()?' hidden':'')+'>'+bilanSemaine(d)+'<div class="jn-t">Cette semaine</div>';
+  let h='<section class="jn">'+blocRechJn(d)+'<div id="jn-semaines"'+(rechJnActive()?' hidden':'')+'>'+blocStatsIA(d)+bilanSemaine(d)+'<div class="jn-t">Cette semaine</div>';
   if(sem[cur]){h+='<div class="jn-carte">';sem[cur].forEach(s=>{h+=ligneJourJn(d,s,J);});h+='</div>';}
   else h+='<p class="note">Rien de saisi cette semaine pour l’instant.</p>';
   const passees=Object.keys(sem).filter(l=>l!==cur).sort().reverse();
@@ -4938,7 +5011,10 @@ function brancher(){
   document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));
   on('#jn-q','input',e=>{S.jn.q=e.target.value;majRechJn();});
   document.querySelectorAll('[data-jf]').forEach(b=>b.addEventListener('click',()=>{S.jn.f=S.jn.f===b.dataset.jf?null:b.dataset.jf;rendre();}));
-  on('#jn-res','click',e=>{if(e.target.closest('#jn-loin'))chargerPlusLoinJn();});
+  on('#sia-t','click',()=>{S.jn.iaOuv=!S.jn.iaOuv;rendre();});
+  document.querySelectorAll('[data-siap]').forEach(b=>b.addEventListener('click',()=>{S.jn.iaPer=Number(b.dataset.siap);S.jn.iaSel=null;rendre();}));
+  document.querySelectorAll('[data-siab]').forEach(b=>b.addEventListener('click',()=>{S.jn.iaSel=S.jn.iaSel===b.dataset.siab?null:b.dataset.siab;rendre();}));
+  on('#jn-res','click',e=>{if(e.target.closest('#jn-loin'))chargerPlusLoinJn();const t=e.target.closest('[data-jtri]');if(t){S.jn.tri=t.dataset.jtri;majRechJn();}});
   on('#c-vider','click',()=>{S.coach.fil=[];localStorage.removeItem(S.chat);rendre();});
 
   // --- Corps : pas, mensurations, photos ---
