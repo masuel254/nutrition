@@ -691,6 +691,13 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .rg-tot .lien{display:inline;width:auto;margin:0 0 0 8px}
 .rg-cnx{text-align:left}.rg-cnx summary{text-align:center}
 .rg-mdp{display:flex;gap:8px}.rg-mdp input{flex:1}.rg-mdp button{flex:none;width:auto;margin:0;padding:0 14px}
+/* Note du repas par l'IA (A à E) */
+.ev{display:flex;gap:12px;align-items:flex-start;margin:12px 0 4px;padding:12px;border-radius:10px;background:color-mix(in srgb,var(--ec) 14%,var(--paper));border:1px solid color-mix(in srgb,var(--ec) 55%,transparent)}
+.ev-l{display:flex;gap:2px;flex:none;align-items:center;padding-top:2px}
+.ev-l i{width:20px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px;color:#10181A;opacity:.32}
+.ev-l i.on{opacity:1;transform:scale(1.25);margin:0 4px}
+.ev b{display:block;font-size:15px}.ev p{font-size:14px;margin-top:4px;line-height:1.35}
+.ev-x{margin-top:8px;font-size:14px;padding:9px 11px;border-radius:8px;border:1px dashed var(--rule);line-height:1.35}.ev-x b{color:var(--under)}
 </style>
 </head>
 <body>
@@ -698,7 +705,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='30/09/2026 21h33';
+const APP_VERSION='01/10/2026 07h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1549,6 +1556,16 @@ function vueJour(d){
 
 // Étape affichée pendant l'analyse : le serveur ne dit rien avant la fin, on se cale sur le temps écoulé
 // (Flash 30 s, puis Flash-Lite, puis les secours).
+// Note de qualité donnée par l'IA à l'analyse : lettre A à E, titre, phrase, échange proposé.
+const EV_COUL={A:'#1E8F4E',B:'#6FAE2E',C:'#D6A400',D:'#D8853A',E:'#D64545'};
+function blocEval(r){
+  const e=r&&r.evaluation;if(!e||!EV_COUL[e.lettre])return '';
+  let h='<div class="ev" style="--ec:'+EV_COUL[e.lettre]+'"><div class="ev-l" aria-label="Note '+e.lettre+'">'+
+    ['A','B','C','D','E'].map(l=>'<i class="'+(l===e.lettre?'on':'')+'" style="background:'+EV_COUL[l]+'">'+l+'</i>').join('')+'</div>'+
+    '<div>'+(e.titre?'<b>'+esc(e.titre)+'</b>':'')+(e.phrase?'<p>'+esc(e.phrase)+'</p>':'')+'</div></div>';
+  if(e.echange)h+='<div class="ev-x">\ud83d\udca1 Essaie plutôt : <b>'+esc(e.echange)+'</b></div>';
+  return h;
+}
 function etapeIA(A){
   const s=Math.max(0,Math.round((Date.now()-(A.envoiT0||Date.now()))/1000));
   return (s<25?'Analyse par Gemini… ':(s<50?'Gemini tarde, essai d’un autre modèle… ':'Modèle de secours en cours… '))+s+' s';
@@ -1976,7 +1993,7 @@ function vueAjout(d){
       }
       h+='</li>';
     });
-    h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+
+    h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+blocEval(r)+
        '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+(r.secours==='groq'?'Groq':'Gemma')+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
