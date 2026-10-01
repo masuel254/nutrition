@@ -184,7 +184,7 @@ ok(await page.locator('.jn-det .ligne').count() > 0, 'repas affichés après cha
 {
   const tags = await page.locator('.jn-det .ia-tag').allTextContents(), sec = await page.locator('.jn-det .ia-tag.sec').allTextContents();
   const lignes = await page.locator('.jn-det .ligne').count();
-  ok(sec.length > 0 && sec.every(t => t === 'Claude · secours') && (tags.includes('Flash') || tags.length < lignes) && tags.every(t => t === 'Flash' || t === 'Claude · secours'), 'Journal : étiquette de l IA (Flash en gris, Claude en secours, rien pour un ancien repas)');
+  ok(sec.length > 0 && sec.every(t => t === 'Claude Haiku') && (tags.includes('Flash') || tags.length < lignes) && tags.every(t => t === 'Flash' || t === 'Claude Haiku'), 'Journal : étiquette de l IA (Flash en gris, Claude Haiku en orange, rien pour un ancien repas)');
   const coupe = await page.evaluate(() => [...document.querySelectorAll('.jn-det .ia-w')].every(e => getComputedStyle(e).whiteSpace === 'nowrap'));
   ok(coupe, 'Journal : le « · » reste collé à l étiquette');
 }
@@ -261,9 +261,29 @@ await page.click('#a-nouveau').catch(() => {});
 if (!(await page.locator('#a-desc').count())) await page.click('nav button[data-vue="ajout"]');
 await page.fill('#a-desc', 'poulet'); await page.click('#a-envoi'); await page.waitForTimeout(400);
 ok(/modèle de secours \(Claude Haiku, payant\)/.test(await texte('.resu')) && /Pourquoi : Flash : 429 quota/.test(await texte('.resu')), 'analyse par un modèle de secours : signalée à l écran, avec la cause');
-ok(/Estimé par Claude · secours/.test(await texte('.resu .ia-l')) && await page.locator('.resu .ia-tag.sec').count() === 1, 'carte résultat : « Estimé par Claude · secours » avant d enregistrer');
+ok(/Estimé par Claude Haiku/.test(await texte('.resu .ia-l')) && await page.locator('.resu .ia-tag.sec').count() === 1, 'carte résultat : « Estimé par Claude Haiku » avant d enregistrer');
+ok(JSON.stringify(appels.filter(a => a.action === 'repas').pop().ia_ordre) === JSON.stringify(['flash', 'lite', 'haiku', 'groq', 'gemma']), 'analyse : profil Défaut envoyé (Flash, Flash-Lite, Claude Haiku, Groq, Gemma)');
 await page.click('#e-auj'); await page.waitForTimeout(500);
 ok(appels.filter(a => a.action === 'enregistrer').pop().ia === 'claude', 'secours : enregistré avec ia = claude');
+console.log('Profil IA');
+await page.click('nav button[data-vue="ajout"]');
+if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+ok(/Profil IA : Défaut/.test(await texte('#pia-t')) && await page.locator('[data-pia-s]').count() === 0, 'profil IA : accordéon fermé, « Défaut »');
+await page.click('#pia-t'); await page.click('[data-pia-p="complexe"]');
+ok(/Complexe/.test(await texte('#pia-t')) && await page.locator('.pia-l:not(.off)').count() === 1, 'profil IA : « Complexe » = Claude Sonnet seul');
+await page.fill('#a-desc', 'lasagne'); await page.click('#a-envoi'); await page.waitForTimeout(400);
+ok(JSON.stringify(appels.filter(a => a.action === 'repas').pop().ia_ordre) === '["sonnet"]', 'profil IA : Complexe envoyé');
+await page.click('#a-nouveau').catch(() => {});
+ok(/Complexe/.test(await texte('#pia-t')), 'profil IA : gardé tant qu on reste sur Ajouter');
+await page.click('[data-pia-p="gratuits"]'); await page.click('[data-pia-b="0"]');
+ok(/Sur mesure/.test(await texte('#pia-t')), 'profil IA : ordre changé → « Sur mesure »');
+while (await page.locator('.pia-s.on').count()) await page.locator('.pia-s.on').first().click();
+const nRepas = appels.filter(a => a.action === 'repas').length;
+await page.fill('#a-desc', 'riz'); await page.click('#a-envoi'); await page.waitForTimeout(200);
+ok(/aucune IA choisie/.test(await texte('#pia-t')) && appels.filter(a => a.action === 'repas').length === nRepas, 'profil IA : aucune IA → analyse bloquée');
+await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="ajout"]');
+if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+ok(/Profil IA : Défaut/.test(await texte('#pia-t')), 'profil IA : revient à Défaut après un changement d écran');
 secoursTest = false;
 
 console.log('Pesées');
