@@ -710,7 +710,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 14h01';
+const APP_VERSION='01/10/2026 20h37';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1999,7 +1999,7 @@ function vueAjout(d){
       h+='</li>';
     });
     h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+blocEval(r)+
-       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+(r.secours==='groq'?'Groq':'Gemma')+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
+       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant'}[r.secours]||r.secours)+'), Google étant indisponible : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
       h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
