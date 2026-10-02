@@ -359,16 +359,55 @@ await pi.route('https://api.test/**', async r => { const q = JSON.parse(r.reques
 await pi.goto('https://app.test/index.html#invite=ABCD-EFGH&api=' + encodeURIComponent('https://api.test/x'));
 await pi.waitForSelector('#w-copier');
 ok(/ABCD-EFGH/.test(await pi.locator('.ins-code').innerText()), 'lien ouvert dans Safari : page d accueil avec le code');
-await pi.click('#w-ici'); await pi.click('#i-suite'); await pi.waitForSelector('#i-creer');
-ok((await pi.inputValue('#i-prenom')) === 'Hugo', 'code vérifié : formulaire de profil prérempli');
-await pi.click('#i-creer'); await pi.waitForTimeout(100);
-ok(/sexe|homme/i.test(await pi.locator('.alerte').innerText()), 'profil incomplet : message clair');
-await pi.click('[data-isx="H"]'); await pi.fill('[data-if="age"]', '22'); await pi.fill('[data-if="taille"]', '178'); await pi.fill('[data-if="poids"]', '68,5'); await pi.click('[data-iob="prise"]');
-await pi.click('#i-creer'); await pi.waitForSelector('nav button');
+ok(await pi.locator('#w-ici').count() === 0 && /appli installée/.test(await pi.locator('.ins').innerText()), 'iPhone hors appli installée : pas de « Continuer ici », avertissement');
+// filet : compte créé quand même hors de l'appli installée (iPhone) → copier l'accès pour l'appli
+await pi.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'https://app.test' });
+await pi.evaluate(() => { S.ins = nouvelleIns({ code: 'ABCD-EFGH', api: 'https://api.test/x' }); entrer({ token: 'abcdefghijkmnpqrstuvwxyz', prenom: 'Hugo' }); });
+await pi.waitForSelector('#a-copier'); await pi.click('#a-copier'); await pi.waitForTimeout(100);
+const accesCopie = await pi.evaluate(() => navigator.clipboard.readText());
+ok(/#acces=abcdefghijkmnpqrstuvwxyz&api=/.test(accesCopie) && /Hugo/.test(await pi.locator('.ins h1').innerText()), 'compte créé hors appli : accès copié pour l appli installée');
+await pi.close();
+// appli installée (écran d'accueil) : coller l'accès copié → connecté
+const pInst = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
+pInst.on('pageerror', e => erreurs.push(e.message));
+await pInst.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { get: () => true }); });
+await pInst.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+await pInst.route('https://api.test/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DATA) }));
+await pInst.goto('https://app.test/index.html'); await pInst.waitForSelector('#i-inv'); await pInst.click('#i-inv');
+await pInst.fill('#i-code', accesCopie); await pInst.click('#i-suite'); await pInst.waitForSelector('nav button');
+ok(JSON.parse(await pInst.evaluate(() => localStorage.getItem('suivi.config'))).token === 'abcdefghijkmnpqrstuvwxyz', 'appli installée : accès collé, connecté sans nouveau lien');
+await pInst.close();
+// Android ou ordinateur : « Continuer ici » reste (la mémoire est partagée)
+const pd = await (await navigateur.newContext({ ...devices['Pixel 7'] })).newPage();
+await pd.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+await pd.goto('https://app.test/index.html#invite=ABCD-EFGH&api=' + encodeURIComponent('https://api.test/x')); await pd.waitForSelector('#w-copier');
+ok(await pd.locator('#w-ici').count() === 1, 'Android : « Continuer ici sans installer » toujours proposé');
+await pd.close();
+// inscription normale dans l'appli installée (iPhone)
+const pj = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
+pj.on('pageerror', e => erreurs.push(e.message));
+await pj.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { get: () => true }); });
+let dejaServi = false;
+await pj.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+await pj.route('https://api.test/**', async r => { const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
+  if (q.action === 'invite' && dejaServi) return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false, erreur: 'Ce code a déjà servi. Demande un nouveau lien.' }) });
+  if (q.action === 'invite') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(q.profil ? { ok: true, token: 'TOKNEUF' } : { ok: true, besoin_profil: true, prenom: 'Hugo' }) });
+  return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DATA) }); });
+await pj.goto('https://app.test/index.html'); await pj.waitForSelector('#i-inv'); await pj.click('#i-inv');
+dejaServi = true; await pj.fill('#i-code', 'https://app.test/index.html#invite=ABCD-EFGH&api=' + encodeURIComponent('https://api.test/x')); await pj.click('#i-suite'); await pj.waitForSelector('.alerte');
+ok(/existe sûrement déjà/.test(await pj.locator('.alerte').innerText()) && /reconnexion/.test(await pj.locator('.alerte').innerText()), 'code déjà servi : message qui explique quoi faire');
+dejaServi = false;
+const pi2 = pj;
+await pi2.click('#i-suite'); await pi2.waitForSelector('#i-creer');
+ok((await pi2.inputValue('#i-prenom')) === 'Hugo', 'code vérifié : formulaire de profil prérempli');
+await pi2.click('#i-creer'); await pi2.waitForTimeout(100);
+ok(/sexe|homme/i.test(await pi2.locator('.alerte').innerText()), 'profil incomplet : message clair');
+await pi2.click('[data-isx="H"]'); await pi2.fill('[data-if="age"]', '22'); await pi2.fill('[data-if="taille"]', '178'); await pi2.fill('[data-if="poids"]', '68,5'); await pi2.click('[data-iob="prise"]');
+await pi2.click('#i-creer'); await pi2.waitForSelector('nav button');
 const iv = appels.filter(a => a.action === 'invite').pop();
 ok(iv.profil && iv.profil.objectif === 'prise' && iv.profil.ecart_kcal === 300 && iv.profil.poids === 68.5, 'profil envoyé avec objectif et écart');
-ok(JSON.parse(await pi.evaluate(() => localStorage.getItem('suivi.config'))).token === 'TOKNEUF' && (await pi.evaluate(() => location.hash)) === '', 'compte créé : code enregistré, lien effacé');
-await pi.close();
+ok(JSON.parse(await pi2.evaluate(() => localStorage.getItem('suivi.config'))).token === 'TOKNEUF' && (await pi2.evaluate(() => location.hash)) === '', 'compte créé : code enregistré, lien effacé');
+await pi2.close();
 
 console.log('Photos');
 await page.click('nav button[data-vue="corps"]'); await page.locator('[data-ko]').filter({ hasText: 'Photos' }).first().click();
