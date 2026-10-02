@@ -821,7 +821,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 12h21';
+const APP_VERSION='02/10/2026 16h03';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2975,12 +2975,19 @@ function brancherIns(){
    Repères : saturées < 10 % des calories (OMS), sucres ajoutés < 10 % (OMS), sodium < 2 000 mg
    (OMS, 5 g de sel), fibres 30 g (25 g pour une femme) à atteindre. Plafonds calés sur la cible du jour. */
 const NUTS=['satures','fibres','sodium','sucres_ajoutes'];
-function seuilsQualite(d){
+// Repères qualité choisis par la personne (Réglages › Repères) : 0 ou absent = calcul automatique.
+const QREG=[['fibres','fibres_min','Fibres min. (g)',10,60],['satures','satures_max','Saturées max. (g)',5,80],['sucres_ajoutes','sucres_max','Sucres ajoutés max. (g)',5,150],['sodium','sodium_max','Sodium max. (mg)',500,5000]];
+function reperesReg(d){const r=(d&&d.reference&&d.reference.reperes)||{},o={};QREG.forEach(q=>{const v=Number(r[q[1]]);o[q[0]]=v>0?v:0;});return o;}
+function seuilsAuto(d){
   const c=(d&&d.cibles&&d.cibles.kcal)||2000,fem=d&&d.profil&&String(d.profil.sexe||'').toUpperCase()==='F';
-  return {satures:{max:Math.round(c*0.10/9),lib:'Graisses saturées',court:'Saturées',u:'g',plancher:false},
-    fibres:{max:fem?25:30,lib:'Fibres',court:'Fibres',u:'g',plancher:true},
-    sodium:{max:2000,lib:'Sodium',court:'Sodium',u:'mg',plancher:false},
-    sucres_ajoutes:{max:Math.round(c*0.10/4),lib:'Sucres ajoutés',court:'Sucres ajoutés',u:'g',plancher:false}};
+  return {satures:Math.round(c*0.10/9),fibres:fem?25:30,sodium:2000,sucres_ajoutes:Math.round(c*0.10/4)};
+}
+function seuilsQualite(d){
+  const A=seuilsAuto(d),R=reperesReg(d),v=k=>R[k]>0?R[k]:A[k];
+  return {satures:{max:v('satures'),lib:'Graisses saturées',court:'Saturées',u:'g',plancher:false,auto:!R.satures},
+    fibres:{max:v('fibres'),lib:'Fibres',court:'Fibres',u:'g',plancher:true,auto:!R.fibres},
+    sodium:{max:v('sodium'),lib:'Sodium',court:'Sodium',u:'mg',plancher:false,auto:!R.sodium},
+    sucres_ajoutes:{max:v('sucres_ajoutes'),lib:'Sucres ajoutés',court:'Sucres ajoutés',u:'g',plancher:false,auto:!R.sucres_ajoutes}};
 }
 function etatNut(q,v){
   const bon=q.plancher?v>=q.max:v<=q.max;
@@ -3425,6 +3432,11 @@ function vueRéglages(d){
      '<input id="g-purmax" type="text" inputmode="numeric" value="'+purMax(d)+'">'+
      '<div class="choix rg-pre" id="g-pmx-pre"><button data-pmx="300" class="'+(purMax(d)===300?'on':'')+'">300 · crise</button><button data-pmx="400" class="'+(purMax(d)===400?'on':'')+'">400 · normal</button></div>'+
      '<p class="note">Purines animales et bière seulement. 400 mg est le repère courant d\'une alimentation pauvre en purines, 300 en période de crise. À valider avec ton médecin.</p>';
+  {const A=seuilsAuto(d),RG=reperesReg(d);
+  h+='</section><section><h2>Repères qualité</h2><div class="repart" id="g-qual" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  QREG.forEach(q=>{h+='<div class="repart-i"><span>'+q[2]+'</span><input type="text" inputmode="numeric" data-qr="'+q[0]+'" value="'+esc(S.regl.qr&&S.regl.qr[q[0]]!==undefined?S.regl.qr[q[0]]:(RG[q[0]]||''))+'" placeholder="Auto · '+nb(A[q[0]])+'"></div>';});
+  h+='</div><p class="note">Laisse une case vide pour le calcul automatique : fibres 30 g (25 g pour une femme), saturées et sucres ajoutés 10 % de ta cible calorique chacun, sodium 2 000 mg (OMS). '+
+     'Une valeur tapée est fixe : elle ne suit plus ta cible quand elle change.</p>';}
   h+='</section></div>';
 
   // ---- profil ----
@@ -4614,7 +4626,7 @@ function brancher(){
   });
   on('#b-coach','click',()=>{S.vue='coach';S.reglages=false;rendre();hautPage();});
   on('#b-pesee','click',()=>{S.vue='corps';S.corps.phInit=false;S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
-  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.regl.sale=false;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
+  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.regl.sale=false;S.regl.qr=null;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
     S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
     e.target.disabled=true;e.target.textContent='Actualisation…';
@@ -5203,6 +5215,7 @@ function brancher(){
   // tout changement d'Objectif ou de Repères fait apparaître la barre Enregistrer
   const sale=()=>{S.regl.sale=true;if(S.para.etat==='ok'||S.para.etat==='ko')S.para.etat=null;const b=$('#rg-barre');if(b)b.hidden=false;};
   document.querySelectorAll('[data-rgp="objectif"] input,[data-rgp="reperes"] input').forEach(i=>i.addEventListener('input',sale));
+  document.querySelectorAll('[data-qr]').forEach(i=>i.addEventListener('input',()=>{S.regl.qr=S.regl.qr||{};S.regl.qr[i.dataset.qr]=i.value;}));
   document.querySelectorAll('#ch-act button,#g-pmx-pre button,#g-ec-pre button').forEach(b=>b.addEventListener('click',sale));
   const posEcart=v=>{const B=OBJ_DEF[S.regl.obj];v=Math.max(B.min,Math.min(B.max,v));const i=$('#g-ecart');if(i)i.value=(v>0?'+':'')+v;
     document.querySelectorAll('#g-ec-pre button').forEach(x=>x.classList.toggle('on',Number(x.dataset.ecp)===v));majApercu();sale();};
@@ -5272,14 +5285,20 @@ function brancher(){
     const macros=om.prot+'/'+om.lip+'/'+om.gluc;
     const pmx=parseInt(String((($('#g-purmax')||{}).value)||'').replace(/[^0-9]/g,''),10);
     if(isNaN(pmx)||pmx<150||pmx>1500){S.para.etat='ko';S.para.message='Plafond de purines attendu entre 150 et 1500 mg.';rendre();return;}
+    const reperes={};let rqErr='';
+    QREG.forEach(q=>{const i=document.querySelector('[data-qr="'+q[0]+'"]'),s=String((i&&i.value)||'').trim().replace(',','.');
+      if(s===''){reperes[q[1]]=0;return;}const v=Math.round(Number(s));
+      if(isNaN(v)||v<q[3]||v>q[4]){if(!rqErr)rqErr=q[2].replace(/ (min|max)\..*/,'')+' : entre '+nb(q[3])+' et '+nb(q[4])+(q[0]==='sodium'?' mg':' g')+', ou case vide pour le calcul automatique.';return;}
+      reperes[q[1]]=v;});
+    if(rqErr){S.para.etat='ko';S.para.message=rqErr;rendre();return;}
     const obTxt=String((($('#g-objectif')||{}).value)||'').trim().replace(',','.');
     const ob=obTxt?Number(obTxt):null;
     if(obTxt&&(isNaN(ob)||ob<40||ob>250)){S.para.etat='ko';S.para.message='Objectif de poids attendu entre 40 et 250 kg.';rendre();return;}
     S.para.etat='envoi';rendre();
     try{
-      const r=await appel({action:'params',objectif:S.regl.obj,ecart_kcal:e,facteur:f,repartition:repartition,macros:macros,purines_max:pmx,objectif_poids:ob===null?'':ob});
+      const r=await appel({action:'params',objectif:S.regl.obj,ecart_kcal:e,facteur:f,repartition:repartition,macros:macros,purines_max:pmx,reperes:reperes,objectif_poids:ob===null?'':ob});
       await rafraichir();
-      S.regl.obj=null;S.regl.sale=false;
+      S.regl.obj=null;S.regl.sale=false;S.regl.qr=null;
       S.para.etat='ok';
       S.para.message=OBJ_DEF[r.objectif]?OBJ_DEF[r.objectif].lib+' : cible '+nb(r.cible)+' kcal aujourd’hui ('+(r.activite||'')+'), recalculée à chaque pesée.':'Cible '+r.cible+' kcal.';
     }catch(err){S.para.etat='ko';S.para.message=err.message;}
