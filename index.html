@@ -421,6 +421,18 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
   text-shadow:0 2px 12px rgba(0,0,0,.6);pointer-events:none}
 .cam .scan-bas button{padding:13px 6px;font-size:14px}
 .cam .scan-bas button:disabled{opacity:.45}
+.cam .scan-bas{flex-wrap:wrap}
+.cam .scan-bas .cam-opts{display:flex;gap:8px;width:100%}
+.cam .scan-bas .cam-opts button{padding:9px 4px;font-size:13px;font-weight:500}
+.cam .scan-bas .cam-opts button.on{background:rgba(255,255,255,.4)}
+.cam-apercu.miroir{transform:scaleX(-1)}
+.cam-imp{position:absolute;left:12px;right:12px;top:calc(52px + env(safe-area-inset-top));z-index:3;display:flex;flex-direction:column;gap:8px;
+  background:rgba(0,0,0,.55);border-radius:12px;padding:10px 12px;color:#fff;font-size:14px;backdrop-filter:blur(6px)}
+.cam-imp .ty{display:flex;gap:8px}.cam-imp .ty button{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:none;color:#fff;font-size:14px}
+.cam-imp .ty button.on{background:#fff;color:#111}
+.cam-imp label{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cam-imp input[type=date]{font-size:16px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff}
+.cam-imp small{color:rgba(255,255,255,.75);font-size:12.5px}
 @media (prefers-reduced-motion: no-preference){
   .attente{animation:tourne .7s linear infinite}
   @keyframes tourne{to{transform:rotate(360deg)}}
@@ -747,7 +759,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='01/10/2026 22h17';
+const APP_VERSION='02/10/2026 07h54';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3794,6 +3806,7 @@ function sectionPhotos(d){
   const P=d.photos||[],C=S.corps;
   let h='<section><h2>Photos d\'évolution</h2>';
   h+='<div class="deux"><button id="k-ph-face">Photo de face</button><button id="k-ph-profil">Photo de profil</button></div>';
+  h+='<input id="k-ph-fichier" type="file" accept="image/*" style="display:none"><button class="lien" id="k-ph-import">🖼️ Ajouter une photo depuis la photothèque</button>';
   if(C.photoMsg)h+='<p class="bien">'+esc(C.photoMsg)+'</p>';
   const type=C.cmpType==='profil'?'profil':'face';
   const liste=P.filter(p=>p.type===type);
@@ -3931,7 +3944,9 @@ async function camDemarrerFlux(){
   }
   camArreterFlux();
   try{
-    camFlux=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:Cm.facing},width:{ideal:1920},height:{ideal:1920}}});
+    // « exact » force vraiment l'autre caméra sur iPhone ; « ideal » en secours si refusé
+    try{camFlux=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{exact:Cm.facing},width:{ideal:1920},height:{ideal:1920}}});}
+    catch(e1){camFlux=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:Cm.facing},width:{ideal:1920},height:{ideal:1920}}});}
     if(!S.cam.ouvert){camArreterFlux();return;}
     Cm.etat='pret';dessinerCamera();
   }catch(e){
@@ -3947,24 +3962,37 @@ function dessinerCamera(){
   let hote=document.getElementById('cam-hote');
   if(!Cm.ouvert){if(hote)hote.remove();return;}
   if(!hote){hote=document.createElement('div');hote.id='cam-hote';document.body.appendChild(hote);}
-  const miroir=Cm.facing==='user';
+  const miroir=!!Cm.miroir;
   let h='<div class="scan-overlay cam">';
-  if(Cm.capture){
+  if(Cm.capture&&Cm.import){
+    h+='<img class="cam-apercu" src="'+Cm.capture.url+'" alt="Photo choisie">'+
+       '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':'Photo depuis la photothèque')+'</div>'+
+       '<div class="cam-imp"><div class="ty"><button data-cimp="face"'+(Cm.type==='face'?' class="on"':'')+'>Face</button><button data-cimp="profil"'+(Cm.type==='profil'?' class="on"':'')+'>Profil</button></div>'+
+       '<label>Date de la photo<input type="date" id="cam-date" value="'+esc(Cm.date||auj())+'" max="'+auj()+'"></label>'+
+       '<small>'+(Cm.dateSource==='exif'?'Date lue dans la photo.':'Date de la photo inconnue : vérifie-la.')+' Une photo par jour et par type : la même date remplace l’ancienne.</small></div>';
+    if(Cm.etat==='ko')h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
+    h+='<div class="scan-bas"><button id="cam-fermer"'+(Cm.etat==='envoi'?' disabled':'')+'>Annuler</button>'+
+       '<button id="cam-retourner"'+(Cm.etat==='envoi'?' disabled':'')+'>↔ Retourner</button>'+
+       '<button class="stop" id="cam-garder"'+(Cm.etat==='envoi'?' disabled':'')+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';
+  }else if(Cm.capture){
     h+='<img class="cam-apercu" src="'+Cm.capture.url+'" alt="Photo prise">'+
        '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':'Photo de '+libType(Cm.type)+' : on la garde ?')+'</div>';
     if(Cm.etat==='ko')h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
     h+='<div class="scan-bas"><button id="cam-reprendre"'+(Cm.etat==='envoi'?' disabled':'')+'>Reprendre</button>'+
+       '<button id="cam-retourner"'+(Cm.etat==='envoi'?' disabled':'')+'>↔ Retourner</button>'+
        '<button class="stop" id="cam-garder"'+(Cm.etat==='envoi'?' disabled':'')+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';
   }else{
     h+='<video id="cam-video" class="scan-video'+(miroir?' miroir':'')+'" playsinline muted autoplay></video>';
-    // la photo précédente est déjà enregistrée telle qu'affichée (miroir compris) : pas de retournement
+    // la photo précédente est enregistrée telle qu'affichée : si elle ne tombe pas en face, « Miroir » retourne l'aperçu
     if(Cm.fantome)h+='<img class="cam-fantome" src="'+Cm.fantome+'" alt="">';
     h+='<div class="scan-haut">'+(Cm.etat==='demarrage'?'Démarrage de la caméra…':'Photo de '+libType(Cm.type)+(Cm.fantome?' · place-toi sur la photo précédente':''))+'</div>'+
        '<div class="cam-compte" id="cam-compte"></div>';
     if(Cm.etat==='ko'||Cm.alerte)h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
-    h+='<div class="scan-bas"><button id="cam-fermer">Fermer</button>'+
-       '<button id="cam-tourner" aria-label="Changer de caméra">'+(Cm.facing==='user'?'Arrière':'Avant')+'</button>'+
-       '<button id="cam-minuteur" aria-label="Retardateur">'+(Cm.minuteur?Cm.minuteur+' s':'0 s')+'</button>'+
+    h+='<div class="scan-bas"><div class="cam-opts">'+
+       '<button id="cam-tourner" aria-label="Changer de caméra">⇄ '+(Cm.facing==='user'?'Caméra arrière':'Mode selfie')+'</button>'+
+       '<button id="cam-miroir" aria-pressed="'+miroir+'"'+(miroir?' class="on"':'')+'>↔ Miroir</button>'+
+       '<button id="cam-minuteur" aria-label="Retardateur">⏱ '+(Cm.minuteur?Cm.minuteur+' s':'0 s')+'</button></div>'+
+       '<button id="cam-fermer">Fermer</button>'+
        '<button class="stop" id="cam-declencher"'+(Cm.etat!=='pret'?' disabled':'')+'>Prendre</button></div>';
   }
   h+='</div>';
@@ -3973,10 +4001,17 @@ function dessinerCamera(){
   if(v&&camFlux){v.srcObject=camFlux;const pl=v.play();if(pl&&pl.catch)pl.catch(()=>{});}
   const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener('click',fn);};
   on('cam-fermer',fermerCamera);
-  on('cam-tourner',()=>{Cm.facing=Cm.facing==='user'?'environment':'user';Cm.etat='demarrage';dessinerCamera();camDemarrerFlux();});
-  on('cam-minuteur',e=>{Cm.minuteur=Cm.minuteur===0?5:(Cm.minuteur===5?10:0);try{localStorage.setItem('suivi.cam',JSON.stringify({facing:Cm.facing,minuteur:Cm.minuteur}));}catch(er){}
+  const memoCam=()=>{try{const p=JSON.parse(localStorage.getItem('suivi.cam')||'{}');p.facing=Cm.facing;p.minuteur=Cm.minuteur;p['miroir_'+Cm.facing]=Cm.miroir;localStorage.setItem('suivi.cam',JSON.stringify(p));}catch(er){}};
+  on('cam-tourner',()=>{Cm.facing=Cm.facing==='user'?'environment':'user';let p={};try{p=JSON.parse(localStorage.getItem('suivi.cam')||'{}');}catch(er){}
+    Cm.miroir=typeof p['miroir_'+Cm.facing]==='boolean'?p['miroir_'+Cm.facing]:Cm.facing==='user';memoCam();Cm.etat='demarrage';dessinerCamera();camDemarrerFlux();});
+  on('cam-miroir',e=>{Cm.miroir=!Cm.miroir;memoCam();const v2=document.getElementById('cam-video');if(v2)v2.classList.toggle('miroir',Cm.miroir);
+    e.currentTarget.classList.toggle('on',Cm.miroir);e.currentTarget.setAttribute('aria-pressed',String(Cm.miroir));});
+  on('cam-retourner',()=>{retournerCapture();});
+  hote.querySelectorAll('[data-cimp]').forEach(b=>b.addEventListener('click',()=>{Cm.type=b.dataset.cimp;dessinerCamera();}));
+  const dt=document.getElementById('cam-date');if(dt)dt.addEventListener('change',()=>{if(/^\d{4}-\d{2}-\d{2}$/.test(dt.value)&&dt.value<=auj())Cm.date=dt.value;});
+  on('cam-minuteur',e=>{Cm.minuteur=Cm.minuteur===0?5:(Cm.minuteur===5?10:0);memoCam();
     // mise à jour du seul libellé : redessiner recréerait la vidéo et la rendrait indisponible un instant
-    e.currentTarget.textContent=Cm.minuteur+' s';});
+    e.currentTarget.textContent='⏱ '+Cm.minuteur+' s';});
   on('cam-declencher',()=>{
     if(Cm.minuteurId)return;
     let n=Cm.minuteur;
@@ -4001,7 +4036,7 @@ function camCapturer(essai){
   const x=c.getContext('2d');
   // même orientation que l'aperçu : miroir avec la caméra avant, pour que la silhouette
   // fantôme de la prochaine fois tombe exactement au même endroit
-  if(S.cam.facing==='user'){x.translate(c.width,0);x.scale(-1,1);}
+  if(S.cam.miroir){x.translate(c.width,0);x.scale(-1,1);}
   x.drawImage(v,0,0,c.width,c.height);
   let url=c.toDataURL('image/jpeg',0.82);
   if(url.length>900000)url=c.toDataURL('image/jpeg',0.7);
@@ -4014,9 +4049,10 @@ async function envoyerPhotoCorps(){
   const Cm=S.cam;if(!Cm.capture)return;
   Cm.etat='envoi';dessinerCamera();
   try{
-    const r=await appel({action:'photo',type:Cm.type,photo:Cm.capture.b64,date:auj()});
+    const dPh=(Cm.import&&/^\d{4}-\d{2}-\d{2}$/.test(Cm.date||'')&&Cm.date<=auj())?Cm.date:auj();
+    const r=await appel({action:'photo',type:Cm.type,photo:Cm.capture.b64,date:dPh});
     if(r.fichier){photoMem.set(r.fichier,Cm.capture.url);await idbPut(r.fichier,Cm.capture.url);}
-    S.corps.photoMsg='Photo de '+libType(Cm.type)+' enregistrée.';
+    S.corps.photoMsg='Photo de '+libType(Cm.type)+(dPh!==auj()?' du '+jjmm(dPh):'')+' enregistrée.';
     S.corps.cmpType=Cm.type;S.corps.cmpB=null;
     fermerCamera();
     try{await rafraichir();}catch(e){}
@@ -4025,9 +4061,50 @@ async function envoyerPhotoCorps(){
     Cm.etat='ko';Cm.message=e.message||'Envoi impossible.';dessinerCamera();
   }
 }
+// Retourne horizontalement la photo prise ou choisie (avant de la garder).
+function retournerCapture(){
+  const Cm=S.cam;if(!Cm.capture)return;
+  const im=new Image();
+  im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;const x=c.getContext('2d');
+    x.translate(c.width,0);x.scale(-1,1);x.drawImage(im,0,0);const url=c.toDataURL('image/jpeg',0.86);Cm.capture={url:url,b64:url.split(',')[1]};dessinerCamera();};
+  im.src=Cm.capture.url;
+}
+// Date de prise de vue lue dans l'EXIF d'un JPEG (DateTimeOriginal), sinon null.
+function dateExif(buf){
+  try{const v=new DataView(buf);if(v.getUint16(0)!==0xFFD8)return null;let o=2;
+    while(o+4<v.byteLength){const m=v.getUint16(o),l=v.getUint16(o+2);
+      if(m===0xFFE1&&v.getUint32(o+4)===0x45786966){const t=o+10,le=v.getUint16(t)===0x4949;const u16=p=>v.getUint16(p,le),u32=p=>v.getUint32(p,le);
+        const lireIfd=(p,cible)=>{const n=u16(p);for(let i=0;i<n;i++){const e=p+2+i*12;if(u16(e)===cible)return e;}return -1;};
+        const ifd0=t+u32(t+4);const ex=lireIfd(ifd0,0x8769);if(ex<0)return null;const ifdE=t+u32(ex+8);
+        let e=lireIfd(ifdE,0x9003);if(e<0)e=lireIfd(ifdE,0x9004);if(e<0)return null;
+        const p=t+u32(e+8);let s='';for(let i=0;i<10;i++)s+=String.fromCharCode(v.getUint8(p+i));
+        const m2=s.match(/^(\d{4}):(\d{2}):(\d{2})$/);return m2?m2[1]+'-'+m2[2]+'-'+m2[3]:null;}
+      if((m&0xFF00)!==0xFF00)return null;o+=2+l;}
+  }catch(e){}return null;
+}
+// Photo choisie dans la photothèque : redimensionnée comme une prise de vue, puis écran de validation (type, date, retourner).
+async function importerPhoto(f,type){
+  S.corps.photoMsg='';
+  let dExif=null;try{dExif=dateExif(await f.slice(0,262144).arrayBuffer());}catch(e){dExif=null;}
+  const url0=URL.createObjectURL(f);
+  const im=new Image();
+  im.onload=()=>{
+    const MAX=1080,w0=im.naturalWidth,h0=im.naturalHeight,r=Math.min(1,MAX/Math.max(w0,h0));
+    const c=document.createElement('canvas');c.width=Math.round(w0*r);c.height=Math.round(h0*r);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    URL.revokeObjectURL(url0);
+    let url=c.toDataURL('image/jpeg',0.82);if(url.length>900000)url=c.toDataURL('image/jpeg',0.7);
+    const dOk=dExif&&dExif<=auj()?dExif:null;
+    S.cam={ouvert:true,import:true,type:type,facing:'user',miroir:false,minuteur:0,capture:{url:url,b64:url.split(',')[1]},etat:null,message:'',fantome:null,minuteurId:null,
+      date:dOk||auj(),dateSource:dOk?'exif':'inconnue'};
+    dessinerCamera();
+  };
+  im.onerror=()=>{URL.revokeObjectURL(url0);S.corps.photoMsg='Format de photo non lu par l’appli : choisis-la dans Fichiers en JPEG, ou règle l’appareil photo sur « Le plus compatible ».';rendre();};
+  im.src=url0;
+}
 async function ouvrirCamera(type){
   let pref={};try{pref=JSON.parse(localStorage.getItem('suivi.cam'))||{};}catch(e){pref={};}
-  S.cam={ouvert:true,type:type,facing:pref.facing==='environment'?'environment':'user',
+  const fac=pref.facing==='environment'?'environment':'user';
+  S.cam={ouvert:true,type:type,facing:fac,miroir:typeof pref['miroir_'+fac]==='boolean'?pref['miroir_'+fac]:fac==='user',
     minuteur:[0,5,10].indexOf(pref.minuteur)>=0?pref.minuteur:5,capture:null,etat:'demarrage',message:'',fantome:null,minuteurId:null};
   S.corps.photoMsg='';
   dessinerCamera();
@@ -5056,6 +5133,8 @@ function brancher(){
   document.querySelectorAll('#k-courbe button').forEach(b=>b.addEventListener('click',()=>{S.corps.courbe=b.dataset.kc;rendre();}));
   on('#k-ph-face','click',()=>ouvrirCamera('face'));
   on('#k-ph-profil','click',()=>ouvrirCamera('profil'));
+  on('#k-ph-import','click',()=>{const f=$('#k-ph-fichier');if(f){f.value='';f.click();}});
+  on('#k-ph-fichier','change',e=>{const f=e.target.files&&e.target.files[0];if(f)importerPhoto(f,S.corps.cmpType==='profil'?'profil':'face');});
   document.querySelectorAll('#k-cmp-type button').forEach(b=>b.addEventListener('click',()=>{
     S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;rendre();}));
   on('#k-cmp-a','change',e=>{S.corps.cmpA=e.target.value;rendre();});
