@@ -428,6 +428,8 @@ await page.click('#evo-fermer'); ok(await page.locator('#evo-hote').count() === 
 await page.click(`#k-pdt [data-pdt="${jour(-6)}"]`); await page.waitForTimeout(150);
 ok(await page.locator('#k-une').count() === 1 && await page.locator('#k-cmp').count() === 0, 'Photos : une date → une seule photo entière');
 await page.click('#k-pdt [data-pdt=""]'); await page.waitForTimeout(150); ok(await page.locator('#k-cmp').count() === 1, 'Photos : retour avant / après');
+await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="corps"]'); await page.waitForTimeout(150);
+ok(await page.locator('#k-une').count() === 1 && /Profil/.test(await texte('#k-cmp-type .on')), 'Photos : au retour sur la page, dernière photo seule (de face, sinon de profil s il n y a pas de face)');
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
