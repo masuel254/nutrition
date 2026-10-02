@@ -68,6 +68,7 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
   if (q.action === 'crise') return json({ ok: true });
+  if (q.action === 'photo') return json({ ok: true, fichier: 'FTEST', date: q.date, type: q.type });
   if (q.action === 'favoris') return json({ ok: true, favoris: q.favoris });
   if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
   if (q.action === 'admin') return json({ ok: true, comptes: [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true }], invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined });
@@ -308,8 +309,14 @@ await page.click('nav button[data-vue="journal"]');
 await page.fill('#jn-q', 'poulet'); await page.waitForTimeout(300);
 ok(await page.locator('#jn-semaines').isHidden() && /résultat/.test(await texte('#jn-res')) && await page.locator('#jn-res .jn-rl').count() > 0, 'Journal : recherche par aliment');
 const nJ2 = appels.filter(a => a.action === 'journal').length;
-await page.click('#jn-loin'); await page.waitForTimeout(600);
-ok(appels.filter(a => a.action === 'journal').length === nJ2 + 1, 'Journal : chercher plus loin charge 8 semaines');
+// selon le jour de la semaine, la semaine la plus ancienne a déjà été chargée plus haut : plus rien à chercher
+if (await page.locator('#jn-loin').count()) {
+  await page.click('#jn-loin'); await page.waitForTimeout(600);
+  ok(appels.filter(a => a.action === 'journal').length === nJ2 + 1, 'Journal : chercher plus loin charge 8 semaines');
+} else {
+  const tout = await page.evaluate(() => { const j = S.data.journal.map(r => r.date).sort()[0], p = S.data.jours.map(x => x.date).sort()[0]; return j <= p; });
+  ok(tout, 'Journal : tout l historique déjà chargé, pas de bouton « plus loin »');
+}
 await page.fill('#jn-q', ''); await page.dispatchEvent('#jn-q', 'input');
 ok(await page.locator('[data-jf]').count() === 4 && !/cible/.test(await texte('.jn-f')), 'Journal : 4 filtres (purines, alcool, saturés, sodium), plus « au-dessus de la cible »');
 await page.click('[data-jf="alc"]');
@@ -354,6 +361,17 @@ const iv = appels.filter(a => a.action === 'invite').pop();
 ok(iv.profil && iv.profil.objectif === 'prise' && iv.profil.ecart_kcal === 300 && iv.profil.poids === 68.5, 'profil envoyé avec objectif et écart');
 ok(JSON.parse(await pi.evaluate(() => localStorage.getItem('suivi.config'))).token === 'TOKNEUF' && (await pi.evaluate(() => location.hash)) === '', 'compte créé : code enregistré, lien effacé');
 await pi.close();
+
+console.log('Photos');
+await page.click('nav button[data-vue="corps"]'); await page.locator('[data-ko]').filter({ hasText: 'Photos' }).first().click();
+ok(await page.locator('#k-ph-import').count() === 1, 'Photos : bouton « depuis la photothèque »');
+await page.setInputFiles('#k-ph-fichier', { name: 'p.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCOiiivmj7A/9k=', 'base64') });
+await page.waitForSelector('.cam-imp', { timeout: 5000 });
+ok(await page.inputValue('#cam-date') === jour(0) && /inconnue/.test(await texte('.cam-imp')), 'Photos : import sans date dans la photo → date du jour à vérifier');
+await page.click('[data-cimp="profil"]'); await page.fill('#cam-date', jour(-3)); await page.dispatchEvent('#cam-date', 'change'); await page.click('#cam-retourner'); await page.waitForTimeout(200);
+await page.click('#cam-garder'); await page.waitForTimeout(500);
+const ph = appels.filter(a => a.action === 'photo').pop();
+ok(ph && ph.type === 'profil' && ph.date === jour(-3) && ph.photo && /du \d\d\/\d\d enregistrée/.test(await texte('.vue.on .bien')), 'Photos : importée en profil, à la date choisie');
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
