@@ -56,6 +56,7 @@ const ok = (cond, msg) => { console.log((cond ? '  ok   ' : '  ÉCHEC ') + msg);
 const navigateur = await chromium.launch();
 const page = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
 const erreurs = []; page.on('pageerror', e => erreurs.push(e.message));
+const PHOTOS = {}; let nPhotos = 0;
 const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false;
 await page.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
 await page.route('https://api.test/**', async r => {
@@ -68,7 +69,14 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
   if (q.action === 'crise') return json({ ok: true });
-  if (q.action === 'photo') return json({ ok: true, fichier: 'FTEST', date: q.date, type: q.type });
+  if (q.action === 'photo') { const f = 'F' + (++nPhotos) + '#1:' + nPhotos; PHOTOS[f] = q.photo; DATA.photos = DATA.photos.filter(p => !(p.type === q.type && p.date === q.date)).concat([{ date: q.date, type: q.type, fichier: f }]).sort((a, b) => a.date.localeCompare(b.date)); return json({ ok: true, fichier: f, date: q.date, type: q.type }); }
+  if (q.action === 'photo_get') return PHOTOS[q.fichier] ? json({ ok: true, photo: PHOTOS[q.fichier], mime: 'image/jpeg' }) : json({ ok: false, erreur: 'Photo introuvable.' });
+  if (q.action === 'photo_gerer') {
+    const p = DATA.photos.find(x => x.type === q.type && x.date === q.date); if (!p) return json({ ok: false, erreur: 'Photo introuvable.' });
+    if (q.op === 'suppr') { DATA.photos = DATA.photos.filter(x => x !== p); return json({ ok: true, op: 'suppr', archive: true }); }
+    const rem = DATA.photos.some(x => x.type === q.type && x.date === q.nouvelle_date); DATA.photos = DATA.photos.filter(x => !(x.type === q.type && x.date === q.nouvelle_date)); p.date = q.nouvelle_date;
+    DATA.photos.sort((a, b) => a.date.localeCompare(b.date)); return json({ ok: true, op: 'date', remplace: rem });
+  }
   if (q.action === 'favoris') return json({ ok: true, favoris: q.favoris });
   if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
   if (q.action === 'admin') return json({ ok: true, comptes: [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true }], invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined });
@@ -382,6 +390,41 @@ const nPh = appels.filter(a => a.action === 'photo').length;
 await page.setInputFiles('#k-ph-fichier', { name: 'p2.jpg', mimeType: 'image/jpeg', buffer: (await page.evaluate(() => null), Buffer.from(appels.filter(a => a.action === 'photo').pop().photo, 'base64')) });
 await page.waitForSelector('.cam-imp', { timeout: 5000 }); await page.click('#cam-fermer'); await page.waitForTimeout(200);
 ok(await page.locator('#cam-hote').count() === 0 && appels.filter(a => a.action === 'photo').length === nPh, 'Photos : « Annuler » ferme sans rien enregistrer');
+
+// gestion d'une photo : vignettes, volet, remplacer (photothèque), changer la date, supprimer
+const imgPh = Buffer.from(appels.filter(a => a.action === 'photo').pop().photo, 'base64');
+await page.setInputFiles('#k-ph-fichier', { name: 'p3.jpg', mimeType: 'image/jpeg', buffer: imgPh });
+await page.waitForSelector('.cam-imp', { timeout: 5000 }); await page.click('[data-cimp="profil"]'); await page.fill('#cam-date', jour(-1)); await page.dispatchEvent('#cam-date', 'change');
+await page.click('#cam-garder'); await page.waitForTimeout(500);
+ok(await page.locator('#k-vg [data-vg]').count() === 2 && /\(2\)/.test(await texte('.phv-t')), 'Photos : vignettes du type affiché');
+await page.click(`#k-vg [data-vg="${jour(-1)}"]`); await page.waitForSelector('#ph-hote');
+ok(await page.locator('#ph-hote [data-pa]').count() === 5 && /contour de la photo du/.test(await texte('#ph-hote')), 'Photos : volet avec les 5 actions');
+const [choix] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-pa="biblio"]')]); await choix.setFiles({ name: 'p4.jpg', mimeType: 'image/jpeg', buffer: imgPh });
+await page.waitForSelector('#cam-garder', { timeout: 5000 });
+ok(await page.locator('.cam-imp').count() === 0 && /Remplace la photo de profil/.test(await texte('#cam-hote .scan-haut')) && /Comparer au/.test(await texte('#cam-comparer')), 'Photos : remplacement depuis la photothèque, date gardée, comparaison à la précédente');
+await page.click('#cam-garder'); await page.waitForTimeout(500);
+const rp = appels.filter(a => a.action === 'photo').pop();
+ok(rp.date === jour(-1) && rp.type === 'profil' && /remplacée/.test(await texte('.vue.on .bien')), 'Photos : remplacée à la même date');
+await page.click(`#k-vg [data-vg="${jour(-1)}"]`); await page.click('[data-pa="date"]'); await page.waitForSelector('#ph-nd');
+await page.fill('#ph-nd', jour(-3)); ok(/sera remplacée/.test(await texte('#ph-nd-info')), 'Photos : changer la date prévient si le jour est déjà pris');
+await page.fill('#ph-nd', jour(-2)); await page.click('[data-mod="oui"]'); await page.waitForTimeout(500);
+const gd = appels.filter(a => a.action === 'photo_gerer').pop();
+ok(gd && gd.op === 'date' && gd.nouvelle_date === jour(-2) && await page.locator(`#k-vg [data-vg="${jour(-2)}"]`).count() === 1, 'Photos : date changée');
+await page.click(`#k-vg [data-vg="${jour(-2)}"]`); await page.click('[data-pa="suppr"]'); await page.waitForSelector('.modale');
+await page.click('[data-mod="oui"]'); await page.waitForTimeout(500);
+ok(appels.filter(a => a.action === 'photo_gerer').pop().op === 'suppr' && await page.locator('#k-vg [data-vg]').count() === 1 && /supprimée/.test(await texte('.vue.on .bien')), 'Photos : suppression confirmée');
+
+// évolution animée (au moins 2 photos du type affiché)
+await page.setInputFiles('#k-ph-fichier', { name: 'p5.jpg', mimeType: 'image/jpeg', buffer: imgPh });
+await page.waitForSelector('.cam-imp', { timeout: 5000 }); await page.click('[data-cimp="profil"]'); await page.fill('#cam-date', jour(-6)); await page.dispatchEvent('#cam-date', 'change');
+await page.click('#cam-garder'); await page.waitForTimeout(500);
+ok(/2 photos/.test(await texte('#k-evo')), 'Photos : bouton « Voir l’évolution »');
+await page.click('#k-evo'); await page.waitForFunction(() => !document.getElementById('evo-msg'), null, { timeout: 5000 });
+await page.waitForTimeout(400);
+ok(await page.locator('#evo-scene img[src]').count() === 2 && await page.evaluate(() => S.evo.lecture && S.evo.t >= 0), 'Photos : évolution chargée, lecture automatique');
+await page.locator('#evo-t').fill('0.5'); await page.waitForTimeout(100);
+ok(await page.evaluate(() => !S.evo.lecture && document.querySelectorAll('#evo-scene img')[1].style.opacity === '0.5'), 'Photos : curseur de temps en fondu continu');
+await page.click('#evo-fermer'); ok(await page.locator('#evo-hote').count() === 0, 'Photos : évolution fermée');
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
