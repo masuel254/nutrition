@@ -425,6 +425,9 @@ ok(await page.locator('#evo-scene img[src]').count() === 2 && await page.evaluat
 await page.locator('#evo-t').fill('0.5'); await page.waitForTimeout(100);
 ok(await page.evaluate(() => !S.evo.lecture && document.querySelectorAll('#evo-scene img')[1].style.opacity === '0.5'), 'Photos : curseur de temps en fondu continu');
 await page.click('#evo-fermer'); ok(await page.locator('#evo-hote').count() === 0, 'Photos : évolution fermée');
+await page.click(`#k-pdt [data-pdt="${jour(-6)}"]`); await page.waitForTimeout(150);
+ok(await page.locator('#k-une').count() === 1 && await page.locator('#k-cmp').count() === 0, 'Photos : une date → une seule photo entière');
+await page.click('#k-pdt [data-pdt=""]'); await page.waitForTimeout(150); ok(await page.locator('#k-cmp').count() === 1, 'Photos : retour avant / après');
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
