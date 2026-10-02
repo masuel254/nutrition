@@ -369,9 +369,15 @@ await page.setInputFiles('#k-ph-fichier', { name: 'p.jpg', mimeType: 'image/jpeg
 await page.waitForSelector('.cam-imp', { timeout: 5000 });
 ok(await page.inputValue('#cam-date') === jour(0) && /inconnue/.test(await texte('.cam-imp')), 'Photos : import sans date dans la photo → date du jour à vérifier');
 await page.click('[data-cimp="profil"]'); await page.fill('#cam-date', jour(-3)); await page.dispatchEvent('#cam-date', 'change'); await page.click('#cam-retourner'); await page.waitForTimeout(200);
+ok(await page.locator('#cam-comparer').isDisabled() && /Pas de photo avant/.test(await texte('#cam-comparer')), 'Photos : « Comparer » grisé sans photo précédente');
 await page.click('#cam-garder'); await page.waitForTimeout(500);
 const ph = appels.filter(a => a.action === 'photo').pop();
 ok(ph && ph.type === 'profil' && ph.date === jour(-3) && ph.photo && /du \d\d\/\d\d enregistrée/.test(await texte('.vue.on .bien')), 'Photos : importée en profil, à la date choisie');
+
+const nPh = appels.filter(a => a.action === 'photo').length;
+await page.setInputFiles('#k-ph-fichier', { name: 'p2.jpg', mimeType: 'image/jpeg', buffer: (await page.evaluate(() => null), Buffer.from(appels.filter(a => a.action === 'photo').pop().photo, 'base64')) });
+await page.waitForSelector('.cam-imp', { timeout: 5000 }); await page.click('#cam-fermer'); await page.waitForTimeout(200);
+ok(await page.locator('#cam-hote').count() === 0 && appels.filter(a => a.action === 'photo').length === nPh, 'Photos : « Annuler » ferme sans rien enregistrer');
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
