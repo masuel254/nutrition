@@ -818,7 +818,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 09h02';
+const APP_VERSION='02/10/2026 09h10';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3867,6 +3867,11 @@ function sectionPhotos(d){
   h+='<div class="deux"><button id="k-ph-face">Photo de face</button><button id="k-ph-profil">Photo de profil</button></div>';
   h+='<input id="k-ph-fichier" type="file" accept="image/*" style="display:none"><button class="lien" id="k-ph-import">🖼️ Ajouter une photo depuis la photothèque</button>';
   if(C.photoMsg)h+='<p class="bien">'+esc(C.photoMsg)+'</p>';
+  if(!C.phInit){// à chaque arrivée sur la page : dernière photo de face, affichée seule
+    C.phInit=true;C.pmode='une';C.cmpA=null;C.cmpB=null;
+    const F=P.filter(p=>p.type==='face'),Pr=P.filter(p=>p.type==='profil');
+    if(F.length||!Pr.length){C.cmpType='face';C.vue1=F.length?F[F.length-1].date:null;}else{C.cmpType='profil';C.vue1=Pr[Pr.length-1].date;}
+  }
   const type=C.cmpType==='profil'?'profil':'face';
   const liste=P.filter(p=>p.type===type);
   h+='<div class="choix" id="k-cmp-type" style="margin-top:14px"><button data-kt="face" class="'+(type==='face'?'on':'')+'">Face</button><button data-kt="profil" class="'+(type==='profil'?'on':'')+'">Profil</button></div>';
@@ -3875,14 +3880,17 @@ function sectionPhotos(d){
     return h+'</section>';
   }
   const dates=liste.map(p=>p.date);
-  if(C.vue1&&dates.indexOf(C.vue1)<0)C.vue1=null;
+  // date affichée : celle choisie si ce type a une photo ce jour-là, sinon la plus proche (la date choisie reste mémorisée)
+  let v1=null;
+  if(C.pmode!=='cmp'||liste.length<2){const cib=C.vue1||dates[dates.length-1];
+    v1=dates.reduce((m,x)=>Math.abs(jourNum(x)-jourNum(cib))<Math.abs(jourNum(m)-jourNum(cib))?x:m,dates[0]);}
   if(liste.length>1){
     // rangée de dates : « Avant / après » (comparateur) ou une seule photo, entière, sans animation
-    h+='<div class="pdt" id="k-pdt"><button data-pdt=""'+(C.vue1?'':' class="on"')+'>◧ Avant / après</button>'+
-      dates.map(x=>'<button data-pdt="'+x+'"'+(C.vue1===x?' class="on"':'')+'>'+jjmm(x)+'</button>').join('')+'</div>';
+    h+='<div class="pdt" id="k-pdt"><button data-pdt=""'+(v1?'':' class="on"')+'>◧ Avant / après</button>'+
+      dates.map(x=>'<button data-pdt="'+x+'"'+(v1===x?' class="on"':'')+'>'+jjmm(x)+'</button>').join('')+'</div>';
   }
-  if(C.vue1){
-    const p1=liste.find(p=>p.date===C.vue1),u1=photoMem.get(p1.fichier),k1=(d.poids&&d.poids.length)?poidsA(d,p1.date):null;
+  if(v1){
+    const p1=liste.find(p=>p.date===v1),u1=photoMem.get(p1.fichier),k1=(d.poids&&d.poids.length)?poidsA(d,p1.date):null;
     h+='<div class="cmp" id="k-une"><img class="cmp-img" data-fichier="'+esc(p1.fichier)+'"'+(u1?' src="'+u1+'"':'')+' alt="Photo du '+jjmm(p1.date)+'">'+
       '<span class="cmp-eti g">'+jjmm(p1.date)+' '+p1.date.slice(0,4)+(k1?' · '+fr1(k1)+' kg':'')+'</span></div>';
   }else{
@@ -4365,7 +4373,7 @@ async function envoyerPhotoCorps(){
     const r=await appel({action:'photo',type:Cm.type,photo:Cm.capture.b64,date:dPh});
     if(r.fichier){photoMem.set(r.fichier,Cm.capture.url);await idbPut(r.fichier,Cm.capture.url);}
     S.corps.photoMsg='Photo de '+libType(Cm.type)+(dPh!==auj()?' du '+jjmm(dPh):'')+(Cm.dateForcee?' remplacée.':' enregistrée.');
-    S.corps.cmpType=Cm.type;S.corps.cmpA=null;S.corps.cmpB=null;
+    S.corps.cmpType=Cm.type;S.corps.cmpA=null;S.corps.cmpB=null;S.corps.pmode='une';S.corps.vue1=dPh;
     fermerCamera();
     try{await rafraichir();}catch(e){}
     rendre();
@@ -4568,7 +4576,7 @@ function brancher(){
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{
       if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;}
-      S.vue=b.dataset.vue;S.reglages=false;S.rac.q='';S.jn.q='';S.jn.f=null;rendre();hautPage();
+      S.vue=b.dataset.vue;S.reglages=false;S.corps.phInit=false;S.rac.q='';S.jn.q='';S.jn.f=null;rendre();hautPage();
     });
   });
   on('#b-maj','click',async e=>{
@@ -4578,7 +4586,7 @@ function brancher(){
     rendre();
   });
   on('#b-coach','click',()=>{S.vue='coach';S.reglages=false;rendre();hautPage();});
-  on('#b-pesee','click',()=>{S.vue='corps';S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
+  on('#b-pesee','click',()=>{S.vue='corps';S.corps.phInit=false;S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
   on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.regl.sale=false;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
     S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
@@ -4611,7 +4619,7 @@ function brancher(){
     S.crb.onglet=b.dataset.cong;courbesMemo();rendre();}));
   // ---- Corps : onglets ; Courbes : nutriment affiché ; crises de goutte ----
   document.querySelectorAll('[data-ko]').forEach(b=>b.addEventListener('click',()=>{
-    S.corps.onglet=b.dataset.ko;try{localStorage.setItem('suivi.corps.onglet',S.corps.onglet);}catch(e){}rendre();}));
+    S.corps.onglet=b.dataset.ko;S.corps.phInit=false;try{localStorage.setItem('suivi.corps.onglet',S.corps.onglet);}catch(e){}rendre();}));
   document.querySelectorAll('[data-cnut]').forEach(b=>b.addEventListener('click',()=>{S.crb.nut=b.dataset.cnut;if(S.corps.selBar)delete S.corps.selBar.nut;courbesMemo();rendre();}));
   document.querySelectorAll('[data-gq]').forEach(b=>b.addEventListener('click',()=>{S.gt.quand=b.dataset.gq;S.gt.etat=null;rendre();}));
   document.querySelectorAll('[data-ga]').forEach(b=>b.addEventListener('click',()=>{S.gt.art=b.dataset.ga;S.gt.etat=null;rendre();}));
@@ -5452,9 +5460,9 @@ function brancher(){
   on('#k-evo','click',()=>ouvrirEvolution(S.corps.cmpType==='profil'?'profil':'face'));
   document.querySelectorAll('#k-vg [data-vg]').forEach(b=>b.addEventListener('click',()=>ouvrirVolet(S.corps.cmpType==='profil'?'profil':'face',b.dataset.vg)));
   document.querySelectorAll('#k-cmp-type button').forEach(b=>b.addEventListener('click',()=>{
-    S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;S.corps.vue1=null;rendre();}));
+    S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;rendre();}));
   document.querySelectorAll('#k-pdt [data-pdt]').forEach(b=>b.addEventListener('click',()=>{
-    const y=($('#defile')||{}).scrollTop,x=($('#k-pdt')||{}).scrollLeft;S.corps.vue1=b.dataset.pdt||null;rendre();
+    const y=($('#defile')||{}).scrollTop,x=($('#k-pdt')||{}).scrollLeft;if(b.dataset.pdt){S.corps.pmode='une';S.corps.vue1=b.dataset.pdt;}else S.corps.pmode='cmp';rendre();
     const df=$('#defile');if(df&&y!==undefined)df.scrollTop=y;const r=$('#k-pdt');if(r&&x!==undefined)r.scrollLeft=x;}));
   on('#k-cmp-a','change',e=>{S.corps.cmpA=e.target.value;rendre();});
   on('#k-cmp-b','change',e=>{S.corps.cmpB=e.target.value;rendre();});
