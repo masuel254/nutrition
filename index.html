@@ -612,6 +612,9 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .crb-ac.ecart{border-left-color:var(--over);background:color-mix(in srgb,var(--over) 8%,var(--card))}
 .crb-ac b{font-weight:600}
 .crb-st{font-size:13px;color:var(--soft);margin:-6px 0 10px}
+.maj-bandeau{position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:120;display:flex;align-items:center;gap:10px;
+  background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:14px}
+.maj-bandeau span{flex:1}.maj-bandeau button{flex:none;background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px}
 .ins-code{font-size:30px;font-weight:700;letter-spacing:.08em;text-align:center;padding:14px 10px;margin:6px 0 4px;border:1px dashed var(--rule);border-radius:12px;background:var(--card);font-variant-numeric:tabular-nums;user-select:all;-webkit-user-select:all}
 .etapes{margin:16px 0 8px;padding-left:20px;font-size:14px;line-height:1.5}
 .etapes li{margin-bottom:8px}
@@ -818,7 +821,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 09h10';
+const APP_VERSION='02/10/2026 12h21';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2798,10 +2801,12 @@ function phraseAccord(diff){
    l'écran d'accueil ne voit ni Safari ni ce lien : la page d'accueil fait donc copier le lien,
    puis l'appli installée le lit (bouton « Coller »). Le code seul se tape aussi à la main. */
 const API_DEFAUT='https://vps-444b360b.vps.ovh.net/webhook/nutrition/api';
+function estIOS(){try{const u=navigator.userAgent||'';return /iPhone|iPad|iPod/.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}catch(e){return false;}}
 function estInstallee(){try{return navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;}catch(e){return false;}}
 function lireInvite(txt){
   const s=String(txt||'').trim();if(!s)return null;
-  const mc=s.match(/invite=([A-Za-z0-9-]+)/),ma=s.match(/[#&?]api=([^&\s]+)/);
+  const mc=s.match(/invite=([A-Za-z0-9-]+)/),ma=s.match(/[#&?]api=([^&\s]+)/),mt=s.match(/acces=([a-z0-9]{16,40})/);
+  if(mt)return {acces:mt[1],api:ma?decodeURIComponent(ma[1]):''};
   if(mc)return {code:mc[1].toUpperCase(),api:ma?decodeURIComponent(ma[1]):''};
   const c=s.toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(c.length>=6&&c.length<=12)return {code:c.length===8?c.slice(0,4)+'-'+c.slice(4):c,api:''};
@@ -2819,14 +2824,14 @@ function accueilInvite(inv){
     '<li>Ouvre l\'appli <b>Suivi</b> depuis l\'écran d\'accueil, touche <b>J\'ai un code d\'invitation</b> puis <b>Coller</b>.</li></ol>'+
     '<p class="note" id="w-msg"></p>'+
     '<p class="note">Cette page s\'est ouverte dans WhatsApp ? Touche le menu ou l\'icône du navigateur pour l\'ouvrir dans <b>Safari</b> : l\'ajout à l\'écran d\'accueil n\'existe que là.</p>'+
-    '<button class="lien" id="w-ici">Continuer ici sans installer</button>'+
+    (estIOS()?'<p class="note">Important : crée ton compte <b>dans l’appli installée</b>, pas ici. Sur iPhone, Safari et l’appli de l’écran d’accueil ne partagent pas leurs données.</p>':'<button class="lien" id="w-ici">Continuer ici sans installer</button>')+
     '</div></div>';
   $('#w-copier').addEventListener('click',async()=>{
     const m=$('#w-msg');
     try{await navigator.clipboard.writeText(location.href);m.textContent='Invitation copiée. Passe à l\'étape 2.';m.className='bien';}
     catch(e){m.textContent='Copie impossible : note le code affiché, tu pourras le taper.';m.className='alerte';}
   });
-  $('#w-ici').addEventListener('click',()=>{S.ins=nouvelleIns(inv);oublierHash();renduIns();});
+  const wi=$('#w-ici');if(wi)wi.addEventListener('click',()=>{S.ins=nouvelleIns(inv);oublierHash();renduIns();});
 }
 function nouvelleIns(inv){
   return {etape:inv?'code':'choix',code:inv?inv.code:'',api:(inv&&inv.api)||API_DEFAUT,etat:null,msg:'',
@@ -2838,9 +2843,29 @@ async function appelInvite(corps){
   try{return await appel(Object.assign({action:'invite'},corps));}
   finally{if(!S.cfg.token)S.cfg=null;}
 }
+function lienAcces(api,token){return location.origin+location.pathname+'#acces='+encodeURIComponent(token)+'&api='+encodeURIComponent(api||API_DEFAUT);}
 function entrer(r){
-  ecrireCfg({api:S.ins.api||API_DEFAUT,token:r.token});
-  S.ins=null;oublierHash();demarrer();
+  const api=S.ins.api||API_DEFAUT;
+  ecrireCfg({api:api,token:r.token});
+  S.ins=null;oublierHash();
+  if(estIOS()&&!estInstallee()){accesPourAppli(api,r.token,r.prenom);return;}
+  demarrer();
+}
+// Compte ouvert dans Safari ou WhatsApp sur iPhone : l'appli installée ne le voit pas, on lui passe l'accès par le presse-papiers.
+function accesPourAppli(api,token,prenom){
+  $('#racine').innerHTML='<div id="defile"><div class="ecran ins">'+
+    '<h1>'+(prenom?'C’est prêt, '+esc(prenom):'Ton compte est prêt')+'</h1>'+
+    '<p>Ton compte est ouvert ici, dans '+(/FBAN|FBAV|WhatsApp|Instagram/i.test(navigator.userAgent||'')?'WhatsApp':'Safari')+'. Pour le retrouver dans l’appli de l’écran d’accueil :</p>'+
+    '<button class="primaire" id="a-copier">1. Copier mon accès pour l’appli</button>'+
+    '<ol class="etapes"><li><b>Copie ton accès</b> avec le bouton ci-dessus.</li>'+
+    '<li>Si l’appli n’est pas encore sur ton écran d’accueil : dans <b>Safari</b>, touche '+ICO_PARTAGE+' <b>Partager</b>, puis <b>Sur l’écran d’accueil</b>.</li>'+
+    '<li>Ouvre l’appli <b>Suivi</b>, touche <b>J’ai un code d’invitation</b> puis <b>Coller</b> et <b>Continuer</b>.</li></ol>'+
+    '<p class="note" id="a-msg"></p>'+
+    '<button class="lien" id="a-ici">Utiliser l’appli ici quand même</button></div></div>';
+  $('#a-copier').addEventListener('click',async()=>{const m=$('#a-msg');
+    try{await navigator.clipboard.writeText(lienAcces(api,token));m.textContent='Accès copié. Passe à l’étape 2.';m.className='bien';}
+    catch(e){m.textContent='Copie impossible. Demande un lien de reconnexion à la personne qui t’a invité.';m.className='alerte';}});
+  $('#a-ici').addEventListener('click',()=>demarrer());
 }
 function renduIns(){
   const I=S.ins,F=I.f;
@@ -2901,6 +2926,7 @@ function brancherIns(){
   on('#i-code','input',e=>{I.code=e.target.value;});
   on('#i-coller','click',async()=>{
     try{const t=await navigator.clipboard.readText();const v=lireInvite(t);
+      if(v&&v.acces){S.ins=null;ecrireCfg({api:v.api||API_DEFAUT,token:v.acces});demarrer();return;}
       if(v){I.code=v.code;if(v.api)I.api=v.api;I.msg='';}else I.msg='Le presse-papiers ne contient pas d\'invitation.';}
     catch(e){I.msg='Collage refusé : appuie longuement dans le champ puis « Coller ».';}
     renduIns();
@@ -2908,13 +2934,14 @@ function brancherIns(){
   on('#i-suite','click',async()=>{
     const v=lireInvite(($('#i-code')||{}).value||I.code);
     if(!v){I.msg='Code incomplet : 8 caractères, par exemple ABCD-EFGH.';renduIns();return;}
+    if(v.acces){S.ins=null;ecrireCfg({api:v.api||API_DEFAUT,token:v.acces});demarrer();return;}
     I.code=v.code;if(v.api)I.api=v.api;I.etat='envoi';I.msg='';renduIns();
     try{
       const r=await appelInvite({invite:I.code});
       I.etat=null;
       if(r.token){entrer(r);return;}
       I.etape='profil';if(r.prenom&&!F.prenom)F.prenom=r.prenom;
-    }catch(err){I.etat=null;I.msg=err.message;}
+    }catch(err){I.etat=null;I.msg=/déjà servi/.test(err.message||'')?'Ce code a déjà servi : ton compte existe sûrement déjà, peut-être ouvert dans Safari ou WhatsApp. Demande un lien de reconnexion à la personne qui t’a invité, puis tape son code ici.':err.message;}
     renduIns();
   });
   document.querySelectorAll('[data-if]').forEach(i=>i.addEventListener('input',()=>{F[i.dataset.if]=i.value;}));
@@ -5489,6 +5516,10 @@ function brancher(){
 
 async function demarrer(){
   // lien d'invitation ouvert : page d'accueil dans Safari, inscription dans l'appli installée
+  if(!S.ins&&/acces=/.test(location.hash||'')){
+    const v=lireInvite(location.hash);oublierHash();
+    if(v&&v.acces){const cfg=lireCfg();if(!(cfg&&cfg.token))ecrireCfg({api:v.api||API_DEFAUT,token:v.acces});}
+  }
   if(!S.ins&&/invite=/.test(location.hash||'')){
     const inv=lireInvite(location.hash),cfg=lireCfg();
     if(inv&&!(cfg&&cfg.token)){
@@ -5537,6 +5568,8 @@ function jourChange(){
   return !!(S.data&&S.data.reference&&S.data.reference.date&&S.data.reference.date!==auj());
 }
 document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&majPrete&&!(S.cam&&S.cam.ouvert)){window.location.reload();return;}
+  if(!document.hidden)controlerMaj(600000);
   if(document.hidden){
     if(S.cam.ouvert){if(S.cam.capture)camArreterFlux();else fermerCamera();}
     if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;rendre();}
@@ -5552,6 +5585,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 // controle du passage de minuit tant que l'app reste ouverte
 setInterval(()=>{
+  if(!document.hidden)controlerMaj(1800000);
   if(document.hidden||!S.cfg||!S.data)return;
   if(jourChange())rafraichir().then(rendre).catch(()=>{});
   // relance la file d'attente si elle contient encore des repas (ex. apres un 429)
@@ -5560,8 +5594,34 @@ setInterval(()=>{
 },60000);
 // rejeu de la file d'attente hors ligne au retour du reseau
 window.addEventListener('online',()=>{if(S.cfg&&S.data){rejouerPending();traiterAttente(true);}});
+/* ---------- mises à jour de l'appli ----------
+   Le service worker installe toute nouvelle version dès qu'il la voit. On la cherche au lancement, à chaque retour
+   dans l'appli (au plus toutes les 10 min) et toutes les 30 min si elle reste ouverte. Quand elle a pris la main :
+   rechargement immédiat si la personne ne fait rien d'important, sinon bandeau « Nouvelle version » et
+   rechargement à la prochaine sortie de l'appli. */
+let majControle=0,majPrete=false,majDemandee=false;
+async function controlerMaj(delai){
+  if(!('serviceWorker' in navigator))return;
+  if(Date.now()-majControle<(delai||600000))return;
+  majControle=Date.now();
+  try{const r=await navigator.serviceWorker.getRegistration();if(r)await r.update();}catch(e){}
+}
+function majOccupe(){
+  const a=document.activeElement;
+  return !!((S.cam&&S.cam.ouvert)||(S.ajout&&S.ajout.scan&&S.ajout.scan.ouvert)||S.vue==='ajout'||S.ins||
+    document.getElementById('modale-hote')||document.getElementById('evo-hote')||document.getElementById('ph-hote')||
+    (a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)));
+}
+function bandeauMaj(){
+  if(document.getElementById('maj-bandeau'))return;
+  const b=document.createElement('div');b.id='maj-bandeau';b.className='maj-bandeau';b.setAttribute('role','status');
+  b.innerHTML='<span>Nouvelle version de l’appli disponible.</span><button id="maj-go">Mettre à jour</button>';
+  document.body.appendChild(b);
+  b.querySelector('#maj-go').addEventListener('click',()=>window.location.reload());
+}
 async function actualiserApplication(){
   if(!('serviceWorker' in navigator))return;
+  majDemandee=true;
   const registration=await navigator.serviceWorker.ready;
   await registration.update();
   const worker=registration.waiting||registration.installing;
@@ -5580,16 +5640,17 @@ if('serviceWorker' in navigator){
       if(S.data)rendre();
     }
   });
-  // Bascule automatique quand un nouveau SW prend la main.
-  // Garde-fou : on ne recharge qu'une fois, jamais au tout premier lancement.
-  let rechargEnCours=false;
+  // Bascule quand un nouveau SW prend la main : tout de suite si rien d'important n'est en cours (ou si on a
+  // touché Actualiser), sinon bandeau. Jamais au tout premier lancement (pas d'ancienne version à remplacer).
+  let rechargEnCours=false;const avaitControleur=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(rechargEnCours)return;
-    rechargEnCours=true;
-    window.location.reload();
+    if(rechargEnCours||!avaitControleur)return;
+    if(majDemandee||document.hidden||!majOccupe()){rechargEnCours=true;window.location.reload();return;}
+    majPrete=true;bandeauMaj();
   });
   window.addEventListener('load',async()=>{try{
     const registration=await navigator.serviceWorker.register('./sw.js');
+    majControle=Date.now();
     await registration.update();
   }catch(e){}});
 }
