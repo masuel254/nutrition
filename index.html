@@ -429,6 +429,13 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .evo-ctl button{flex:none;width:46px;height:46px;border-radius:50%;background:#fff;color:#111;font-size:18px;font-weight:700}
 .evo-ctl input{flex:1;margin:0;padding:0;border:none;background:none;height:32px;-webkit-appearance:auto;appearance:auto;accent-color:#fff}
 .evo-dates{display:flex;justify-content:space-between;margin-left:58px;font-size:11.5px;color:rgba(255,255,255,.65);margin-top:2px}
+.pdt{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;margin-top:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pdt::-webkit-scrollbar{display:none}
+.pdt button{flex:none;padding:7px 11px;border-radius:99px;border:1px solid var(--rule);font-size:13px;color:var(--soft);background:var(--card)}
+.pdt button.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:700}
+.evo .pdt{margin-top:10px}.evo .pdt button{background:none;border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.85)}
+.evo .pdt button.on{background:#fff;border-color:#fff;color:#111}
+.evo-courbe{cursor:pointer}
 .evo-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:rgba(255,255,255,.8)}
 .ph-grand{position:fixed;inset:0;z-index:170;background:#000;display:flex;align-items:center;justify-content:center}
 .ph-grand img{max-width:100%;max-height:100%;object-fit:contain}
@@ -811,7 +818,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 08h52';
+const APP_VERSION='02/10/2026 09h02';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3868,6 +3875,17 @@ function sectionPhotos(d){
     return h+'</section>';
   }
   const dates=liste.map(p=>p.date);
+  if(C.vue1&&dates.indexOf(C.vue1)<0)C.vue1=null;
+  if(liste.length>1){
+    // rangée de dates : « Avant / après » (comparateur) ou une seule photo, entière, sans animation
+    h+='<div class="pdt" id="k-pdt"><button data-pdt=""'+(C.vue1?'':' class="on"')+'>◧ Avant / après</button>'+
+      dates.map(x=>'<button data-pdt="'+x+'"'+(C.vue1===x?' class="on"':'')+'>'+jjmm(x)+'</button>').join('')+'</div>';
+  }
+  if(C.vue1){
+    const p1=liste.find(p=>p.date===C.vue1),u1=photoMem.get(p1.fichier),k1=(d.poids&&d.poids.length)?poidsA(d,p1.date):null;
+    h+='<div class="cmp" id="k-une"><img class="cmp-img" data-fichier="'+esc(p1.fichier)+'"'+(u1?' src="'+u1+'"':'')+' alt="Photo du '+jjmm(p1.date)+'">'+
+      '<span class="cmp-eti g">'+jjmm(p1.date)+' '+p1.date.slice(0,4)+(k1?' · '+fr1(k1)+' kg':'')+'</span></div>';
+  }else{
   let a=dates.indexOf(C.cmpA)>=0?C.cmpA:dates[0];
   let b=dates.indexOf(C.cmpB)>=0?C.cmpB:dates[dates.length-1];
   const fa=liste.filter(p=>p.date===a)[0].fichier,fb=liste.filter(p=>p.date===b)[0].fichier;
@@ -3885,6 +3903,7 @@ function sectionPhotos(d){
   }else{
     h+='<div class="cmp"><img class="cmp-img" data-fichier="'+esc(fa)+'" alt="Photo du '+jjmm(a)+'"><span class="cmp-eti g">'+jjmm(a)+'</span></div>'+
        '<p class="note">Reprends une photo dans un mois pour pouvoir comparer.</p>';
+  }
   }
   if(liste.length>1)h+='<button class="secondaire" id="k-evo" style="width:100%;margin-top:12px">▶ Voir l’évolution ('+liste.length+' photos)</button>';
   h+='<div class="phv-t">Toutes mes photos de '+libType(type)+' ('+liste.length+')</div><div class="phv" id="k-vg">'+
@@ -4067,12 +4086,18 @@ async function ouvrirEvolution(type){
   o.innerHTML='<div class="evo-haut"><b>Évolution · '+(type==='profil'?'profil':'face')+'</b><button id="evo-fermer">Fermer</button></div>'+
     '<div class="evo-scene" id="evo-scene">'+P.map((p,i)=>'<img data-i="'+i+'" alt="Photo du '+jjmm(p.date)+'">').join('')+'<div class="evo-msg" id="evo-msg">Chargement des photos…</div><div class="evo-eti" id="evo-eti"></div></div>'+
     '<div class="evo-bas">'+courbe+'<div class="evo-ctl"><button id="evo-lire" aria-label="Lire">▶</button><input type="range" id="evo-t" min="0" max="'+(n-1)+'" step="0.01" value="0" aria-label="Avancer dans le temps"></div>'+
+    '<div class="pdt" id="evo-dts">'+P.map((p,i)=>'<button data-ei="'+i+'">'+jjmm(p.date)+'</button>').join('')+'</div>'+
     '<div class="evo-dates"><span>'+jjmm(P[0].date)+' '+P[0].date.slice(0,4)+'</span><span>'+jjmm(P[n-1].date)+' '+P[n-1].date.slice(0,4)+'</span></div></div>';
   document.body.appendChild(o);
   o.querySelector('#evo-fermer').addEventListener('click',fermerEvolution);
   const rg=o.querySelector('#evo-t');
   rg.addEventListener('input',()=>{const v=Number(rg.value);E.t=v;evoPause();});// lire la valeur AVANT la pause (qui redessine)
   o.querySelector('#evo-lire').addEventListener('click',()=>{if(E.lecture)evoPause();else evoLire();});
+  // saut direct sur une photo, entière, sans fondu : date ou point de la courbe
+  const sauter=i=>{E.t=Math.max(0,Math.min(n-1,i));evoPause();};
+  o.querySelectorAll('[data-ei]').forEach(b=>b.addEventListener('click',()=>sauter(Number(b.dataset.ei))));
+  const cv=o.querySelector('.evo-courbe');
+  if(cv)cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*300;sauter(Math.round((x-6)/((300-12)/(n-1))));});
   evoDessiner();
   // chargement une par une (cache local d'abord), puis lecture automatique
   const imgs=o.querySelectorAll('.evo-scene img');
@@ -4094,6 +4119,8 @@ function evoDessiner(){
   if(pt){const W=300,H=56,vals=E.pk.filter(v=>v),mn=Math.min(...vals),mx=Math.max(...vals),et=(mx-mn)||1;
     const a=E.pk[i],b=E.pk[Math.min(n-1,i+1)],v=a&&b?a+(b-a)*f:(a||b);
     pt.setAttribute('d','M'+(6+t*(W-12)/(n-1)).toFixed(1)+' '+(v?8+(mx-v)*(H-20)/et:H/2).toFixed(1)+'h0');}
+  document.querySelectorAll('#evo-dts [data-ei]').forEach(b=>{const on=Number(b.dataset.ei)===r&&Math.abs(t-r)<0.001;
+    if(on!==b.classList.contains('on')){b.classList.toggle('on',on);if(on)try{b.scrollIntoView({block:'nearest',inline:'nearest'});}catch(er){}}});
   const bt=document.getElementById('evo-lire');if(bt){bt.textContent=E.lecture?'⏸':'▶';bt.setAttribute('aria-label',E.lecture?'Pause':'Lire');}
 }
 function evoLire(){
@@ -5425,7 +5452,10 @@ function brancher(){
   on('#k-evo','click',()=>ouvrirEvolution(S.corps.cmpType==='profil'?'profil':'face'));
   document.querySelectorAll('#k-vg [data-vg]').forEach(b=>b.addEventListener('click',()=>ouvrirVolet(S.corps.cmpType==='profil'?'profil':'face',b.dataset.vg)));
   document.querySelectorAll('#k-cmp-type button').forEach(b=>b.addEventListener('click',()=>{
-    S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;rendre();}));
+    S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;S.corps.vue1=null;rendre();}));
+  document.querySelectorAll('#k-pdt [data-pdt]').forEach(b=>b.addEventListener('click',()=>{
+    const y=($('#defile')||{}).scrollTop,x=($('#k-pdt')||{}).scrollLeft;S.corps.vue1=b.dataset.pdt||null;rendre();
+    const df=$('#defile');if(df&&y!==undefined)df.scrollTop=y;const r=$('#k-pdt');if(r&&x!==undefined)r.scrollLeft=x;}));
   on('#k-cmp-a','change',e=>{S.corps.cmpA=e.target.value;rendre();});
   on('#k-cmp-b','change',e=>{S.corps.cmpB=e.target.value;rendre();});
   on('#k-cmp-r','input',e=>{
