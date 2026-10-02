@@ -403,6 +403,40 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .pas-saisie .secondaire{width:auto;margin:0;padding:11px 16px;flex:none}
 .mes-saisie{margin-top:14px}
 .cmp-dates{display:flex;gap:10px;margin-top:10px}
+.phv-t{font-size:12.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px;font-weight:600}
+.phv{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.phv::-webkit-scrollbar{display:none}
+.phv button{flex:none;width:62px;padding:0;color:var(--soft);font-size:11.5px;text-align:center}
+.phv img{display:block;width:62px;height:82px;object-fit:cover;border-radius:6px;background:var(--creux);border:2px solid transparent;margin-bottom:3px}
+.phv button.sel img{border-color:var(--ink)}
+.ph-fond{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+.ph-sheet{width:100%;max-width:560px;background:var(--card);color:var(--ink);border-radius:18px 18px 0 0;padding:16px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--rule)}
+.ph-hd{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.ph-hd img{width:54px;height:72px;object-fit:cover;border-radius:6px;background:var(--creux);flex:none}
+.ph-hd b{font-size:15px}.ph-hd small{display:block;color:var(--soft);font-size:12.5px;margin-top:3px}
+.ph-act{display:block;width:100%;text-align:left;padding:12px 4px;border-top:1px solid var(--rule);font-size:15px}
+.ph-act small{display:block;font-size:12px;color:var(--soft);margin-top:2px}
+.ph-act.rouge{color:var(--over)}
+.evo{position:fixed;inset:0;z-index:170;background:#000;color:#fff;display:flex;flex-direction:column}
+.evo-scene{position:relative;flex:1;min-height:0;margin-top:calc(52px + env(safe-area-inset-top))}
+.evo-scene img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0}
+.evo-haut{position:absolute;left:0;right:0;top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:0 12px;z-index:2}
+.evo-haut b{font-size:15px}.evo-haut button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:7px 14px;font-size:14px}
+.evo-eti{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:5px 12px;border-radius:99px;font-size:14px;white-space:nowrap;z-index:2}
+.evo-bas{padding:10px 16px calc(14px + env(safe-area-inset-bottom))}
+.evo-courbe{display:block;margin-left:58px;width:calc(100% - 58px);height:56px}
+.evo-ctl{display:flex;align-items:center;gap:12px;margin-top:4px}
+.evo-ctl button{flex:none;width:46px;height:46px;border-radius:50%;background:#fff;color:#111;font-size:18px;font-weight:700}
+.evo-ctl input{flex:1;margin:0;padding:0;border:none;background:none;height:32px;-webkit-appearance:auto;appearance:auto;accent-color:#fff}
+.evo-dates{display:flex;justify-content:space-between;margin-left:58px;font-size:11.5px;color:rgba(255,255,255,.65);margin-top:2px}
+.evo-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:rgba(255,255,255,.8)}
+.ph-grand{position:fixed;inset:0;z-index:170;background:#000;display:flex;align-items:center;justify-content:center}
+.ph-grand img{max-width:100%;max-height:100%;object-fit:contain}
+.ph-grand button{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:8px 14px;font-size:14px}
+.ph-grand span{position:absolute;left:12px;top:calc(14px + env(safe-area-inset-top));color:#fff;font-size:13px;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:99px}
+.ph-date input{width:100%;font:inherit;font-size:16px;padding:10px;border:1px solid var(--rule);border-radius:8px;background:var(--card);color:var(--ink);margin-top:10px}
+.ph-date small{display:block;font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.4}
+.ph-date small.avert{color:var(--over)}
 .cmp-dates label{flex:1;margin:0;font-size:13px;color:var(--soft);font-weight:600;display:flex;flex-direction:column;gap:4px}
 .cmp-dates select{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);-webkit-appearance:none}
 .cmp{position:relative;width:100%;aspect-ratio:3/4;margin-top:10px;border-radius:8px;overflow:hidden;background:var(--creux)}
@@ -777,7 +811,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 08h25';
+const APP_VERSION='02/10/2026 08h52';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3852,7 +3886,10 @@ function sectionPhotos(d){
     h+='<div class="cmp"><img class="cmp-img" data-fichier="'+esc(fa)+'" alt="Photo du '+jjmm(a)+'"><span class="cmp-eti g">'+jjmm(a)+'</span></div>'+
        '<p class="note">Reprends une photo dans un mois pour pouvoir comparer.</p>';
   }
-  h+='<p class="note">Tes photos sont gardées dans l\'appli et archivées par ton bot dans ta conversation Telegram, sans notification. Personne d\'autre n\'y a accès.</p>';
+  if(liste.length>1)h+='<button class="secondaire" id="k-evo" style="width:100%;margin-top:12px">▶ Voir l’évolution ('+liste.length+' photos)</button>';
+  h+='<div class="phv-t">Toutes mes photos de '+libType(type)+' ('+liste.length+')</div><div class="phv" id="k-vg">'+
+    liste.map(p=>'<button data-vg="'+p.date+'"'+(C.phSel===p.date?' class="sel"':'')+' aria-label="Photo du '+jjmm(p.date)+'"><img data-fichier="'+esc(p.fichier)+'" alt="">'+jjmm(p.date)+'</button>').join('')+'</div>';
+  h+='<p class="note">Touche une vignette pour la voir en grand, la remplacer, changer sa date ou la supprimer. Tes photos sont gardées dans l\'appli et archivées par ton bot dans ta conversation Telegram, sans notification. Personne d\'autre n\'y a accès.</p>';
   return h+'</section>';
 }
 function sectionPesee(d){
@@ -3930,7 +3967,7 @@ async function hydraterPhotos(){
   if(hydratationEnCours)return;
   hydratationEnCours=true;
   try{
-    for(let tour=0;tour<12;tour++){
+    for(let tour=0;tour<40;tour++){
       const img=[...document.querySelectorAll('img[data-fichier]')].filter(i=>!i.getAttribute('src')&&!i.dataset.ko)[0];
       if(!img)break;
       const f=img.dataset.fichier;
@@ -3943,6 +3980,134 @@ async function hydraterPhotos(){
   }finally{hydratationEnCours=false;}
 }
 
+/* ---------- gestion d'une photo : voir, remplacer (même date), changer la date, supprimer ---------- */
+let phRemplacement=null;
+function dateLongueIso(d){try{return new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
+function fermerVolet(){const v=document.getElementById('ph-hote');if(v)v.remove();S.corps.phSel=null;document.querySelectorAll('#k-vg button.sel').forEach(b=>b.classList.remove('sel'));}
+function photoPrecDe(type,date){const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===type&&p.date<date);return P.length?P[P.length-1]:null;}
+function ouvrirVolet(type,date){
+  const d=S.data||{},p=(d.photos||[]).find(x=>x.type===type&&x.date===date);if(!p)return;
+  fermerVolet();S.corps.phSel=date;
+  document.querySelectorAll('#k-vg button').forEach(b=>b.classList.toggle('sel',b.dataset.vg===date));
+  const prec=photoPrecDe(type,date),pk=(d.poids&&d.poids.length)?poidsA(d,date):null;
+  const hote=document.createElement('div');hote.id='ph-hote';hote.className='ph-fond';
+  hote.innerHTML='<div class="ph-sheet" role="dialog" aria-modal="true" aria-label="Photo du '+jjmm(date)+'">'+
+    '<div class="ph-hd"><img data-fichier="'+esc(p.fichier)+'" alt=""><div><b>'+(type==='profil'?'Profil':'Face')+' · '+esc(dateLongueIso(date))+'</b>'+(pk?'<small>'+fr1(pk)+' kg ce jour-là</small>':'')+'</div></div>'+
+    '<button class="ph-act" data-pa="grand">🔍 Voir en grand</button>'+
+    '<button class="ph-act" data-pa="prise">📷 Remplacer par une nouvelle prise<small>même date'+(prec?', contour de la photo du '+jjmm(prec.date)+' pour te caler':'')+'</small></button>'+
+    '<button class="ph-act" data-pa="biblio">🖼️ Remplacer depuis la photothèque<small>recadrage et comparaison avant d’enregistrer</small></button>'+
+    '<button class="ph-act" data-pa="date">📅 Changer la date</button>'+
+    '<button class="ph-act rouge" data-pa="suppr">🗑 Supprimer cette photo</button></div>';
+  document.body.appendChild(hote);
+  const im=hote.querySelector('img[data-fichier]');photoUrl(p.fichier).then(u=>{if(u&&im)im.src=u;}).catch(()=>{});
+  hote.addEventListener('click',e=>{if(e.target===hote)fermerVolet();});
+  hote.querySelectorAll('[data-pa]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.pa;
+    if(a==='grand'){voirEnGrand(p);return;}
+    fermerVolet();
+    if(a==='prise')ouvrirCamera(type,date);
+    else if(a==='biblio'){const f=document.getElementById('k-ph-fichier');if(f){phRemplacement={type:type,date:date};f.value='';f.click();}}
+    else if(a==='date')changerDatePhoto(type,date);
+    else if(a==='suppr')supprimerPhoto(type,date);}));
+}
+function voirEnGrand(p){
+  const g=document.createElement('div');g.className='ph-grand';g.id='ph-grand';
+  g.innerHTML='<img alt="Photo du '+jjmm(p.date)+'"><span>'+(p.type==='profil'?'Profil':'Face')+' · '+jjmm(p.date)+' '+p.date.slice(0,4)+'</span><button>Fermer</button>';
+  document.body.appendChild(g);
+  photoUrl(p.fichier).then(u=>{const i=g.querySelector('img');if(u&&i)i.src=u;}).catch(()=>{});
+  g.addEventListener('click',()=>g.remove());
+}
+async function gererPhoto(corps,msgOk){
+  try{
+    const r=await appel(Object.assign({action:'photo_gerer'},corps));
+    if(!r||r.ok===false)throw new Error((r&&r.erreur)||'Opération impossible.');
+    S.corps.photoMsg=msgOk(r);S.corps.cmpA=null;S.corps.cmpB=null;
+    try{await rafraichir();}catch(e){}
+    rendre();
+  }catch(e){await modaleAlert(e.message||'Opération impossible.');}
+}
+async function supprimerPhoto(type,date){
+  const ok=await modaleConfirm('Supprimer la photo de '+libType(type)+' du '+jjmm(date)+' ? Elle disparaît de l’appli et du comparateur.',{ok:'Supprimer',danger:true});
+  if(!ok)return;
+  gererPhoto({op:'suppr',type:type,date:date},r=>'Photo de '+libType(type)+' du '+jjmm(date)+' supprimée.'+
+    (r.archive?' Copie Telegram effacée aussi.':' La copie archivée dans Telegram reste (Telegram ne laisse effacer que les messages de moins de 48 h) : supprime-la à la main si tu veux.'));
+}
+function changerDatePhoto(type,date){
+  fermerModale();
+  const hote=document.createElement('div');hote.id='modale-hote';hote.className='modale-fond';
+  hote.innerHTML='<div class="modale ph-date" role="dialog" aria-modal="true"><p class="modale-txt"><b>Nouvelle date</b> pour la photo de '+libType(type)+' du '+jjmm(date)+'</p>'+
+    '<input type="date" id="ph-nd" value="'+date+'" max="'+auj()+'"><small id="ph-nd-info"></small>'+
+    '<div class="modale-btns"><button class="lien" data-mod="non">Annuler</button><button class="primaire" data-mod="oui">Valider</button></div></div>';
+  document.body.appendChild(hote);
+  const inp=hote.querySelector('#ph-nd'),info=hote.querySelector('#ph-nd-info'),bt=hote.querySelector('[data-mod="oui"]');
+  const maj=()=>{const v=inp.value;const okD=/^\d{4}-\d{2}-\d{2}$/.test(v)&&v<=auj()&&v!==date;
+    const pris=okD&&((S.data&&S.data.photos)||[]).some(p=>p.type===type&&p.date===v);
+    bt.disabled=!okD;info.className=pris?'avert':'';
+    info.textContent=!v?'Choisis une date.':(v>auj()?'Pas de date dans le futur.':(v===date?'C’est déjà sa date.':(pris?'Il y a déjà une photo de '+libType(type)+' le '+jjmm(v)+' : elle sera remplacée par celle-ci.':'Aucune photo de '+libType(type)+' ce jour-là.')));};
+  inp.addEventListener('input',maj);inp.addEventListener('change',maj);maj();
+  hote.querySelector('[data-mod="non"]').addEventListener('click',fermerModale);
+  hote.addEventListener('click',e=>{if(e.target===hote)fermerModale();});
+  bt.addEventListener('click',()=>{const v=inp.value;if(bt.disabled)return;fermerModale();
+    gererPhoto({op:'date',type:type,date:date,nouvelle_date:v},r=>'Photo de '+libType(type)+' déplacée du '+jjmm(date)+' au '+jjmm(v)+(r.remplace?' (l’ancienne de ce jour-là est remplacée).':'.'));});
+}
+/* ---------- évolution animée : diaporama en fondu (lecture) + curseur de temps (fondu continu) ---------- */
+const EVO_TENUE=900,EVO_FONDU=800;
+function fermerEvolution(){const E=S.evo;if(E&&E.raf)cancelAnimationFrame(E.raf);S.evo=null;const o=document.getElementById('evo-hote');if(o)o.remove();}
+async function ouvrirEvolution(type){
+  fermerEvolution();
+  const d=S.data||{},P=(d.photos||[]).filter(p=>p.type===type);if(P.length<2)return;
+  const n=P.length,pk=P.map(p=>(d.poids&&d.poids.length)?poidsA(d,p.date):null);
+  const E=S.evo={type:type,P:P,pk:pk,t:0,lecture:false,raf:null,t0:0,base:0,prets:0};
+  const o=document.createElement('div');o.id='evo-hote';o.className='evo';
+  // courbe du poids aux dates des photos, abscisse = rang de la photo (comme le curseur)
+  const W=300,H=56,vals=pk.filter(v=>v),mn=Math.min(...vals),mx=Math.max(...vals),et=(mx-mn)||1;
+  const X=i=>6+i*(W-12)/(n-1),Y=v=>v?8+(mx-v)*(H-20)/et:H/2;
+  const pts=pk.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+  const courbe=vals.length>1?'<svg class="evo-courbe" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="#7CFFB0" stroke-width="2" vector-effect="non-scaling-stroke"/>'+
+    pk.map((v,i)=>'<path d="M'+X(i)+' '+Y(v)+'h0" stroke="rgba(255,255,255,.6)" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>').join('')+'<path id="evo-pt" d="M0 0h0" stroke="#fff" stroke-width="11" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>':'';
+  o.innerHTML='<div class="evo-haut"><b>Évolution · '+(type==='profil'?'profil':'face')+'</b><button id="evo-fermer">Fermer</button></div>'+
+    '<div class="evo-scene" id="evo-scene">'+P.map((p,i)=>'<img data-i="'+i+'" alt="Photo du '+jjmm(p.date)+'">').join('')+'<div class="evo-msg" id="evo-msg">Chargement des photos…</div><div class="evo-eti" id="evo-eti"></div></div>'+
+    '<div class="evo-bas">'+courbe+'<div class="evo-ctl"><button id="evo-lire" aria-label="Lire">▶</button><input type="range" id="evo-t" min="0" max="'+(n-1)+'" step="0.01" value="0" aria-label="Avancer dans le temps"></div>'+
+    '<div class="evo-dates"><span>'+jjmm(P[0].date)+' '+P[0].date.slice(0,4)+'</span><span>'+jjmm(P[n-1].date)+' '+P[n-1].date.slice(0,4)+'</span></div></div>';
+  document.body.appendChild(o);
+  o.querySelector('#evo-fermer').addEventListener('click',fermerEvolution);
+  const rg=o.querySelector('#evo-t');
+  rg.addEventListener('input',()=>{const v=Number(rg.value);E.t=v;evoPause();});// lire la valeur AVANT la pause (qui redessine)
+  o.querySelector('#evo-lire').addEventListener('click',()=>{if(E.lecture)evoPause();else evoLire();});
+  evoDessiner();
+  // chargement une par une (cache local d'abord), puis lecture automatique
+  const imgs=o.querySelectorAll('.evo-scene img');
+  for(let i=0;i<n;i++){let u=null;try{u=await photoUrl(P[i].fichier);}catch(e){u=null;}
+    if(S.evo!==E)return;
+    if(u)imgs[i].src=u;E.prets++;const m=document.getElementById('evo-msg');if(m)m.textContent='Chargement des photos… '+E.prets+'/'+n;}
+  const m=document.getElementById('evo-msg');if(m)m.remove();
+  evoDessiner();evoLire();
+}
+function evoDessiner(){
+  const E=S.evo;if(!E)return;const n=E.P.length,t=Math.max(0,Math.min(n-1,E.t)),i=Math.floor(t),f=t-i;
+  document.querySelectorAll('#evo-scene img').forEach(im=>{const k=Number(im.dataset.i);
+    // photo du rang i opaque, la suivante apparaît par-dessus selon la fraction
+    im.style.opacity=k===i?1:(k===i+1?f:0);im.style.zIndex=k===i+1?1:0;});
+  const r=Math.round(t),p=E.P[r],e=document.getElementById('evo-eti');
+  if(e)e.textContent=jjmm(p.date)+' '+p.date.slice(0,4)+(E.pk[r]?' · '+fr1(E.pk[r])+' kg':'');
+  const rg=document.getElementById('evo-t');if(rg&&Math.abs(Number(rg.value)-t)>0.001)rg.value=t;
+  const pt=document.getElementById('evo-pt');
+  if(pt){const W=300,H=56,vals=E.pk.filter(v=>v),mn=Math.min(...vals),mx=Math.max(...vals),et=(mx-mn)||1;
+    const a=E.pk[i],b=E.pk[Math.min(n-1,i+1)],v=a&&b?a+(b-a)*f:(a||b);
+    pt.setAttribute('d','M'+(6+t*(W-12)/(n-1)).toFixed(1)+' '+(v?8+(mx-v)*(H-20)/et:H/2).toFixed(1)+'h0');}
+  const bt=document.getElementById('evo-lire');if(bt){bt.textContent=E.lecture?'⏸':'▶';bt.setAttribute('aria-label',E.lecture?'Pause':'Lire');}
+}
+function evoLire(){
+  const E=S.evo;if(!E)return;const n=E.P.length;
+  if(E.t>=n-1-0.001)E.t=0;// relancer depuis le début
+  E.lecture=true;E.base=Math.floor(E.t);E.t0=performance.now()-(E.t-E.base>0?EVO_TENUE+(E.t-E.base)*EVO_FONDU:0);
+  const pas=now=>{if(S.evo!==E||!E.lecture)return;
+    const el=now-E.t0,etape=EVO_TENUE+EVO_FONDU,k=Math.floor(el/etape),r=el-k*etape;
+    let t=E.base+k+(r>EVO_TENUE?(r-EVO_TENUE)/EVO_FONDU:0);
+    if(t>=n-1){E.t=n-1;E.lecture=false;evoDessiner();return;}
+    E.t=t;evoDessiner();E.raf=requestAnimationFrame(pas);};
+  evoDessiner();E.raf=requestAnimationFrame(pas);
+}
+function evoPause(){const E=S.evo;if(!E)return;E.lecture=false;if(E.raf)cancelAnimationFrame(E.raf);E.raf=null;evoDessiner();}
 /* ---------- appareil photo avec silhouette fantôme ---------- */
 let camFlux=null;
 function camArreterFlux(){
@@ -4042,7 +4207,7 @@ function vueRecadrage(){const Cm=S.cam,f=rcCadre(),fm=Cm.fantMode||'contour',p=c
     '<div class="scan-bas"><div class="cam-opts"><button id="cam-fant"'+(p?'':' disabled')+'>👤 '+FANT_LIB[fm]+'</button><button id="rc-raz">Réinitialiser</button></div>'+
     '<button id="rc-annuler">Annuler le recadrage</button><button class="stop" id="rc-ok">Valider</button></div>';}
 // Revue d'une photo avant de la garder : aperçu ou comparaison avec la photo précédente du même type
-function camPrec(){const Cm=S.cam,d=Cm.import?(Cm.date||auj()):auj();
+function camPrec(){const Cm=S.cam,d=Cm.dateForcee||(Cm.import?(Cm.date||auj()):auj());
   const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===Cm.type&&p.date<d);return P.length?P[P.length-1]:null;}
 function camChargerPrec(){const Cm=S.cam,p=camPrec();
   if(!p){Cm.cmp=false;Cm.precUrl=null;Cm.precF=null;return;}
@@ -4060,7 +4225,7 @@ function vueRevue(alt){const Cm=S.cam,p=camPrec();
     '<div class="cam-cmp-ctl"><div class="ty"><button data-cmode="glisser"'+(sup?'':' class="on"')+'>Glisser</button><button data-cmode="superposer"'+(sup?' class="on"':'')+'>Superposer</button></div>'+
     '<input type="range" id="cam-cmp-r" min="0" max="100" value="'+v+'" aria-label="'+(sup?'Transparence de la photo précédente':'Glisser pour comparer')+'"></div>';}
 function boutonsRevue(premier){const Cm=S.cam,p=camPrec(),dis=Cm.etat==='envoi'?' disabled':'';
-  return '<div class="scan-bas"><div class="cam-opts">'+(Cm.import?'<button id="cam-recadrer"'+dis+'>✂ Recadrer</button>':'')+'<button id="cam-retourner"'+dis+'>↔ Retourner</button>'+
+  return '<div class="scan-bas"><div class="cam-opts">'+'<button id="cam-recadrer"'+dis+'>✂ Recadrer</button>'+'<button id="cam-retourner"'+dis+'>↔ Retourner</button>'+
     '<button id="cam-comparer"'+(p&&!dis?'':' disabled')+(Cm.cmp?' class="on"':'')+'>'+(p?(Cm.cmp?'✕ Fin de la comparaison':'◧ Comparer au '+jjmm(p.date)):'Pas de photo avant')+'</button></div>'+
     '<button id="cam-fermer"'+dis+'>Annuler</button>'+premier+
     '<button class="stop" id="cam-garder"'+dis+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';}
@@ -4071,14 +4236,14 @@ function dessinerCamera(){
   if(!hote){hote=document.createElement('div');hote.id='cam-hote';document.body.appendChild(hote);}
   const miroir=!!Cm.miroir;
   let h='<div class="scan-overlay cam'+(Cm.cmp?' en-cmp':'')+'">';
-  if(Cm.capture&&Cm.import&&Cm.recadre){
+  if(Cm.capture&&Cm.recadre){
     h+=vueRecadrage();
   }else if(Cm.capture&&Cm.import){
     h+=vueRevue('Photo choisie')+
-       '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':'Photo depuis la photothèque')+'</div>'+
-       '<div class="cam-imp"><div class="ty"><button data-cimp="face"'+(Cm.type==='face'?' class="on"':'')+'>Face</button><button data-cimp="profil"'+(Cm.type==='profil'?' class="on"':'')+'>Profil</button></div>'+
+       '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':(Cm.dateForcee?'Remplace la photo de '+libType(Cm.type)+' du '+jjmm(Cm.dateForcee):'Photo depuis la photothèque'))+'</div>'+
+       (Cm.dateForcee?'':'<div class="cam-imp"><div class="ty"><button data-cimp="face"'+(Cm.type==='face'?' class="on"':'')+'>Face</button><button data-cimp="profil"'+(Cm.type==='profil'?' class="on"':'')+'>Profil</button></div>'+
        '<label>Date de la photo<input type="date" id="cam-date" value="'+esc(Cm.date||auj())+'" max="'+auj()+'"></label>'+
-       '<small>'+(Cm.dateSource==='exif'?'Date lue dans la photo.':'Date de la photo inconnue : vérifie-la.')+' Une photo par jour et par type : la même date remplace l’ancienne.</small></div>';
+       '<small>'+(Cm.dateSource==='exif'?'Date lue dans la photo.':'Date de la photo inconnue : vérifie-la.')+' Une photo par jour et par type : la même date remplace l’ancienne.</small></div>');
     if(Cm.etat==='ko')h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
     h+=boutonsRevue('');
   }else if(Cm.capture){
@@ -4092,7 +4257,7 @@ function dessinerCamera(){
     const fm=Cm.fantMode||'contour';
     if(Cm.fantome&&fm==='photo')h+='<img class="cam-fantome" src="'+Cm.fantome+'" alt="">';
     if(Cm.fantome&&fm==='contour'){if(Cm.contour)h+='<img class="cam-fantome contour" src="'+Cm.contour+'" alt="">';else h+='<img class="cam-fantome" src="'+Cm.fantome+'" alt="" style="opacity:.2">';}
-    h+='<div class="scan-haut">'+(Cm.etat==='demarrage'?'Démarrage de la caméra…':'Photo de '+libType(Cm.type)+(Cm.fantome&&(Cm.fantMode||'contour')!=='aucun'?((Cm.fantMode||'contour')==='contour'?' · cale-toi dans le contour':' · place-toi sur la photo précédente'):''))+'</div>'+
+    h+='<div class="scan-haut">'+(Cm.etat==='demarrage'?'Démarrage de la caméra…':'Photo de '+libType(Cm.type)+(Cm.dateForcee?' du '+jjmm(Cm.dateForcee)+' (remplacement)':'')+(Cm.fantome&&(Cm.fantMode||'contour')!=='aucun'?((Cm.fantMode||'contour')==='contour'?' · cale-toi dans le contour':' · place-toi sur la photo précédente'):''))+'</div>'+
        '<div class="cam-compte" id="cam-compte"></div>';
     if(Cm.etat==='ko'||Cm.alerte)h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
     h+='<div class="scan-bas"><div class="cam-opts">'+
@@ -4142,7 +4307,7 @@ function dessinerCamera(){
       if(n<=0){clearInterval(Cm.minuteurId);Cm.minuteurId=null;camCapturer();}
     },1000);
   });
-  on('cam-reprendre',()=>{Cm.cmp=false;Cm.capture=null;Cm.etat=camFlux?'pret':'demarrage';dessinerCamera();if(!camFlux)camDemarrerFlux();});
+  on('cam-reprendre',()=>{Cm.cmp=false;Cm.recadre=false;Cm.rc=null;Cm.capture=null;Cm.etat=camFlux?'pret':'demarrage';dessinerCamera();if(!camFlux)camDemarrerFlux();});
   on('cam-garder',envoyerPhotoCorps);
 }
 function camCapturer(essai){
@@ -4169,11 +4334,11 @@ async function envoyerPhotoCorps(){
   const Cm=S.cam;if(!Cm.capture)return;
   Cm.etat='envoi';dessinerCamera();
   try{
-    const dPh=(Cm.import&&/^\d{4}-\d{2}-\d{2}$/.test(Cm.date||'')&&Cm.date<=auj())?Cm.date:auj();
+    const dPh=Cm.dateForcee||((Cm.import&&/^\d{4}-\d{2}-\d{2}$/.test(Cm.date||'')&&Cm.date<=auj())?Cm.date:auj());
     const r=await appel({action:'photo',type:Cm.type,photo:Cm.capture.b64,date:dPh});
     if(r.fichier){photoMem.set(r.fichier,Cm.capture.url);await idbPut(r.fichier,Cm.capture.url);}
-    S.corps.photoMsg='Photo de '+libType(Cm.type)+(dPh!==auj()?' du '+jjmm(dPh):'')+' enregistrée.';
-    S.corps.cmpType=Cm.type;S.corps.cmpB=null;
+    S.corps.photoMsg='Photo de '+libType(Cm.type)+(dPh!==auj()?' du '+jjmm(dPh):'')+(Cm.dateForcee?' remplacée.':' enregistrée.');
+    S.corps.cmpType=Cm.type;S.corps.cmpA=null;S.corps.cmpB=null;
     fermerCamera();
     try{await rafraichir();}catch(e){}
     rendre();
@@ -4203,7 +4368,7 @@ function dateExif(buf){
   }catch(e){}return null;
 }
 // Photo choisie dans la photothèque : redimensionnée comme une prise de vue, puis écran de validation (type, date, retourner).
-async function importerPhoto(f,type){
+async function importerPhoto(f,type,dateForcee){
   S.corps.photoMsg='';
   let dExif=null;try{dExif=dateExif(await f.slice(0,262144).arrayBuffer());}catch(e){dExif=null;}
   const url0=URL.createObjectURL(f);
@@ -4215,22 +4380,22 @@ async function importerPhoto(f,type){
     let url=c.toDataURL('image/jpeg',0.82);if(url.length>900000)url=c.toDataURL('image/jpeg',0.7);
     const dOk=dExif&&dExif<=auj()?dExif:null;
     S.cam={ouvert:true,import:true,type:type,facing:'user',miroir:false,minuteur:0,capture:{url:url,b64:url.split(',')[1]},etat:null,message:'',fantome:null,minuteurId:null,
-      date:dOk||auj(),dateSource:dOk?'exif':'inconnue'};
+      date:dateForcee||dOk||auj(),dateSource:dOk?'exif':'inconnue',dateForcee:dateForcee||null};
     dessinerCamera();
   };
   im.onerror=()=>{URL.revokeObjectURL(url0);S.corps.photoMsg='Format de photo non lu par l’appli : choisis-la dans Fichiers en JPEG, ou règle l’appareil photo sur « Le plus compatible ».';rendre();};
   im.src=url0;
 }
-async function ouvrirCamera(type){
+async function ouvrirCamera(type,dateForcee){
   let pref={};try{pref=JSON.parse(localStorage.getItem('suivi.cam'))||{};}catch(e){pref={};}
   const fac=pref.facing==='environment'?'environment':'user';
   S.cam={ouvert:true,type:type,facing:fac,fantMode:FANT_MODES.indexOf(pref.fantome)>=0?pref.fantome:'contour',contour:null,miroir:typeof pref['miroir_'+fac]==='boolean'?pref['miroir_'+fac]:fac==='user',
-    minuteur:[0,5,10].indexOf(pref.minuteur)>=0?pref.minuteur:5,capture:null,etat:'demarrage',message:'',fantome:null,minuteurId:null};
+    minuteur:[0,5,10].indexOf(pref.minuteur)>=0?pref.minuteur:5,capture:null,etat:'demarrage',message:'',fantome:null,minuteurId:null,dateForcee:dateForcee||null};
   S.corps.photoMsg='';
   dessinerCamera();
   camDemarrerFlux();
-  // silhouette fantôme : dernière photo du même type
-  const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===type);
+  // silhouette fantôme : dernière photo du même type (pour un remplacement : la dernière avant cette date)
+  const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===type&&(!dateForcee||p.date<dateForcee));
   if(P.length){
     try{
       const u=await photoUrl(P[P.length-1].fichier);
@@ -5254,8 +5419,11 @@ function brancher(){
   document.querySelectorAll('#k-courbe button').forEach(b=>b.addEventListener('click',()=>{S.corps.courbe=b.dataset.kc;rendre();}));
   on('#k-ph-face','click',()=>ouvrirCamera('face'));
   on('#k-ph-profil','click',()=>ouvrirCamera('profil'));
-  on('#k-ph-import','click',()=>{const f=$('#k-ph-fichier');if(f){f.value='';f.click();}});
-  on('#k-ph-fichier','change',e=>{const f=e.target.files&&e.target.files[0];if(f)importerPhoto(f,S.corps.cmpType==='profil'?'profil':'face');});
+  on('#k-ph-import','click',()=>{const f=$('#k-ph-fichier');if(f){phRemplacement=null;f.value='';f.click();}});
+  on('#k-ph-fichier','change',e=>{const f=e.target.files&&e.target.files[0],rp=phRemplacement;phRemplacement=null;
+    if(f)importerPhoto(f,rp?rp.type:(S.corps.cmpType==='profil'?'profil':'face'),rp?rp.date:null);});
+  on('#k-evo','click',()=>ouvrirEvolution(S.corps.cmpType==='profil'?'profil':'face'));
+  document.querySelectorAll('#k-vg [data-vg]').forEach(b=>b.addEventListener('click',()=>ouvrirVolet(S.corps.cmpType==='profil'?'profil':'face',b.dataset.vg)));
   document.querySelectorAll('#k-cmp-type button').forEach(b=>b.addEventListener('click',()=>{
     S.corps.cmpType=b.dataset.kt;S.corps.cmpA=null;S.corps.cmpB=null;rendre();}));
   on('#k-cmp-a','change',e=>{S.corps.cmpA=e.target.value;rendre();});
