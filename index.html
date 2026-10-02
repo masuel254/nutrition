@@ -426,6 +426,16 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .cam .scan-bas .cam-opts button{padding:9px 4px;font-size:13px;font-weight:500}
 .cam .scan-bas .cam-opts button.on{background:rgba(255,255,255,.4)}
 .cam-apercu.miroir{transform:scaleX(-1)}
+.cam-cmp{position:relative;flex:1;width:100%;overflow:hidden;background:#000}
+.cam-cmp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.cam-cmp-av{position:absolute;inset:0}
+.en-cmp .cam-imp{display:none}
+.cam .cmp-eti{top:calc(52px + env(safe-area-inset-top));z-index:2}
+.cam-cmp-ctl{position:absolute;left:12px;right:12px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:3;display:flex;flex-direction:column;gap:8px;
+  background:rgba(0,0,0,.5);border-radius:12px;padding:8px 10px;backdrop-filter:blur(6px)}
+.cam-cmp-ctl .ty{display:flex;gap:8px}.cam-cmp-ctl .ty button{flex:1;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:none;color:#fff;font-size:13.5px}
+.cam-cmp-ctl .ty button.on{background:#fff;color:#111}
+.cam-cmp-ctl input[type=range]{width:100%;margin:0;padding:0;border:none;background:none;height:28px;-webkit-appearance:auto;appearance:auto;accent-color:#fff}
 .cam-imp{position:absolute;left:12px;right:12px;top:calc(52px + env(safe-area-inset-top));z-index:3;display:flex;flex-direction:column;gap:8px;
   background:rgba(0,0,0,.55);border-radius:12px;padding:10px 12px;color:#fff;font-size:14px;backdrop-filter:blur(6px)}
 .cam-imp .ty{display:flex;gap:8px}.cam-imp .ty button{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:none;color:#fff;font-size:14px}
@@ -759,7 +769,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 07h54';
+const APP_VERSION='02/10/2026 08h08';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3957,30 +3967,49 @@ async function camDemarrerFlux(){
     dessinerCamera();
   }
 }
+// Revue d'une photo avant de la garder : aperçu ou comparaison avec la photo précédente du même type
+function camPrec(){const Cm=S.cam,d=Cm.import?(Cm.date||auj()):auj();
+  const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===Cm.type&&p.date<d);return P.length?P[P.length-1]:null;}
+function camChargerPrec(){const Cm=S.cam,p=camPrec();
+  if(!p){Cm.cmp=false;Cm.precUrl=null;Cm.precF=null;return;}
+  if(Cm.precF===p.fichier&&Cm.precUrl)return;
+  Cm.precF=p.fichier;Cm.precUrl=null;
+  photoUrl(p.fichier).then(u=>{if(S.cam.ouvert&&S.cam.precF===p.fichier){S.cam.precUrl=u;if(!u){S.cam.cmp=false;S.cam.message='Photo précédente indisponible.';S.cam.alerte=true;}dessinerCamera();}}).catch(()=>{});}
+function vueRevue(alt){const Cm=S.cam,p=camPrec();
+  if(!(Cm.cmp&&p))return '<img class="cam-apercu" src="'+Cm.capture.url+'" alt="'+alt+'">';
+  if(!Cm.precUrl||Cm.precF!==p.fichier){camChargerPrec();return '<div class="cam-cmp"><img class="cam-cmp-img" src="'+Cm.capture.url+'" alt="'+alt+'"></div>';}
+  const v=Cm.cmpVal===undefined?50:Cm.cmpVal,sup=Cm.cmode==='superposer';
+  return '<div class="cam-cmp"><img class="cam-cmp-img" src="'+Cm.capture.url+'" alt="'+alt+'">'+
+    '<div class="cam-cmp-av" id="cam-cmp-av" style="'+(sup?'opacity:'+(v/100):'clip-path:inset(0 '+(100-v)+'% 0 0)')+'"><img class="cam-cmp-img" src="'+Cm.precUrl+'" alt="Photo du '+jjmm(p.date)+'"></div>'+
+    (sup?'':'<div class="cmp-trait" id="cam-cmp-trait" style="left:'+v+'%"></div>')+
+    '<span class="cmp-eti g">'+jjmm(p.date)+'</span><span class="cmp-eti d">Nouvelle</span></div>'+
+    '<div class="cam-cmp-ctl"><div class="ty"><button data-cmode="glisser"'+(sup?'':' class="on"')+'>Glisser</button><button data-cmode="superposer"'+(sup?' class="on"':'')+'>Superposer</button></div>'+
+    '<input type="range" id="cam-cmp-r" min="0" max="100" value="'+v+'" aria-label="'+(sup?'Transparence de la photo précédente':'Glisser pour comparer')+'"></div>';}
+function boutonsRevue(premier){const Cm=S.cam,p=camPrec(),dis=Cm.etat==='envoi'?' disabled':'';
+  return '<div class="scan-bas"><div class="cam-opts"><button id="cam-retourner"'+dis+'>↔ Retourner</button>'+
+    '<button id="cam-comparer"'+(p&&!dis?'':' disabled')+(Cm.cmp?' class="on"':'')+'>'+(p?(Cm.cmp?'✕ Fin de la comparaison':'◧ Comparer au '+jjmm(p.date)):'Pas de photo avant')+'</button></div>'+
+    '<button id="cam-fermer"'+dis+'>Annuler</button>'+premier+
+    '<button class="stop" id="cam-garder"'+dis+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';}
 function dessinerCamera(){
   const Cm=S.cam;
   let hote=document.getElementById('cam-hote');
   if(!Cm.ouvert){if(hote)hote.remove();return;}
   if(!hote){hote=document.createElement('div');hote.id='cam-hote';document.body.appendChild(hote);}
   const miroir=!!Cm.miroir;
-  let h='<div class="scan-overlay cam">';
+  let h='<div class="scan-overlay cam'+(Cm.cmp?' en-cmp':'')+'">';
   if(Cm.capture&&Cm.import){
-    h+='<img class="cam-apercu" src="'+Cm.capture.url+'" alt="Photo choisie">'+
+    h+=vueRevue('Photo choisie')+
        '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':'Photo depuis la photothèque')+'</div>'+
        '<div class="cam-imp"><div class="ty"><button data-cimp="face"'+(Cm.type==='face'?' class="on"':'')+'>Face</button><button data-cimp="profil"'+(Cm.type==='profil'?' class="on"':'')+'>Profil</button></div>'+
        '<label>Date de la photo<input type="date" id="cam-date" value="'+esc(Cm.date||auj())+'" max="'+auj()+'"></label>'+
        '<small>'+(Cm.dateSource==='exif'?'Date lue dans la photo.':'Date de la photo inconnue : vérifie-la.')+' Une photo par jour et par type : la même date remplace l’ancienne.</small></div>';
     if(Cm.etat==='ko')h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
-    h+='<div class="scan-bas"><button id="cam-fermer"'+(Cm.etat==='envoi'?' disabled':'')+'>Annuler</button>'+
-       '<button id="cam-retourner"'+(Cm.etat==='envoi'?' disabled':'')+'>↔ Retourner</button>'+
-       '<button class="stop" id="cam-garder"'+(Cm.etat==='envoi'?' disabled':'')+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';
+    h+=boutonsRevue('');
   }else if(Cm.capture){
-    h+='<img class="cam-apercu" src="'+Cm.capture.url+'" alt="Photo prise">'+
-       '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':'Photo de '+libType(Cm.type)+' : on la garde ?')+'</div>';
-    if(Cm.etat==='ko')h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
-    h+='<div class="scan-bas"><button id="cam-reprendre"'+(Cm.etat==='envoi'?' disabled':'')+'>Reprendre</button>'+
-       '<button id="cam-retourner"'+(Cm.etat==='envoi'?' disabled':'')+'>↔ Retourner</button>'+
-       '<button class="stop" id="cam-garder"'+(Cm.etat==='envoi'?' disabled':'')+'>'+(Cm.etat==='ko'?'Réessayer':'Garder')+'</button></div>';
+    h+=vueRevue('Photo prise')+
+       '<div class="scan-haut">'+(Cm.etat==='envoi'?'<span class="attente"></span>Enregistrement…':(Cm.cmp?'Es-tu placé comme la dernière fois ?':'Photo de '+libType(Cm.type)+' : on la garde ?'))+'</div>';
+    if(Cm.etat==='ko'||Cm.alerte)h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
+    h+=boutonsRevue('<button id="cam-reprendre"'+(Cm.etat==='envoi'?' disabled':'')+'>Reprendre</button>');
   }else{
     h+='<video id="cam-video" class="scan-video'+(miroir?' miroir':'')+'" playsinline muted autoplay></video>';
     // la photo précédente est enregistrée telle qu'affichée : si elle ne tombe pas en face, « Miroir » retourne l'aperçu
@@ -4007,6 +4036,11 @@ function dessinerCamera(){
   on('cam-miroir',e=>{Cm.miroir=!Cm.miroir;memoCam();const v2=document.getElementById('cam-video');if(v2)v2.classList.toggle('miroir',Cm.miroir);
     e.currentTarget.classList.toggle('on',Cm.miroir);e.currentTarget.setAttribute('aria-pressed',String(Cm.miroir));});
   on('cam-retourner',()=>{retournerCapture();});
+  on('cam-comparer',()=>{Cm.cmp=!Cm.cmp;Cm.alerte=false;if(Cm.cmp)camChargerPrec();dessinerCamera();});
+  hote.querySelectorAll('[data-cmode]').forEach(b=>b.addEventListener('click',()=>{Cm.cmode=b.dataset.cmode;dessinerCamera();}));
+  const rg=document.getElementById('cam-cmp-r');
+  if(rg)rg.addEventListener('input',()=>{const v=Number(rg.value);Cm.cmpVal=v;const av=document.getElementById('cam-cmp-av'),tr=document.getElementById('cam-cmp-trait');
+    if(Cm.cmode==='superposer'){if(av)av.style.opacity=v/100;}else{if(av)av.style.clipPath='inset(0 '+(100-v)+'% 0 0)';if(tr)tr.style.left=v+'%';}});
   hote.querySelectorAll('[data-cimp]').forEach(b=>b.addEventListener('click',()=>{Cm.type=b.dataset.cimp;dessinerCamera();}));
   const dt=document.getElementById('cam-date');if(dt)dt.addEventListener('change',()=>{if(/^\d{4}-\d{2}-\d{2}$/.test(dt.value)&&dt.value<=auj())Cm.date=dt.value;});
   on('cam-minuteur',e=>{Cm.minuteur=Cm.minuteur===0?5:(Cm.minuteur===5?10:0);memoCam();
@@ -4022,7 +4056,7 @@ function dessinerCamera(){
       if(n<=0){clearInterval(Cm.minuteurId);Cm.minuteurId=null;camCapturer();}
     },1000);
   });
-  on('cam-reprendre',()=>{Cm.capture=null;Cm.etat=camFlux?'pret':'demarrage';dessinerCamera();if(!camFlux)camDemarrerFlux();});
+  on('cam-reprendre',()=>{Cm.cmp=false;Cm.capture=null;Cm.etat=camFlux?'pret':'demarrage';dessinerCamera();if(!camFlux)camDemarrerFlux();});
   on('cam-garder',envoyerPhotoCorps);
 }
 function camCapturer(essai){
