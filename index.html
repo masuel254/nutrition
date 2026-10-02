@@ -430,6 +430,17 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .cam-cmp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
 .cam-cmp-av{position:absolute;inset:0}
 .en-cmp .cam-imp{display:none}
+.cam-rep{position:absolute;inset:0;z-index:2;pointer-events:none}
+.cam-rep .l{position:absolute;left:0;right:0;height:0;border-top:2px dashed #FFD34D;pointer-events:auto;touch-action:none}
+.cam-rep .l span{position:absolute;left:8px;top:-22px;font-size:12px;color:#FFD34D;text-shadow:0 1px 2px #000;padding:2px 6px;background:rgba(0,0,0,.35);border-radius:6px}
+.cam-rep .l::after{content:'';position:absolute;left:0;right:0;top:-16px;height:32px}
+.cam-score{position:absolute;top:calc(44px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:3;padding:5px 12px;border-radius:999px;
+  font-size:13.5px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.cam-score.bon{background:#3DA88C;color:#0f1a17}.cam-score.moyen{background:#B8892A;color:#111}
+.cam-niv{position:absolute;right:14px;top:calc(84px + env(safe-area-inset-top));z-index:3;width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.5);border:2px solid #fff}
+.cam-niv i{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:#E05555;transition:transform .1s}
+.cam-niv i.ok{background:#7CFFB0}.cam-niv b{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px;border-radius:50%;border:1px solid #fff}
+.cam-niv small{position:absolute;top:60px;right:-6px;width:110px;text-align:right;font-size:11.5px;color:#fff;text-shadow:0 1px 2px #000}
 .cam .cmp-eti{top:calc(52px + env(safe-area-inset-top));z-index:2}
 .cam-cmp-ctl{position:absolute;left:12px;right:12px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:3;display:flex;flex-direction:column;gap:8px;
   background:rgba(0,0,0,.5);border-radius:12px;padding:8px 10px;backdrop-filter:blur(6px)}
@@ -769,7 +780,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 08h08';
+const APP_VERSION='02/10/2026 08h16';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3942,7 +3953,7 @@ function camArreterFlux(){
   camFlux=null;
 }
 function fermerCamera(){
-  camArreterFlux();
+  camArreterFlux();scoreArreter();nivArreter();
   if(S.cam.minuteurId){clearInterval(S.cam.minuteurId);S.cam.minuteurId=null;}
   S.cam.ouvert=false;S.cam.capture=null;S.cam.etat=null;
   const h=document.getElementById('cam-hote');if(h)h.remove();
@@ -3958,7 +3969,7 @@ async function camDemarrerFlux(){
     try{camFlux=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{exact:Cm.facing},width:{ideal:1920},height:{ideal:1920}}});}
     catch(e1){camFlux=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:Cm.facing},width:{ideal:1920},height:{ideal:1920}}});}
     if(!S.cam.ouvert){camArreterFlux();return;}
-    Cm.etat='pret';dessinerCamera();
+    Cm.etat='pret';dessinerCamera();scoreDemarrer();if(Cm.niveau)nivDemarrer();
   }catch(e){
     Cm.etat='ko';
     Cm.message=/permission|denied|NotAllowed/i.test((e&&e.name||'')+(e&&e.message||''))
@@ -3967,6 +3978,63 @@ async function camDemarrerFlux(){
     dessinerCamera();
   }
 }
+/* ---------- aides au cadrage : repères, niveau à bulle, score d'alignement ---------- */
+const REP_DEF=[['tête',0.12],['épaules',0.28],['hanches',0.50],['pieds',0.74]];
+function lireJSON(k,d){try{return JSON.parse(localStorage.getItem(k)||'null')||d;}catch(e){return d;}}
+function ecrireJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function reperesDe(type){const r=lireJSON('suivi.reperes',{})[type];return Array.isArray(r)&&r.length===4?r:REP_DEF.map(x=>x[1]);}
+function htmlReperes(){const Cm=S.cam;if(!Cm.reperes)return '';const ys=reperesDe(Cm.type);
+  return '<div class="cam-rep" id="cam-rep">'+REP_DEF.map((x,i)=>'<div class="l" data-rep="'+i+'" style="top:'+(ys[i]*100)+'%"><span>'+x[0]+'</span></div>').join('')+'</div>';}
+function brancherReperes(){const box=document.getElementById('cam-rep');if(!box)return;
+  box.querySelectorAll('[data-rep]').forEach(l=>{l.addEventListener('pointerdown',e=>{e.preventDefault();l.setPointerCapture(e.pointerId);
+    const bouge=ev=>{const r=box.getBoundingClientRect();const y=Math.min(0.99,Math.max(0.01,(ev.clientY-r.top)/r.height));l.style.top=(y*100)+'%';l.dataset.y=y;};
+    const fin=()=>{l.removeEventListener('pointermove',bouge);l.removeEventListener('pointerup',fin);l.removeEventListener('pointercancel',fin);
+      if(l.dataset.y){const t=S.cam.type,all=lireJSON('suivi.reperes',{});const ys=reperesDe(t).slice();ys[Number(l.dataset.rep)]=Number(l.dataset.y);all[t]=ys;ecrireJSON('suivi.reperes',all);}};
+    l.addEventListener('pointermove',bouge);l.addEventListener('pointerup',fin);l.addEventListener('pointercancel',fin);});});}
+// niveau : inclinaison du téléphone tiré de la gravité (gauche/droite et avant/arrière, en degrés, sans blocage à la verticale),
+// comparée à celle de la dernière photo du même type (même téléphone, donc mêmes conventions), sinon à la verticale parfaite
+let nivEcoute=null;
+function nivRef(type){const r=lireJSON('suivi.tilt',{})[type];return r&&typeof r.a==='number'?r:{a:0,b:0,def:true};}
+function nivMaj(){const Cm=S.cam,el=document.getElementById('cam-niv');if(!el||!Cm.tilt)return;const ref=nivRef(Cm.type);
+  const da=Cm.tilt.a-ref.a,db=Cm.tilt.b-ref.b,ecart=Math.sqrt(da*da+db*db),ok=ecart<1.5;Cm.nivOk=ok;
+  const i=el.querySelector('i');i.style.transform='translate('+Math.max(-22,Math.min(22,-da*3))+'px,'+Math.max(-22,Math.min(22,db*3))+'px)';i.classList.toggle('ok',ok);
+  el.querySelector('small').textContent=ok?'niveau OK':'incliné de '+Math.round(ecart)+'° · point au centre'+(ref.def?'':' (comme la dernière fois)');}
+async function nivDemarrer(){
+  try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){const p=await DeviceMotionEvent.requestPermission();if(p!=='granted')throw new Error('refus');}}
+  catch(e){S.cam.niveau=false;S.cam.message='Niveau indisponible : autorise « Mouvement et orientation » pour cette appli.';S.cam.alerte=true;dessinerCamera();return;}
+  if(nivEcoute)window.removeEventListener('devicemotion',nivEcoute);
+  nivEcoute=e=>{const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;const D=180/Math.PI;
+    S.cam.tilt={a:Math.atan2(g.x,Math.sqrt(g.y*g.y+g.z*g.z))*D,b:Math.atan2(g.z,Math.sqrt(g.x*g.x+g.y*g.y))*D};nivMaj();};
+  window.addEventListener('devicemotion',nivEcoute);}
+function nivArreter(){if(nivEcoute){window.removeEventListener('devicemotion',nivEcoute);nivEcoute=null;}}
+// score : contours de l'image en direct comparés à ceux de la photo précédente (petites images, décalages et échelles testés)
+const SC_W=36,SC_H=64;let scoreId=null,scoreImg=null,scoreRef=null,autoDepuis=0;
+function contours(src,sw,sh,miroir,ech,dx,dy){const c=document.createElement('canvas');c.width=SC_W;c.height=SC_H;const x=c.getContext('2d');
+  const ar=SC_W/SC_H;let cw=sw,ch=sw/ar;if(ch>sh){ch=sh;cw=sh*ar;}cw/=ech;ch/=ech;const cx=(sw-cw)/2,cy=(sh-ch)/2;
+  if(miroir){x.translate(SC_W,0);x.scale(-1,1);}x.drawImage(src,cx,cy,cw,ch,0,0,SC_W,SC_H);
+  const d=x.getImageData(0,0,SC_W,SC_H).data,g=new Float32Array(SC_W*SC_H),L=new Float32Array(SC_W*SC_H);
+  for(let i=0;i<SC_W*SC_H;i++)L[i]=d[i*4]*0.3+d[i*4+1]*0.59+d[i*4+2]*0.11;
+  for(let y=1;y<SC_H-1;y++)for(let X=1;X<SC_W-1;X++){const i=y*SC_W+X;const gx=L[i+1]-L[i-1],gy=L[i+SC_W]-L[i-SC_W];g[i]=Math.sqrt(gx*gx+gy*gy);}
+  let m=0;for(const v of g)m+=v;m/=g.length;let s=0;for(let i=0;i<g.length;i++){g[i]-=m;s+=g[i]*g[i];}s=Math.sqrt(s)||1;for(let i=0;i<g.length;i++)g[i]/=s;return g;}
+function correl(a,b,dx,dy){let s=0;for(let y=Math.max(0,-dy);y<Math.min(SC_H,SC_H-dy);y++)for(let x=Math.max(0,-dx);x<Math.min(SC_W,SC_W-dx);x++)s+=a[y*SC_W+x]*b[(y+dy)*SC_W+x+dx];return s;}
+function scoreTour(){const Cm=S.cam,v=document.getElementById('cam-video'),el=document.getElementById('cam-score');
+  if(!Cm.ouvert||Cm.capture||!v||!v.videoWidth||!el||!scoreRef)return;
+  let best={r:-2,dx:0,dy:0,e:1},r0=0;
+  for(const e of [0.92,1,1.08]){const live=contours(v,v.videoWidth,v.videoHeight,!!Cm.miroir,e);
+    for(let dy=-5;dy<=5;dy++)for(let dx=-4;dx<=4;dx++){const r=correl(scoreRef,live,dx,dy);if(r>best.r)best={r,dx,dy,e};if(e===1&&!dx&&!dy)r0=r;}}
+  const pct=Math.round(Math.max(0,Math.min(1,(r0-0.1)/0.6))*100);Cm.score=pct;
+  let conseil='';
+  if(best.e!==1&&best.r>r0+0.03)conseil=best.e>1?'rapproche-toi un peu':'recule un peu';
+  else if(best.dx&&best.r>r0+0.03){const ecranGauche=best.dx>0;conseil='décale-toi '+((ecranGauche===!!Cm.miroir)?'vers ta gauche':'vers ta droite');}
+  else if(best.dy&&best.r>r0+0.03)conseil=best.dy>0?'baisse un peu le téléphone':'monte un peu le téléphone';
+  el.textContent='Alignement '+pct+' %'+(conseil?' · '+conseil:(pct>=90?' · parfait':''));
+  el.className='cam-score '+(pct>=90&&!conseil?'bon':(pct>=60?'moyen':''));
+  // déclenchement automatique : bien aligné (et de niveau si le niveau est affiché) pendant 1,5 s
+  const pret=pct>=90&&!conseil&&(!Cm.niveau||Cm.nivOk);
+  if(Cm.auto&&pret&&!Cm.minuteurId){if(!autoDepuis)autoDepuis=Date.now();else if(Date.now()-autoDepuis>1500){autoDepuis=0;vibrer(30);camCapturer();}}else autoDepuis=0;}
+function scoreDemarrer(){scoreArreter();if(!S.cam.fantome)return;scoreImg=new Image();scoreImg.onload=()=>{scoreRef=contours(scoreImg,scoreImg.naturalWidth,scoreImg.naturalHeight,false,1);};scoreImg.src=S.cam.fantome;
+  scoreId=setInterval(scoreTour,350);}
+function scoreArreter(){if(scoreId){clearInterval(scoreId);scoreId=null;}autoDepuis=0;}
 // Revue d'une photo avant de la garder : aperçu ou comparaison avec la photo précédente du même type
 function camPrec(){const Cm=S.cam,d=Cm.import?(Cm.date||auj()):auj();
   const P=((S.data&&S.data.photos)||[]).filter(p=>p.type===Cm.type&&p.date<d);return P.length?P[P.length-1]:null;}
@@ -4013,7 +4081,10 @@ function dessinerCamera(){
   }else{
     h+='<video id="cam-video" class="scan-video'+(miroir?' miroir':'')+'" playsinline muted autoplay></video>';
     // la photo précédente est enregistrée telle qu'affichée : si elle ne tombe pas en face, « Miroir » retourne l'aperçu
-    if(Cm.fantome)h+='<img class="cam-fantome" src="'+Cm.fantome+'" alt="">';
+    if(Cm.fantome)h+='<img class="cam-fantome" src="'+Cm.fantome+'" alt=""'+(Cm.reperes?' style="opacity:.22"':'')+'>';
+    h+=htmlReperes();
+    if(Cm.fantome&&Cm.etat==='pret')h+='<div class="cam-score" id="cam-score">Alignement…</div>';
+    if(Cm.niveau)h+='<div class="cam-niv" id="cam-niv"><b></b><i></i><small></small></div>';
     h+='<div class="scan-haut">'+(Cm.etat==='demarrage'?'Démarrage de la caméra…':'Photo de '+libType(Cm.type)+(Cm.fantome?' · place-toi sur la photo précédente':''))+'</div>'+
        '<div class="cam-compte" id="cam-compte"></div>';
     if(Cm.etat==='ko'||Cm.alerte)h+='<div class="scan-err">'+esc(Cm.message)+'</div>';
@@ -4021,6 +4092,9 @@ function dessinerCamera(){
        '<button id="cam-tourner" aria-label="Changer de caméra">⇄ '+(Cm.facing==='user'?'Caméra arrière':'Mode selfie')+'</button>'+
        '<button id="cam-miroir" aria-pressed="'+miroir+'"'+(miroir?' class="on"':'')+'>↔ Miroir</button>'+
        '<button id="cam-minuteur" aria-label="Retardateur">⏱ '+(Cm.minuteur?Cm.minuteur+' s':'0 s')+'</button></div>'+
+       '<div class="cam-opts"><button id="cam-reperes"'+(Cm.reperes?' class="on"':'')+'>Repères</button>'+
+       '<button id="cam-niveau"'+(Cm.niveau?' class="on"':'')+'>Niveau</button>'+
+       '<button id="cam-auto"'+(Cm.auto?' class="on"':'')+(Cm.fantome?'':' disabled')+'>Auto 90 %</button></div>'+
        '<button id="cam-fermer">Fermer</button>'+
        '<button class="stop" id="cam-declencher"'+(Cm.etat!=='pret'?' disabled':'')+'>Prendre</button></div>';
   }
@@ -4036,6 +4110,11 @@ function dessinerCamera(){
   on('cam-miroir',e=>{Cm.miroir=!Cm.miroir;memoCam();const v2=document.getElementById('cam-video');if(v2)v2.classList.toggle('miroir',Cm.miroir);
     e.currentTarget.classList.toggle('on',Cm.miroir);e.currentTarget.setAttribute('aria-pressed',String(Cm.miroir));});
   on('cam-retourner',()=>{retournerCapture();});
+  const memoAides=()=>{const p=lireJSON('suivi.cam',{});p.reperes=Cm.reperes;p.niveau=Cm.niveau;p.auto=Cm.auto;ecrireJSON('suivi.cam',p);};
+  on('cam-reperes',()=>{Cm.reperes=!Cm.reperes;memoAides();dessinerCamera();});
+  on('cam-niveau',()=>{Cm.niveau=!Cm.niveau;memoAides();if(Cm.niveau)nivDemarrer();else nivArreter();dessinerCamera();});
+  on('cam-auto',()=>{Cm.auto=!Cm.auto;memoAides();dessinerCamera();});
+  brancherReperes();nivMaj();
   on('cam-comparer',()=>{Cm.cmp=!Cm.cmp;Cm.alerte=false;if(Cm.cmp)camChargerPrec();dessinerCamera();});
   hote.querySelectorAll('[data-cmode]').forEach(b=>b.addEventListener('click',()=>{Cm.cmode=b.dataset.cmode;dessinerCamera();}));
   const rg=document.getElementById('cam-cmp-r');
@@ -4075,7 +4154,7 @@ function camCapturer(essai){
   let url=c.toDataURL('image/jpeg',0.82);
   if(url.length>900000)url=c.toDataURL('image/jpeg',0.7);
   vibrer(40);
-  S.cam.capture={url:url,b64:url.split(',')[1]};
+  S.cam.capture={url:url,b64:url.split(',')[1]};S.cam.tiltCapture=S.cam.tilt?{a:S.cam.tilt.a,b:S.cam.tilt.b}:null;
   S.cam.etat=null;
   dessinerCamera();
 }
@@ -4086,6 +4165,7 @@ async function envoyerPhotoCorps(){
     const dPh=(Cm.import&&/^\d{4}-\d{2}-\d{2}$/.test(Cm.date||'')&&Cm.date<=auj())?Cm.date:auj();
     const r=await appel({action:'photo',type:Cm.type,photo:Cm.capture.b64,date:dPh});
     if(r.fichier){photoMem.set(r.fichier,Cm.capture.url);await idbPut(r.fichier,Cm.capture.url);}
+    if(!Cm.import&&Cm.tiltCapture){const t=lireJSON('suivi.tilt',{});t[Cm.type]=Cm.tiltCapture;ecrireJSON('suivi.tilt',t);}
     S.corps.photoMsg='Photo de '+libType(Cm.type)+(dPh!==auj()?' du '+jjmm(dPh):'')+' enregistrée.';
     S.corps.cmpType=Cm.type;S.corps.cmpB=null;
     fermerCamera();
@@ -4138,7 +4218,7 @@ async function importerPhoto(f,type){
 async function ouvrirCamera(type){
   let pref={};try{pref=JSON.parse(localStorage.getItem('suivi.cam'))||{};}catch(e){pref={};}
   const fac=pref.facing==='environment'?'environment':'user';
-  S.cam={ouvert:true,type:type,facing:fac,miroir:typeof pref['miroir_'+fac]==='boolean'?pref['miroir_'+fac]:fac==='user',
+  S.cam={ouvert:true,type:type,facing:fac,reperes:pref.reperes!==false,niveau:!!pref.niveau,auto:!!pref.auto,miroir:typeof pref['miroir_'+fac]==='boolean'?pref['miroir_'+fac]:fac==='user',
     minuteur:[0,5,10].indexOf(pref.minuteur)>=0?pref.minuteur:5,capture:null,etat:'demarrage',message:'',fantome:null,minuteurId:null};
   S.corps.photoMsg='';
   dessinerCamera();
@@ -4148,7 +4228,7 @@ async function ouvrirCamera(type){
   if(P.length){
     try{
       const u=await photoUrl(P[P.length-1].fichier);
-      if(u&&S.cam.ouvert&&S.cam.type===type){S.cam.fantome=u;if(!S.cam.capture)dessinerCamera();}
+      if(u&&S.cam.ouvert&&S.cam.type===type){S.cam.fantome=u;if(!S.cam.capture){dessinerCamera();if(S.cam.etat==='pret')scoreDemarrer();}}
     }catch(e){}
   }
 }
