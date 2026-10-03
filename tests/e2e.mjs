@@ -57,6 +57,8 @@ const navigateur = await chromium.launch();
 const page = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
 const erreurs = []; page.on('pageerror', e => erreurs.push(e.message));
 const PHOTOS = {}; let nPhotos = 0;
+const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
+  { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
 const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false;
 await page.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
 await page.route('https://api.test/**', async r => {
@@ -79,8 +81,9 @@ await page.route('https://api.test/**', async r => {
   }
   if (q.action === 'favoris') return json({ ok: true, favoris: q.favoris });
   if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
-  if (q.action === 'admin') return json({ ok: true, comptes: [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true }], invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined });
-  if (q.action === 'params') return json({ ok: true, objectif: q.objectif, cible: 3000, activite: 'Sedentaire', mode: 'Prise de masse' });
+  if (q.action === 'admin') { if (q.op === 'ia') { const u = COMPTES.find(x => x.uid === q.uid); if (u) { u.niveau = q.niveau; u.ia = q.niveau !== 'non'; } }
+    return json({ ok: true, comptes: COMPTES, invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined }); }
+  if (q.action === 'params') { if (q.reperes) DATA.reference.reperes = q.reperes; return json({ ok: true, objectif: q.objectif, cible: 3000, activite: 'Sedentaire', mode: 'Prise de masse' }); }
   return json(DATA);
 });
 await page.addInitScript(() => localStorage.setItem('suivi.config', JSON.stringify({ api: 'https://api.test/x', token: 't' })));
@@ -157,6 +160,13 @@ ok(await page.locator('#ch-macros').isVisible() && await page.locator('#g-ecart'
 await page.click('[data-rg="inviter"]');
 await page.fill('#adm-prenom', 'Hugo'); await page.click('#adm-inviter'); await page.waitForTimeout(300);
 ok(/ZR4T-8HNW/.test(await texte('.adm-lien')) && await page.locator('[data-adm-part="ZR4T-8HNW"]').count() > 0, 'invitation créée et prête à envoyer');
+const ivt = appels.filter(a => a.op === 'inviter').pop();
+ok(ivt.niveau === 'non' && ivt.ia === false, 'IA payantes : invitation à « Aucune » par défaut');
+ok(await page.locator('[data-adm-ia="u1"]:disabled').count() === 3 && /Haiku 6 · Sonnet 1 · ≈ 0,11 €/.test(await texte('.rg-p:not([hidden])')), 'IA payantes : administrateur bloqué, compteur Haiku/Sonnet en euros');
+await page.click('[data-adm-ia="u2"][data-n="haiku"]'); await page.waitForTimeout(300);
+const ia = appels.filter(a => a.op === 'ia').pop();
+ok(ia && ia.uid === 'u2' && ia.niveau === 'haiku' && await page.locator('[data-adm-ia="u2"][data-n="haiku"].on').count() === 1, 'IA payantes : Hugo passé à « Haiku » seul');
+ok(/Total Claude ce mois/.test(await texte('.rg-p:not([hidden])')), 'IA payantes : total du mois');
 await page.click('[data-rg="objectif"]');
 ok(await page.locator('#rg-barre').isHidden(), 'Réglages : barre Enregistrer cachée tant que rien ne change');
 const ec0 = parseInt(await page.inputValue('#g-ecart'), 10);
@@ -172,6 +182,13 @@ await page.click('#rp-ajuste');
 ok((await page.inputValue('#ch-repart input[data-rp="soir"]')) === '30' && /100 %/.test(await texte('#repart-tot')), 'Réglages : ajuster le soir');
 await page.click('[data-pmx="300"]');
 ok((await page.inputValue('#g-purmax')) === '300', 'Réglages : raccourci plafond de purines');
+ok(/Auto · 30/.test(await page.getAttribute('[data-qr="fibres"]', 'placeholder')), 'Repères qualité : case vide = Auto (30 g de fibres)');
+await page.fill('[data-qr="fibres"]', '25'); await page.fill('[data-qr="sodium"]', '99999'); await page.locator('.g-envoi:visible').first().click(); await page.waitForTimeout(200);
+ok(/Sodium : entre 500/.test(await texte('.rg-p:not([hidden])')) && (await page.inputValue('[data-qr="fibres"]')) === '25', 'Repères qualité : sodium hors bornes refusé, saisie gardée');
+await page.fill('[data-qr="sodium"]', ''); await page.locator('.g-envoi:visible').first().click(); await page.waitForTimeout(400);
+const rq = appels.filter(a => a.action === 'params').pop().reperes;
+ok(rq && rq.fibres_min === 25 && rq.sodium_max === 0 && await page.evaluate(() => seuilsQualite(S.data).fibres.max) === 25, 'Repères qualité : fibres 25 g enregistrées et appliquées');
+delete DATA.reference.reperes;
 await page.click('[data-rg="appli"]');
 ok(await page.locator('#r-token').isHidden(), 'Réglages : connexion repliée');
 await page.click('.rg-cnx summary');
@@ -294,6 +311,18 @@ ok(/aucune IA choisie/.test(await texte('#pia-t')) && appels.filter(a => a.actio
 await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="ajout"]');
 if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
 ok(/Profil IA : Défaut/.test(await texte('#pia-t')), 'profil IA : revient à Défaut après un changement d écran');
+// invité autorisé à Haiku seulement
+{ const pH = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
+  pH.on('pageerror', e => erreurs.push(e.message));
+  const DH = JSON.parse(JSON.stringify(DATA)); DH.profil.role = 'utilisateur'; DH.profil.ia_payante = true; DH.profil.ia_haiku = true; DH.profil.ia_sonnet = false;
+  await pH.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+  await pH.route('https://api.test/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DH) }));
+  await pH.addInitScript(() => localStorage.setItem('suivi.config', JSON.stringify({ api: 'https://api.test/x', token: 't' })));
+  await pH.goto('https://app.test/index.html'); await pH.waitForSelector('nav button');
+  await pH.click('nav button[data-vue="ajout"]'); await pH.click('#pia-t'); await pH.waitForTimeout(100);
+  ok(await pH.locator('.pia-l.lock').count() === 1 && await pH.locator('[data-pia-p="complexe"]').count() === 0 && /coupé par l’administrateur/.test(await pH.locator('.pia').innerText()), 'invité niveau Haiku : Sonnet verrouillé, pas de profil Complexe');
+  ok(await pH.evaluate(() => piaListe().join()) === 'flash,lite,groq,haiku,gemma', 'invité niveau Haiku : Défaut garde Haiku en secours');
+  await pH.close(); }
 secoursTest = false;
 
 console.log('Pesées');
