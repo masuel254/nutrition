@@ -626,6 +626,29 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .adm-lien{border:1px solid var(--rule);border-left:4px solid var(--under);border-radius:10px;background:var(--card);padding:12px 14px;margin-top:14px}
 .adm-lien-t{font-size:14px;font-weight:600}
 .adm-lien-t small{display:block;font-weight:400;color:var(--soft);font-size:13px;margin-top:2px}
+.adm-sum{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:14px;margin-top:4px}
+.adm-sum .l1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.adm-sum .l1 span{font-size:13px;color:var(--soft)}.adm-sum .l1 b{font-size:26px;font-variant-numeric:tabular-nums}
+.adm-bar{height:8px;border-radius:4px;background:var(--creux);overflow:hidden;display:flex;margin:10px 0 7px}.adm-bar i{display:block;height:100%}
+.adm-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--soft)}.adm-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.adm-r{display:flex;align-items:center;gap:10px;width:100%;padding:11px 2px;border-bottom:1px solid var(--rule);text-align:left}
+.adm-av{width:36px;height:36px;border-radius:50%;background:var(--creux);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none;color:var(--ink)}
+.adm-av.att{background:none;border:1px dashed var(--rule);color:var(--soft)}
+.adm-nm{flex:1;min-width:0}.adm-nm b{font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adm-nm small{display:block;font-size:12.5px;color:var(--soft);margin-top:1px}
+.adm-chip{font-size:12px;font-weight:700;padding:4px 9px;border-radius:99px;flex:none;white-space:nowrap}
+.adm-chip.non{background:var(--creux);color:var(--soft)}.adm-chip.haiku{background:color-mix(in srgb,var(--ambre) 20%,transparent);color:var(--ambre)}.adm-chip.oui{background:color-mix(in srgb,var(--under) 22%,transparent);color:var(--under)}
+.adm-e{width:62px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;flex:none}.adm-e.vide{color:var(--soft);font-weight:400}.adm-e.chaud{color:var(--over)}
+.adm-chev{color:var(--soft);flex:none}
+.adm-fab{display:block;width:100%;margin-top:12px;background:var(--ink);color:var(--paper);font-weight:700;padding:13px;border-radius:12px;font-size:15px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.adm-sh .adm-stat{display:flex;gap:8px;margin:12px 0 4px}.adm-stat div{flex:1;background:var(--creux);border-radius:10px;padding:9px 4px;text-align:center}.adm-stat b{display:block;font-size:17px}.adm-stat small{font-size:11.5px;color:var(--soft)}
+.adm-opts{display:flex;flex-direction:column;gap:8px;margin:12px 0 4px}
+.adm-opt{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--rule);border-radius:12px;padding:11px 12px;text-align:left}
+.adm-opt .rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--rule);flex:none}
+.adm-opt.on{border-color:var(--ambre);background:color-mix(in srgb,var(--ambre) 8%,transparent)}.adm-opt.on .rd{border:6px solid var(--ambre)}
+.adm-opt.on.oui{border-color:var(--under);background:color-mix(in srgb,var(--under) 8%,transparent)}.adm-opt.on.oui .rd{border-color:var(--under)}
+.adm-opt.on.non{border-color:var(--ink);background:none}.adm-opt.on.non .rd{border-color:var(--ink)}
+.adm-opt:disabled{opacity:.55}.adm-opt b{font-size:14.5px}.adm-opt small{display:block;font-size:12px;color:var(--soft);margin-top:1px}
+.adm-sh input{width:100%;font:inherit;font-size:16px;padding:10px;border:1px solid var(--rule);border-radius:8px;background:var(--card);color:var(--ink);margin-top:10px}
+.adm-sh .lien{display:block;margin:12px auto 0}
 .adm-t{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin:18px 0 6px}
 .adm-l{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:14px}
 .adm-l small{display:block;color:var(--soft);font-size:13px}
@@ -835,7 +858,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='03/10/2026 14h46';
+const APP_VERSION='03/10/2026 14h58';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3514,16 +3537,26 @@ const PRIX_CLAUDE={h:0.01,s:0.05};
 function euros(v){return (Math.round(v*100)/100).toFixed(2).replace('.',',')+' €';}
 function consoClaude(cl){cl=cl||{};const h=cl.h!==undefined?Number(cl.h)||0:(Number(cl.a)||0)+(Number(cl.c)||0),s=Number(cl.s)||0;return {h:h,s:s,eur:h*PRIX_CLAUDE.h+s*PRIX_CLAUDE.s};}
 function nivIA(attr,val,dis){return '<span class="niv">'+[['non','Aucune'],['haiku','Haiku'],['oui','Haiku + Sonnet']].map(x=>'<button '+attr+'="'+x[0]+'"'+(val===x[0]?' class="on"':'')+(dis?' disabled':'')+'>'+x[1]+'</button>').join('')+'</span>';}
+const NIV_LIB={non:'Gratuit',haiku:'Haiku',oui:'H + S'};
+const NIV_OPT=[['non','Aucune','Gemini, Groq, Gemma : gratuit'],['haiku','Haiku','secours rapide · environ 1 centime l’analyse'],['oui','Haiku + Sonnet','plats complexes en plus · environ 5 centimes l’analyse Sonnet']];
+function nivCompte(u){return u.niveau||(u.ia?'oui':'non');}
 function blocAdmin(){
   const A=S.adm;
-  let h='<section>'+
-    '<label for="adm-prenom">Inviter quelqu\'un</label>'+
-    '<input id="adm-prenom" type="text" placeholder="Prénom (facultatif)" value="'+esc(A.prenom||'')+'">'+
-    '<div class="adm-iainv" style="display:block"><b>IA payantes</b><small>Haiku : secours rapide, environ 1 centime l’analyse. Sonnet : plats complexes, environ 5 centimes.</small>'+nivIA('data-adm-niv',A.niv||'non')+'</div>'+
-    '<button class="primaire" id="adm-inviter"'+(A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Création':'Créer un lien d\'invitation')+'</button>';
+  let h='<section>';
+  const C=A.comptes||[],avecIA=C.some(u=>typeof u.ia==='boolean');
+  if(avecIA){
+    const T=C.reduce((s,u)=>{const K=consoClaude(u.claude);return {h:s.h+K.h,s:s.s+K.s,eur:s.eur+K.eur};},{h:0,s:0,eur:0});
+    const eh=T.h*PRIX_CLAUDE.h,es=T.s*PRIX_CLAUDE.s,tot=eh+es;
+    const mois=new Date().toLocaleDateString('fr-FR',{month:'long'});
+    h+='<div class="adm-sum"><div class="l1"><span>Claude · '+mois+'</span><b>≈ '+euros(T.eur)+'</b></div>'+
+      '<div class="adm-bar">'+(tot?'<i style="width:'+(eh/tot*100).toFixed(1)+'%;background:var(--ambre)"></i><i style="width:'+(es/tot*100).toFixed(1)+'%;background:var(--under)"></i>':'')+'</div>'+
+      '<div class="adm-leg"><span><i style="background:var(--ambre)"></i>Haiku '+T.h+' · '+euros(eh)+'</span><span><i style="background:var(--under)"></i>Sonnet '+T.s+' · '+euros(es)+'</span><span>plafond 20/jour</span></div></div>';
+  }
+  // bouton en haut, toujours visible en arrivant sur l'onglet (un bouton « collant » ne tient pas dans la mise en page)
+  h+='<button class="adm-fab" id="adm-inviter">＋ Inviter quelqu’un</button>';
   if(A.cree){
     const c=A.cree;
-    h+='<div class="adm-lien"><div class="adm-lien-t">'+(c.type==='reconnexion'?'Lien de reconnexion':'Invitation')+(c.prenom?' pour '+esc(c.prenom):'')+
+    h+='<div class="adm-lien" id="adm-lien"><div class="adm-lien-t">'+(c.type==='reconnexion'?'Lien de reconnexion':'Invitation')+(c.prenom?' pour '+esc(c.prenom):'')+
        ' <small>valable jusqu\'au '+jjmm(c.expire)+'</small></div>'+
        '<div class="ins-code">'+esc(c.code)+'</div>'+
        '<button class="primaire" data-adm-part="'+esc(c.code)+'">Envoyer par SMS ou WhatsApp</button>'+
@@ -3531,31 +3564,43 @@ function blocAdmin(){
   }
   if(A.etat==='ko')h+='<p class="alerte">'+esc(A.message)+'</p>';
   if(A.etat==='ok'&&A.message)h+='<p class="bien">'+esc(A.message)+'</p>';
+  if(A.comptes===null)h+='<p class="note">'+(A.etat==='charge'?'<span class="attente"></span>Chargement des comptes…':'')+'</p>';
+  else{
+    h+='<div class="adm-t">'+C.length+' compte'+(C.length>1?'s':'')+'</div>';
+    C.forEach(u=>{
+      const adm=/^admin/i.test(u.role),K=consoClaude(u.claude),nv=nivCompte(u),actif=u.statut==='actif';
+      const sous=(adm?'Administrateur':(u.telegram?'Telegram':'Appli'))+(u.depuis&&!adm?' · '+jjmm(u.depuis):'')+(actif?'':' · '+esc(u.statut));
+      h+='<button class="adm-r" data-adm-ouv="'+esc(u.uid)+'"><span class="adm-av">'+esc((u.prenom||'?').charAt(0).toUpperCase())+'</span>'+
+        '<span class="adm-nm"><b>'+esc(u.prenom||'(sans prénom)')+'</b><small>'+sous+'</small></span>'+
+        (avecIA?'<span class="adm-chip '+nv+'">'+NIV_LIB[nv]+'</span><span class="adm-e'+(K.h+K.s?(K.eur>=1?' chaud':''):' vide')+'">'+(K.h+K.s?euros(K.eur):'—')+'</span>':'')+
+        '<span class="adm-chev">›</span></button>';
+    });
+    if(!C.length)h+='<p class="note">Aucun compte pour l’instant.</p>';
+  }
   const inv=A.invitations||[];
   if(inv.length){
     h+='<div class="adm-t">En attente</div>';
-    inv.forEach(i=>{h+='<div class="adm-l"><span><b>'+esc(i.code)+'</b>'+(i.prenom?' · '+esc(i.prenom):'')+(i.type==='reconnexion'?' · reconnexion':'')+'<small>jusqu\'au '+jjmm(i.expire)+'</small></span>'+
-      '<span class="adm-b"><button data-adm-part="'+esc(i.code)+'">Envoyer</button><button data-adm-ann="'+esc(i.code)+'">Annuler</button></span></div>';});
+    inv.forEach(i=>{const nv=i.niveau;
+      h+='<div class="adm-r"><span class="adm-av att">?</span><span class="adm-nm"><b>'+esc(i.code)+'</b><small>'+(i.prenom?esc(i.prenom)+' · ':'')+(i.type==='reconnexion'?'reconnexion · ':'')+'jusqu\'au '+jjmm(i.expire)+'</small></span>'+
+        (nv&&i.type!=='reconnexion'?'<span class="adm-chip '+nv+'">'+NIV_LIB[nv]+'</span>':'')+
+        '<span class="adm-b"><button data-adm-part="'+esc(i.code)+'">Envoyer</button><button data-adm-ann="'+esc(i.code)+'">Annuler</button></span></div>';});
   }
-  if(A.comptes===null)h+='<p class="note">'+(A.etat==='charge'?'<span class="attente"></span>Chargement des comptes…':'')+'</p>';
-  else{
-    h+='<div class="adm-t">Comptes</div>';
-    A.comptes.forEach(u=>{
-      const actif=u.statut==='actif';
-      const adm=/^admin/i.test(u.role),K=consoClaude(u.claude),nCl=K.h+K.s;
-      const conso=nCl?'Ce mois : Haiku '+K.h+' · Sonnet '+K.s+' · <span'+(K.eur>=1?' class="chaud"':'')+'>≈ '+euros(K.eur)+'</span>':(u.ia?'Claude ce mois : aucun appel':'Gratuites seulement');
-      h+='<div class="adm-c"><div class="adm-l"><span><b>'+esc(u.prenom||'(sans prénom)')+'</b> · '+(adm?'administrateur · ':'')+(u.telegram?'Telegram':'appli seule')+(actif?'':' · '+esc(u.statut))+(u.depuis?'<small>depuis le '+jjmm(u.depuis)+'</small>':'')+'</span>'+
-        (actif&&!adm?'<span class="adm-b"><button data-adm-rec="'+esc(u.uid)+'">Lien de reconnexion</button></span>':'')+'</div>'+
-        (typeof u.ia==='boolean'?'<div class="adm-ia"><span>'+conso+'</span></div><div class="adm-ia"><span>IA payantes</span>'+nivIA('data-adm-ia="'+esc(u.uid)+'" data-n',u.niveau||(u.ia?'oui':'non'),adm)+'</div>':'')+'</div>';
-    });
-    if(!A.comptes.length)h+='<p class="note">Aucun autre compte pour l’instant.</p>';
-    {const T=A.comptes.reduce((s,u)=>{const K=consoClaude(u.claude);return {h:s.h+K.h,s:s.s+K.s,eur:s.eur+K.eur};},{h:0,s:0,eur:0});
-    if(A.comptes.some(u=>typeof u.ia==='boolean'))h+='<div class="adm-l"><span><b>Total Claude ce mois</b><small>Haiku '+T.h+' · Sonnet '+T.s+'</small></span><b>≈ '+euros(T.eur)+'</b></div>';}
-    h+='<p class="note">Estimation : environ 1 centime l’appel Haiku et 5 centimes l’appel Sonnet (le vrai montant est sur ta console Anthropic). Le plafond commun de 20 appels Claude par jour reste en place, quel que soit le nombre de comptes autorisés.</p>';
-    h+=aide('<p class="note">Un lien de reconnexion redonne l\'accès à un compte existant (nouveau téléphone, appli supprimée) sans rien ressaisir. Chaque lien ne sert qu\'une fois et expire au bout de 7 jours.</p>','À quoi sert un lien de reconnexion ?');
-  }
+  h+='<p class="note">Estimation : environ 1 centime l’appel Haiku et 5 centimes l’appel Sonnet (le vrai montant est sur ta console Anthropic). Plafond commun : 20 appels Claude par jour.</p>';
+  h+=aide('<p class="note">Un lien de reconnexion redonne l\'accès à un compte existant (nouveau téléphone, appli supprimée) sans rien ressaisir. Chaque lien ne sert qu\'une fois et expire au bout de 7 jours. Touche une personne pour le créer.</p>','À quoi sert un lien de reconnexion ?');
   return h+'</section>';
 }
+// Volet d'administration (hors rendre()) : une personne (niveau d'IA, conso, reconnexion) ou une nouvelle invitation
+function fermerAdmVolet(){const v=document.getElementById('adm-volet');if(v)v.remove();}
+function admVolet(contenu,brancher){
+  fermerAdmVolet();
+  const hote=document.createElement('div');hote.id='adm-volet';hote.className='ph-fond';
+  hote.innerHTML='<div class="ph-sheet adm-sh" role="dialog" aria-modal="true">'+contenu+'</div>';
+  document.body.appendChild(hote);
+  hote.addEventListener('click',e=>{if(e.target===hote)fermerAdmVolet();});
+  brancher(hote);
+}
+function optsNiv(val,dis,attr){return '<div class="adm-opts">'+NIV_OPT.map(o=>'<button class="adm-opt '+o[0]+(val===o[0]?' on':'')+'" '+attr+'="'+o[0]+'"'+(dis?' disabled':'')+'><span class="rd"></span><span><b>'+o[1]+'</b><small>'+o[2]+'</small></span></button>').join('')+'</div>';}
+
 function blocRaccourci(pf){
   const api=esc(S.cfg.api||'');
   const etapes='<ol class="etapes">'+
@@ -4662,7 +4707,7 @@ function brancher(){
   });
   on('#b-coach','click',()=>{S.vue='coach';S.reglages=false;rendre();hautPage();});
   on('#b-pesee','click',()=>{S.vue='corps';S.corps.phInit=false;S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
-  on('#b-reglages','click',()=>{S.reglages=!S.reglages;S.regl.sale=false;S.regl.qr=null;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
+  on('#b-reglages','click',()=>{fermerAdmVolet();S.reglages=!S.reglages;S.regl.sale=false;S.regl.qr=null;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
     S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
     e.target.disabled=true;e.target.textContent='Actualisation…';
@@ -5367,14 +5412,46 @@ function brancher(){
     appel({action:'admin',op:'liste'}).then(r=>{S.adm.comptes=r.comptes||[];S.adm.invitations=r.invitations||[];S.adm.etat=null;})
       .catch(err=>{S.adm.comptes=[];S.adm.etat='ko';S.adm.message=err.message;}).then(()=>{if(S.reglages)rendre();});
   }
-  on('#adm-prenom','input',e=>{S.adm.prenom=e.target.value;});
-  on('#adm-inviter','click',()=>{S.adm.cree=null;const nv=S.adm.niv||'non';admin({op:'inviter',prenom:S.adm.prenom||'',niveau:nv,ia:nv!=='non'},'');S.adm.prenom='';S.adm.niv='non';});
-  document.querySelectorAll('[data-adm-niv]').forEach(b=>b.addEventListener('click',()=>{S.adm.niv=b.dataset.admNiv;
-    document.querySelectorAll('[data-adm-niv]').forEach(x=>x.classList.toggle('on',x===b));}));
   const LIBN={non:'coupées',haiku:'limitées à Haiku',oui:'ouvertes (Haiku + Sonnet)'};
-  document.querySelectorAll('[data-adm-ia]').forEach(b=>b.addEventListener('click',()=>{
-    const u=(S.adm.comptes||[]).find(x=>x.uid===b.dataset.admIa),nv=b.dataset.n;if(!u||nv===(u.niveau||(u.ia?'oui':'non')))return;
-    admin({op:'ia',uid:u.uid,niveau:nv,on:nv!=='non'},'IA payantes '+LIBN[nv]+' pour '+(u.prenom||'ce compte')+'.');}));
+  function voletCompte(uid){
+    const u=(S.adm.comptes||[]).find(x=>x.uid===uid);if(!u){fermerAdmVolet();return;}
+    const adm=/^admin/i.test(u.role),K=consoClaude(u.claude),nv=nivCompte(u),actif=u.statut==='actif',avecIA=typeof u.ia==='boolean';
+    let c='<div class="ph-hd"><span class="adm-av">'+esc((u.prenom||'?').charAt(0).toUpperCase())+'</span><div><b>'+esc(u.prenom||'(sans prénom)')+'</b><small>'+
+      (adm?'Administrateur':(u.telegram?'Telegram':'Appli seule'))+(u.depuis?' · depuis le '+jjmm(u.depuis):'')+'</small></div></div>';
+    if(avecIA){
+      c+='<div class="adm-stat"><div><b>'+K.h+'</b><small>Haiku</small></div><div><b>'+K.s+'</b><small>Sonnet</small></div><div><b>'+euros(K.eur)+'</b><small>ce mois</small></div></div>';
+      c+=optsNiv(nv,adm,'data-niv-c');
+      if(adm)c+='<p class="note">Un administrateur garde toujours toutes les IA.</p>';
+    }
+    if(actif&&!adm)c+='<button class="lien" id="adm-rec-v">Créer un lien de reconnexion</button>';
+    admVolet(c,hote=>{
+      hote.querySelectorAll('[data-niv-c]').forEach(b=>b.addEventListener('click',async()=>{
+        const n=b.dataset.nivC;if(n===nivCompte(u))return;
+        hote.querySelectorAll('[data-niv-c]').forEach(x=>{x.disabled=true;});
+        await admin({op:'ia',uid:u.uid,niveau:n,on:n!=='non'},'IA payantes '+LIBN[n]+' pour '+(u.prenom||'ce compte')+'.');
+        if(document.getElementById('adm-volet'))voletCompte(uid);}));
+      const rc=hote.querySelector('#adm-rec-v');
+      if(rc)rc.addEventListener('click',async()=>{fermerAdmVolet();
+        if(!await modaleConfirm('Créer un lien de reconnexion pour '+(u.prenom||'ce compte')+' ? Il remplacera son code d\'accès actuel quand il sera utilisé.',{ok:'Créer'}))return;
+        S.adm.cree=null;await admin({op:'reconnexion',uid:u.uid},'');const l=document.getElementById('adm-lien');if(l)l.scrollIntoView({block:'center'});});
+    });
+  }
+  function voletInvitation(){
+    let nv='non';
+    const c='<div class="ph-hd"><span class="adm-av">＋</span><div><b>Nouvelle invitation</b><small>Lien valable 7 jours, une seule fois</small></div></div>'+
+      '<input id="adm-prenom" type="text" placeholder="Prénom (facultatif)" autocomplete="off">'+
+      '<div class="adm-t" style="margin-top:14px">IA payantes</div>'+optsNiv(nv,false,'data-niv-i')+
+      '<button class="primaire" id="adm-creer" style="margin-top:12px">Créer le lien</button>';
+    admVolet(c,hote=>{
+      hote.querySelectorAll('[data-niv-i]').forEach(b=>b.addEventListener('click',()=>{nv=b.dataset.nivI;hote.querySelectorAll('[data-niv-i]').forEach(x=>x.classList.toggle('on',x===b));}));
+      hote.querySelector('#adm-creer').addEventListener('click',async()=>{
+        const prenom=(hote.querySelector('#adm-prenom').value||'').trim();fermerAdmVolet();
+        S.adm.cree=null;await admin({op:'inviter',prenom:prenom,niveau:nv,ia:nv!=='non'},'');
+        const l=document.getElementById('adm-lien');if(l)l.scrollIntoView({block:'center'});});
+    });
+  }
+  on('#adm-inviter','click',voletInvitation);
+  document.querySelectorAll('[data-adm-ouv]').forEach(b=>b.addEventListener('click',()=>voletCompte(b.dataset.admOuv)));
   document.querySelectorAll('[data-adm-rec]').forEach(b=>b.addEventListener('click',async()=>{
     if(!await modaleConfirm('Créer un lien de reconnexion pour ce compte ? Il remplacera son code d\'accès actuel quand il sera utilisé.',{ok:'Créer'}))return;
     admin({op:'reconnexion',uid:b.dataset.admRec},'');
