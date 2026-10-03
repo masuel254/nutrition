@@ -630,6 +630,20 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .adm-l{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:14px}
 .adm-l small{display:block;color:var(--soft);font-size:13px}
 .adm-b{display:flex;gap:6px;flex:none}
+.adm-c{display:block;padding:10px 0;border-bottom:1px solid var(--rule)}.adm-c .adm-l{border-bottom:none;padding:0}
+.adm-ia{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;font-size:12.5px;color:var(--soft)}
+.adm-ia .chaud{color:var(--over)}
+.adm-sw{display:flex;align-items:center;gap:8px;flex:none;font-size:12.5px;color:var(--soft)}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--rule);position:relative;flex:none;padding:0;border:none}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.sw.on{background:var(--under)}.sw.on::after{left:21px}.sw:disabled{opacity:.45}
+.niv{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;flex:none}
+.niv button{padding:6px 9px;font-size:12.5px;color:var(--soft);border-left:1px solid var(--rule)}.niv button:first-child{border-left:none}
+.niv button.on{background:var(--ink);color:var(--paper);font-weight:700}.niv button:disabled{opacity:.6}
+.adm-iainv .niv{margin-top:8px}
+.adm-iainv{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--rule);border-radius:10px;padding:10px 12px;margin:10px 0 4px}
+.adm-iainv b{font-size:14px}.adm-iainv small{display:block;font-size:12px;color:var(--soft);margin-top:2px;line-height:1.35}
+.pia-l.lock{opacity:.55}.pia-l.lock .pia-n{font-size:11px;color:inherit}
 .adm-b button{padding:6px 10px;border:1px solid var(--rule);border-radius:999px;font-size:13px;color:var(--ink)}
 .corps-tete{padding-bottom:4px}
 .qj{margin-top:16px;border-top:1px solid var(--rule);padding-top:12px}
@@ -821,7 +835,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='02/10/2026 16h03';
+const APP_VERSION='03/10/2026 14h46';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1691,20 +1705,30 @@ const PIA_PRE={defaut:['flash','lite','groq','haiku','gemma'],gratuits:['flash',
 const PIA_NOM={defaut:'Défaut',gratuits:'Gratuits',claude:'Claude d’abord',complexe:'Complexe'};
 const PIA_TXT={defaut:'Gemini Flash, Flash-Lite, Groq, puis Claude Haiku en secours (payant) et Gemma. Claude Sonnet à part. Si Google est en panne deux fois en 10 min, il est sauté 5 min.',gratuits:'Jamais de modèle payant.',
   claude:'Claude Haiku en premier, puis les gratuits.',complexe:'Claude Sonnet seul, avec réflexion : ~5 ct, 20 à 75 s. S’il échoue, rien d’autre n’est essayé.',mesure:'Ta propre sélection, dans l’ordre des numéros.'};
+// IA payantes (Claude) pilotées par l'administrateur, compte par compte ; le serveur bloque de toute façon
+function iaOk(k){if(!PIA_M[k]||!PIA_M[k].pay)return true;const pf=(S.data&&S.data.profil)||{},f=k==='sonnet'?pf.ia_sonnet:pf.ia_haiku;
+  return f!==undefined?!!f:pf.ia_payante!==false;}
+function iaPay(){return iaOk('haiku')||iaOk('sonnet');}
+function piaPre(){if(iaOk('haiku')&&iaOk('sonnet'))return PIA_PRE;const o={};
+  Object.keys(PIA_PRE).forEach(k=>{if(PIA_PRE[k].every(iaOk))o[k]=PIA_PRE[k];});if(!iaOk('haiku')){o.defaut=PIA_PRE.gratuits;delete o.gratuits;}return o;}
 function piaEtat(){if(!S.pia){const o=PIA_PRE.defaut.concat(['sonnet']),a={};PIA_PRE.defaut.forEach(k=>a[k]=1);S.pia={ordre:o,actif:a};}return S.pia;}
-function piaListe(){const p=piaEtat();return p.ordre.filter(k=>p.actif[k]);}
-function piaProfil(){const l=piaListe().join(',');for(const k in PIA_PRE)if(PIA_PRE[k].join(',')===l)return k;return 'mesure';}
-function piaApplique(k){const l=PIA_PRE[k];if(!l)return;const p=piaEtat();p.actif={};l.forEach(x=>p.actif[x]=1);p.ordre=l.concat(p.ordre.filter(x=>l.indexOf(x)<0));}
+function piaListe(){const p=piaEtat();return p.ordre.filter(k=>p.actif[k]&&iaOk(k));}
+function piaProfil(){const l=piaListe().join(','),P=piaPre();for(const k in P)if(P[k].join(',')===l)return k;return 'mesure';}
+function piaApplique(k){const l=piaPre()[k];if(!l)return;const p=piaEtat();p.actif={};l.forEach(x=>p.actif[x]=1);p.ordre=l.concat(p.ordre.filter(x=>l.indexOf(x)<0));}
 function blocProfilIA(){
   const p=piaEtat(),l=piaListe(),pr=piaProfil(),ouv=!!S.piaOuv;
   let h='<div class="pia"><button class="pia-t'+(ouv?' o':'')+'" id="pia-t" aria-expanded="'+ouv+'"><span>Profil IA : '+(l.length?'<b>'+(PIA_NOM[pr]||'Sur mesure')+'</b>'+(ouv?' · '+l.length+(l.length>1?' modèles, dans cet ordre':' modèle'):''):'<b class="pia-vide">aucune IA choisie</b>')+'</span><span class="ch">▸</span></button>';
   if(!ouv)return h+'</div>';
-  p.ordre.forEach((k,i)=>{const on=!!p.actif[k],m=PIA_M[k];
+  const pay=iaPay();
+  p.ordre.forEach((k,i)=>{const m=PIA_M[k];
+    if(!iaOk(k)){h+='<div class="pia-l off lock"><span class="pia-n">🔒</span><div class="pia-m">'+m.n+'<small>coupé par l’administrateur</small></div></div>';return;}
+    const on=!!p.actif[k];
     h+='<div class="pia-l'+(on?'':' off')+(m.pay?' pay':'')+'"><span class="pia-n">'+(on?l.indexOf(k)+1:'·')+'</span><div class="pia-m">'+m.n+'<small'+(m.pay?' class="pay"':'')+'>'+m.d+'</small></div>'+
       '<button class="pia-f" data-pia-h="'+i+'"'+(i===0?' disabled':'')+' aria-label="Monter '+m.n+'">↑</button><button class="pia-f" data-pia-b="'+i+'"'+(i===p.ordre.length-1?' disabled':'')+' aria-label="Descendre '+m.n+'">↓</button>'+
       '<button class="pia-s'+(on?' on':'')+(m.pay?' pay':'')+'" data-pia-s="'+k+'" role="switch" aria-checked="'+on+'" aria-label="'+m.n+'"></button></div>';});
-  h+='<div class="pia-p">'+Object.keys(PIA_PRE).map(k=>'<button data-pia-p="'+k+'"'+(pr===k?' class="on"':'')+'>'+PIA_NOM[k]+'</button>').join('')+'</div>';
-  h+='<p class="pia-d">'+(l.length?PIA_TXT[pr]:'<span class="pia-vide">Active au moins une IA pour analyser.</span>')+' Payants plafonnés à 20 appels par jour. Revient à Défaut quand tu quittes Ajouter.</p>';
+  h+='<div class="pia-p">'+Object.keys(piaPre()).map(k=>'<button data-pia-p="'+k+'"'+(pr===k?' class="on"':'')+'>'+PIA_NOM[k]+'</button>').join('')+'</div>';
+  h+='<p class="pia-d">'+(l.length?(iaOk('haiku')?PIA_TXT[pr]:(pr==='defaut'?'Gemini Flash, Flash-Lite, Groq, puis Gemma. Si Google est en panne deux fois en 10 min, il est sauté 5 min.':PIA_TXT[pr])):'<span class="pia-vide">Active au moins une IA pour analyser.</span>')+
+    (pay?' Payants plafonnés à 20 appels par jour.':'')+(iaOk('haiku')&&iaOk('sonnet')?'':' Les IA payantes sont gérées par l’administrateur : demande-lui si tu en as besoin.')+' Revient à Défaut quand tu quittes Ajouter.</p>';
   return h+'</div>';
 }
 function etapeIA(A){
@@ -3485,11 +3509,17 @@ function vueRéglages(d){
   if(C.etat==='ok')h+='<p class="bien">'+esc(C.message)+'</p>';
   return h+'</section></div>';
 }
+// coût estimé d'un appel Claude (photo + réponse), en euros : ordre de grandeur, pas une facture
+const PRIX_CLAUDE={h:0.01,s:0.05};
+function euros(v){return (Math.round(v*100)/100).toFixed(2).replace('.',',')+' €';}
+function consoClaude(cl){cl=cl||{};const h=cl.h!==undefined?Number(cl.h)||0:(Number(cl.a)||0)+(Number(cl.c)||0),s=Number(cl.s)||0;return {h:h,s:s,eur:h*PRIX_CLAUDE.h+s*PRIX_CLAUDE.s};}
+function nivIA(attr,val,dis){return '<span class="niv">'+[['non','Aucune'],['haiku','Haiku'],['oui','Haiku + Sonnet']].map(x=>'<button '+attr+'="'+x[0]+'"'+(val===x[0]?' class="on"':'')+(dis?' disabled':'')+'>'+x[1]+'</button>').join('')+'</span>';}
 function blocAdmin(){
   const A=S.adm;
   let h='<section>'+
     '<label for="adm-prenom">Inviter quelqu\'un</label>'+
     '<input id="adm-prenom" type="text" placeholder="Prénom (facultatif)" value="'+esc(A.prenom||'')+'">'+
+    '<div class="adm-iainv" style="display:block"><b>IA payantes</b><small>Haiku : secours rapide, environ 1 centime l’analyse. Sonnet : plats complexes, environ 5 centimes.</small>'+nivIA('data-adm-niv',A.niv||'non')+'</div>'+
     '<button class="primaire" id="adm-inviter"'+(A.etat==='envoi'?' disabled':'')+'>'+(A.etat==='envoi'?'<span class="attente"></span>Création':'Créer un lien d\'invitation')+'</button>';
   if(A.cree){
     const c=A.cree;
@@ -3512,10 +3542,16 @@ function blocAdmin(){
     h+='<div class="adm-t">Comptes</div>';
     A.comptes.forEach(u=>{
       const actif=u.statut==='actif';
-      h+='<div class="adm-l"><span><b>'+esc(u.prenom||'(sans prénom)')+'</b> · '+(u.telegram?'Telegram':'appli seule')+(actif?'':' · '+esc(u.statut))+(u.depuis?'<small>depuis le '+jjmm(u.depuis)+'</small>':'')+'</span>'+
-        (actif&&!/^admin/i.test(u.role)?'<span class="adm-b"><button data-adm-rec="'+esc(u.uid)+'">Lien de reconnexion</button></span>':'')+'</div>';
+      const adm=/^admin/i.test(u.role),K=consoClaude(u.claude),nCl=K.h+K.s;
+      const conso=nCl?'Ce mois : Haiku '+K.h+' · Sonnet '+K.s+' · <span'+(K.eur>=1?' class="chaud"':'')+'>≈ '+euros(K.eur)+'</span>':(u.ia?'Claude ce mois : aucun appel':'Gratuites seulement');
+      h+='<div class="adm-c"><div class="adm-l"><span><b>'+esc(u.prenom||'(sans prénom)')+'</b> · '+(adm?'administrateur · ':'')+(u.telegram?'Telegram':'appli seule')+(actif?'':' · '+esc(u.statut))+(u.depuis?'<small>depuis le '+jjmm(u.depuis)+'</small>':'')+'</span>'+
+        (actif&&!adm?'<span class="adm-b"><button data-adm-rec="'+esc(u.uid)+'">Lien de reconnexion</button></span>':'')+'</div>'+
+        (typeof u.ia==='boolean'?'<div class="adm-ia"><span>'+conso+'</span></div><div class="adm-ia"><span>IA payantes</span>'+nivIA('data-adm-ia="'+esc(u.uid)+'" data-n',u.niveau||(u.ia?'oui':'non'),adm)+'</div>':'')+'</div>';
     });
     if(!A.comptes.length)h+='<p class="note">Aucun autre compte pour l’instant.</p>';
+    {const T=A.comptes.reduce((s,u)=>{const K=consoClaude(u.claude);return {h:s.h+K.h,s:s.s+K.s,eur:s.eur+K.eur};},{h:0,s:0,eur:0});
+    if(A.comptes.some(u=>typeof u.ia==='boolean'))h+='<div class="adm-l"><span><b>Total Claude ce mois</b><small>Haiku '+T.h+' · Sonnet '+T.s+'</small></span><b>≈ '+euros(T.eur)+'</b></div>';}
+    h+='<p class="note">Estimation : environ 1 centime l’appel Haiku et 5 centimes l’appel Sonnet (le vrai montant est sur ta console Anthropic). Le plafond commun de 20 appels Claude par jour reste en place, quel que soit le nombre de comptes autorisés.</p>';
     h+=aide('<p class="note">Un lien de reconnexion redonne l\'accès à un compte existant (nouveau téléphone, appli supprimée) sans rien ressaisir. Chaque lien ne sert qu\'une fois et expire au bout de 7 jours.</p>','À quoi sert un lien de reconnexion ?');
   }
   return h+'</section>';
@@ -4765,7 +4801,7 @@ function brancher(){
   on('#att-plus','click',mettreEnAttente);
   on('#a-plus-tard','click',mettreEnAttente);
   on('#pia-t','click',()=>{S.piaOuv=!S.piaOuv;rendre();});
-  document.querySelectorAll('[data-pia-s]').forEach(b=>b.addEventListener('click',()=>{const p=piaEtat(),k=b.dataset.piaS;p.actif[k]=p.actif[k]?0:1;rendre();}));
+  document.querySelectorAll('[data-pia-s]').forEach(b=>b.addEventListener('click',()=>{const p=piaEtat(),k=b.dataset.piaS;if(!iaOk(k))return;p.actif[k]=p.actif[k]?0:1;rendre();}));
   document.querySelectorAll('[data-pia-h]').forEach(b=>b.addEventListener('click',()=>{const o=piaEtat().ordre,i=Number(b.dataset.piaH);if(i>0){[o[i-1],o[i]]=[o[i],o[i-1]];rendre();}}));
   document.querySelectorAll('[data-pia-b]').forEach(b=>b.addEventListener('click',()=>{const o=piaEtat().ordre,i=Number(b.dataset.piaB);if(i<o.length-1){[o[i+1],o[i]]=[o[i],o[i+1]];rendre();}}));
   document.querySelectorAll('[data-pia-p]').forEach(b=>b.addEventListener('click',()=>{piaApplique(b.dataset.piaP);rendre();}));
@@ -5332,7 +5368,13 @@ function brancher(){
       .catch(err=>{S.adm.comptes=[];S.adm.etat='ko';S.adm.message=err.message;}).then(()=>{if(S.reglages)rendre();});
   }
   on('#adm-prenom','input',e=>{S.adm.prenom=e.target.value;});
-  on('#adm-inviter','click',()=>{S.adm.cree=null;admin({op:'inviter',prenom:S.adm.prenom||''},'');S.adm.prenom='';});
+  on('#adm-inviter','click',()=>{S.adm.cree=null;const nv=S.adm.niv||'non';admin({op:'inviter',prenom:S.adm.prenom||'',niveau:nv,ia:nv!=='non'},'');S.adm.prenom='';S.adm.niv='non';});
+  document.querySelectorAll('[data-adm-niv]').forEach(b=>b.addEventListener('click',()=>{S.adm.niv=b.dataset.admNiv;
+    document.querySelectorAll('[data-adm-niv]').forEach(x=>x.classList.toggle('on',x===b));}));
+  const LIBN={non:'coupées',haiku:'limitées à Haiku',oui:'ouvertes (Haiku + Sonnet)'};
+  document.querySelectorAll('[data-adm-ia]').forEach(b=>b.addEventListener('click',()=>{
+    const u=(S.adm.comptes||[]).find(x=>x.uid===b.dataset.admIa),nv=b.dataset.n;if(!u||nv===(u.niveau||(u.ia?'oui':'non')))return;
+    admin({op:'ia',uid:u.uid,niveau:nv,on:nv!=='non'},'IA payantes '+LIBN[nv]+' pour '+(u.prenom||'ce compte')+'.');}));
   document.querySelectorAll('[data-adm-rec]').forEach(b=>b.addEventListener('click',async()=>{
     if(!await modaleConfirm('Créer un lien de reconnexion pour ce compte ? Il remplacera son code d\'accès actuel quand il sera utilisé.',{ok:'Créer'}))return;
     admin({op:'reconnexion',uid:b.dataset.admRec},'');
