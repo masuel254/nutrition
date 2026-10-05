@@ -109,6 +109,9 @@ ok(await page.locator('.vue.on .tu').count() === 3, 'Courbes : trois tuiles de s
 ok(await page.locator('.vue.on #p-envoi').count() === 0, 'Courbes : plus de saisie de pesée');
 await page.click('[data-cong="calories"]'); await page.click('[data-cper="7"]');
 ok(/Sous besoins/i.test(await texte('.vue.on .tuiles')) && await page.locator('[data-cper="7"].on').count() === 1, 'Courbes : onglet Calories sur 7 jours');
+await page.click('[data-cper="3"]');
+ok(await page.locator('[data-cper="3"].on').count() === 1 && /\/ 3/.test(await texte('.vue.on .tuiles')), 'Courbes : période 3 jours sur les calories');
+await page.click('[data-cper="7"]');
 await page.click('[data-cong="purines"]');
 ok(/Plafond/i.test(await texte('.vue.on .tuiles')), 'Courbes : onglet Purines');
 await page.click('[data-cong="poids"]'); await page.click('[data-cper="30"]');
