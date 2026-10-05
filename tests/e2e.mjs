@@ -47,7 +47,7 @@ const DATA = {
   catalogue: [...AL.pdj, ...AL.midi].map((a, i) => Object.assign({}, a, { k: a.nom.toLowerCase(), n: 10 - i, cr: { matin: i < 2 ? 5 : 0, midi: i >= 2 ? 5 : 0, encas: 0, soir: 0 }, mode: a.quantite.endsWith('g') ? 'p' : 'n', u: a.quantite.replace(/^\d+\s*/, '').replace(/s$/, ''), up: a.quantite.replace(/^\d+\s*/, '') })),
   crises: [{ id: 'g1', date: jour(-5), articulation: 'gros orteil', intensite: 4, remarque: '' }],
   ia_jours: [-1, -2, -3, -4, -5, -40].map((n, i) => ({ d: jour(n), c: i === 5 ? { '?': 2 } : { flash: 2, groq: i % 2, claude: i === 0 ? 1 : 0 } })),
-  suggestions: {}, parametres: [], activite: [], mesures: [], photos: []
+  suggestions: {}, parametres: [], activite: [2000, 3000, 4000, 5000, 6000, 8000, 13736, 131].map((p, i) => ({ date: jour(i - 7), pas: p })), mesures: [], photos: []
 };
 
 // ---------- banc de test ----------
@@ -114,6 +114,10 @@ ok(/Plafond/i.test(await texte('.vue.on .tuiles')), 'Courbes : onglet Purines');
 await page.click('[data-cong="poids"]'); await page.click('[data-cper="30"]');
 await page.click('nav button[data-vue="corps"]');
 ok(await page.locator('.vue.on [data-ko="pesee"].on').count() === 1 && /Pesée du jour/.test(await texte('.vue.on section:nth-of-type(2)')), 'Corps : onglet Pesée ouvert par défaut');
+await page.click('.vue.on [data-ko="pas"]'); await page.waitForTimeout(150);
+{ const t = (await page.locator('.vue.on .prog.trois .col').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
+  ok(t.length === 3 && /131/.test(t[0]) && /9.245/.test(t[1]) && /↑ \+55 % vs 7 j/.test(t[1]) && /5.962/.test(t[2]), 'Pas : aujourd hui, moyenne 3 j avec tendance, moyenne 7 j'); }
+await page.click('.vue.on [data-ko="pesee"]');
 await page.click('#p-envoi'); await page.waitForTimeout(300);
 ok(appels.some(a => a.action === 'poids' && a.poids === 100) && /100 kg enregistrés/.test(await texte('.vue.on .bien')), 'Corps : pesée envoyée');
 
