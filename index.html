@@ -189,6 +189,8 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .prog .col .lib{font-size:13px;color:var(--soft);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
 .prog .col .big{font-size:30px;font-weight:300;letter-spacing:-0.03em;line-height:1.05;margin-top:6px}
 .prog .col .big.pos{color:var(--under)}
+.prog.trois{gap:7px}.prog.trois .col{padding:12px 4px}.prog.trois .col .lib{font-size:11.5px;letter-spacing:.02em}.prog.trois .col .big{font-size:25px}.prog.trois .col .sub{font-size:12px}
+.prog .col .sub .up{color:var(--under);font-weight:600}.prog .col .sub .down{color:var(--over);font-weight:600}
 .prog .col .big.neg{color:var(--over)}
 .prog .col .sub{font-size:13px;color:var(--soft);font-weight:300;margin-top:3px}
 .prog-ryth,.ryth-poids{margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;
@@ -858,7 +860,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='03/10/2026 14h58';
+const APP_VERSION='05/10/2026 07h57';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3892,12 +3894,18 @@ function sectionPas(d){
   const act=d.activite||[];
   const par={};act.forEach(a=>{par[a.date]=a.pas;});
   const a=auj(),ajd=par[a]||0;
-  const prec=act.filter(x=>x.date<a).slice(-7);
+  const prec=act.filter(x=>x.date<a).slice(-7),prec3=prec.slice(-3);
   const moy=prec.length?Math.round(prec.reduce((s,x)=>s+x.pas,0)/prec.length):null;
+  const moy3=prec3.length?Math.round(prec3.reduce((s,x)=>s+x.pas,0)/prec3.length):null;
+  // tendance : moyenne des 3 derniers jours comparée à celle des 7 derniers
+  const ec=(moy3!==null&&moy)?Math.round((moy3-moy)/moy*100):null;
+  const tend=ec===null||prec.length<=3?(prec3.length?prec3.length+' jour'+(prec3.length>1?'s':''):'aucune donnée'):
+    (Math.abs(ec)<3?'= 7 j':'<span class="'+(ec>0?'up':'down')+'">'+(ec>0?'↑ +':'↓ −')+Math.abs(ec)+' %</span> vs 7 j');
   const C=S.corps;
   let h='<section><h2>Pas</h2>';
-  h+='<div class="prog"><div class="col"><div class="lib">Aujourd\'hui</div><div class="big'+(ajd>=OBJECTIF_PAS?' pos':'')+'">'+nb(ajd)+'</div><div class="sub">objectif '+nb(OBJECTIF_PAS)+'</div></div>'+
-     '<div class="col"><div class="lib">Moyenne 7 j</div><div class="big">'+(moy===null?'—':nb(moy))+'</div><div class="sub">'+(prec.length?prec.length+' jour'+(prec.length>1?'s':''):'aucune donnée')+'</div></div></div>';
+  h+='<div class="prog trois"><div class="col"><div class="lib">Aujourd\'hui</div><div class="big'+(ajd>=OBJECTIF_PAS?' pos':'')+'">'+nb(ajd)+'</div><div class="sub">objectif '+nb(OBJECTIF_PAS)+'</div></div>'+
+     '<div class="col"><div class="lib">Moy. 3 j</div><div class="big">'+(moy3===null?'—':nb(moy3))+'</div><div class="sub">'+tend+'</div></div>'+
+     '<div class="col"><div class="lib">Moy. 7 j</div><div class="big">'+(moy===null?'—':nb(moy))+'</div><div class="sub">'+(prec.length?prec.length+' jour'+(prec.length>1?'s':''):'aucune donnée')+'</div></div></div>';
   // Dépense de la marche : ~0,5 kcal par kg et par km au-dessus du repos ; foulée ≈ 0,415 × taille.
   const kpp=kcalParPas(d);
   if(kpp&&(ajd||moy)){
@@ -3905,7 +3913,7 @@ function sectionPas(d){
     const fk=v=>nb(v*kpp)+' à '+nb(v*kpp*1.2)+' kcal';
     h+='<div class="ryth-poids"><span class="k">Marche, dépense estimée</span><span class="v">'+
        (ajd?fk(ajd):'\u2014')+'</span></div>'+
-       '<div class="micro">'+(moy!==null?'Moyenne 7 jours : '+fk(moy)+' par jour · ':'')+
+       '<div class="micro">'+(moy3!==null&&prec.length>3?'Moyenne 3 jours : '+fk(moy3)+' par jour · 7 jours : '+fk(moy)+' · ':(moy!==null?'Moyenne '+prec.length+' jours : '+fk(moy)+' par jour · ':''))+
        'environ '+nb(1000*kpp)+' kcal pour 1 000 pas comptés. Le bas de la fourchette ne compte que les pas enregistrés par l\'iPhone, le haut ajoute la marge probable des pas faits sans téléphone.</div>';
   }
   if(act.length){
