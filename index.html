@@ -860,7 +860,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='05/10/2026 07h57';
+const APP_VERSION='05/10/2026 12h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2290,7 +2290,7 @@ function courbesInit(){
   try{
     const o=JSON.parse(localStorage.getItem('suivi.courbes')||'{}');
     return {onglet:['poids','calories','purines','qualite'].indexOf(o.onglet)>=0?o.onglet:'poids',
-            per:[7,14,30,90,0].indexOf(o.per)>=0?o.per:30,nut:NUTS.concat(['alcool']).indexOf(o.nut)>=0?o.nut:'satures'};
+            per:[3,7,14,30,90,0].indexOf(o.per)>=0?o.per:30,nut:NUTS.concat(['alcool']).indexOf(o.nut)>=0?o.nut:'satures'};
   }catch(e){return {onglet:'poids',per:30,nut:'satures'};}
 }
 function courbesMemo(){try{localStorage.setItem('suivi.courbes',JSON.stringify(S.crb));}catch(e){}}
@@ -2415,7 +2415,7 @@ function ongletCalories(d,P){
 function vueCourbes(d){
   const P=S.crb.per,o=S.crb.onglet;
   let h='<section><div class="cg-per" id="ch-per">';
-  [[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
+  [[3,'3 j'],[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
     h+='<button data-cper="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
   h+='</div><div class="seg" role="tablist">';
