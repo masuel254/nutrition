@@ -787,6 +787,20 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 /* coach : questions toutes prêtes */
 .coach-sug{display:flex;flex-direction:column;gap:8px;margin:4px 0 14px}
 .coach-sug button{text-align:left;border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:10px 12px;font-size:14.5px;color:var(--ink)}
+/* coach : analyse d'un menu */
+.bulle.mn-b{max-width:100%;white-space:normal}
+.mn-tri{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0;font-size:13px;color:var(--soft)}
+.mn-tri button{border:1px solid var(--rule);border-radius:8px;background:var(--paper);padding:6px 9px;font-size:13px;color:var(--ink)}
+.mn-tri button.on{background:var(--ink);color:var(--paper)}
+table.mn{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+table.mn th{font-size:12px;font-weight:600;color:var(--soft);text-align:right;padding:4px 3px}
+table.mn th:first-child,table.mn td.mn-n{text-align:left}
+table.mn th:nth-child(2){width:46px}table.mn th:nth-child(3),table.mn th:nth-child(4),table.mn th:nth-child(5){width:30px}table.mn th:nth-child(6){width:40px}
+table.mn td{padding:7px 3px;border-top:1px solid var(--rule);text-align:right;vertical-align:top}
+table.mn td.mn-n{overflow-wrap:anywhere;font-size:13.5px}
+table.mn td.mn-n small{display:block;font-size:12px;color:var(--soft)}
+.mn-add{width:34px;height:34px;border:1px solid var(--rule);border-radius:50%;background:var(--paper);color:var(--ink);font-size:18px;line-height:1;padding:0}
+.mn-leg,.mn-ill{font-size:12.5px;color:var(--soft);margin-top:8px}
 /* Courbes > Poids : sections empilées */
 .crb-sous{font-size:13px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 6px}
 .crb-bes{font-size:14px;margin-top:14px;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
@@ -862,7 +876,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='08/10/2026 13h49';
+const APP_VERSION='08/10/2026 15h10';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -963,6 +977,25 @@ function pousserFoodRepas(r){
   S.foods.unshift(f);ecrireFoods();
 }
 
+// Plat lu sur un menu -> aliment du repas en cours (ou nouveau repas), puis enregistrement habituel.
+function platVersRepas(p,ia){
+  const A=S.ajout;
+  const al={nom:p.nom,quantite:'1 portion (menu)',kcal:p.kcal,prot:p.prot,lip:p.lip,gluc:p.gluc,fibres:0,sucres:0,sodium:0,satures:0,sucres_ajoutes:0};
+  const r0=A.resultat;
+  if(r0&&r0.ligne&&A.confirm!=='fait'&&!A.enregistre&&!r0.estimation){
+    (r0.aliments=r0.aliments||[]).push(al);recalculeTotal(r0);
+  }else{
+    pousserHisto(paquetRepas());
+    A.repas=repasParHeure();A.confirm=null;A.enregistre=null;A.dateAutre=auj();A.etat=null;A.message='';
+    const lib=libelleRepas(A.repas);
+    const r={ok:true,enregistre:false,estimation:false,repas:lib,date:auj(),aliments:[al],total:{},incertitude:'moyenne',
+      note:'Plat lu sur un menu : portion de restaurant estimée.',evaluation:null,ia:ia||'',secours:'',echecs:'',
+      ligne:{repas:lib,detail:'',kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0,sucres_ajoutes:0,nutriscore:''}};
+    recalculeTotal(r);A.resultat=r;
+  }
+  ecrireRepasCache();
+}
+
 /* File d'attente hors ligne : si l'enregistrement d'un repas echoue faute de
    reseau, on empile le payload ici au lieu de le perdre, et on le rejoue au
    retour du reseau. Seul l'enregistrement de repas est mis en file (le plus
@@ -1011,7 +1044,7 @@ async function appel(corps){
   // laisse 120 s. Les autres appels (data, enregistrer, suppr, params) : 25 s.
   // appels IA (analyse de repas, coach) : lents par nature, 120 s ; le serveur
   // est calibré pour répondre avant (pire cas ~110 s, si les deux modèles expirent). Autres appels : 25 s.
-  const IA=!!(corps&&(corps.action==='repas'||corps.action==='conseil'||corps.action==='photo'));
+  const IA=!!(corps&&(corps.action==='repas'||corps.action==='conseil'||corps.action==='menu'||corps.action==='photo'));
   const DELAI=IA?120000:25000;
   // 3 tentatives (1 + 2 retries) avec backoff exponentiel, uniquement sur
   // erreurs transitoires : coupure reseau, timeout, ou 5xx. Le 429 n'est pas
@@ -1081,13 +1114,14 @@ async function rafraichir(){
 }
 
 /* ---------- photo ---------- */
-function redim(fichier){
+function redim(fichier,opt){
+  opt=opt||{};
   return new Promise((res,rej)=>{
     const img=new Image();
     const u=URL.createObjectURL(fichier);
     img.onload=()=>{
       URL.revokeObjectURL(u);
-      const MAX=1024;
+      const MAX=opt.max||1024;
       let w=img.naturalWidth,h=img.naturalHeight;
       if(!w||!h){rej(new Error('Image illisible.'));return;}
       if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
@@ -1098,16 +1132,16 @@ function redim(fichier){
       x.drawImage(img,0,0,w,h);
       // taille reelle d'un dataURL jpeg : (longueur du base64) * 3/4, moins le padding
       const tailleOctets=b64=>{const n=b64.length;const pad=b64.endsWith('==')?2:(b64.endsWith('=')?1:0);return Math.round(n*3/4-pad);};
-      const PLAFOND=400000; // ~400 Ko : au-dela on recompresse pour eviter timeout d'analyse
+      const PLAFOND=opt.plafond||400000; // ~400 Ko : au-dela on recompresse pour eviter timeout d'analyse
       let url=c.toDataURL('image/jpeg',0.8);
       let b64=url.split(',')[1];
       if(tailleOctets(b64)>PLAFOND){
         // 1er palier : qualite plus basse
         url=c.toDataURL('image/jpeg',0.6);b64=url.split(',')[1];
       }
-      if(tailleOctets(b64)>PLAFOND&&Math.max(w,h)>800){
+      if(tailleOctets(b64)>PLAFOND&&Math.max(w,h)>(opt.min||800)){
         // 2e palier : on reduit aussi la dimension a 800px
-        const r=800/Math.max(w,h),w2=Math.round(w*r),h2=Math.round(h*r);
+        const r=(opt.min||800)/Math.max(w,h),w2=Math.round(w*r),h2=Math.round(h*r);
         const c2=document.createElement('canvas');c2.width=w2;c2.height=h2;
         const x2=c2.getContext('2d');x2.fillStyle='#ffffff';x2.fillRect(0,0,w2,h2);
         x2.drawImage(img,0,0,w2,h2);
@@ -3387,14 +3421,36 @@ function suggestionsCoach(d){
   out.push('Comment se passe ma semaine ?');
   return out;
 }
+// Réponse de l'action « menu » : tableau des plats lus (tri par kcal ou protéines), « + » ajoute un plat au repas.
+function bulleMenu(m,i){
+  const d=m.menu,tri=d.tri||'menu';
+  let l=(d.plats||[]).map((p,j)=>({p:p,j:j}));
+  if(tri==='kcal')l.sort((a,b)=>a.p.kcal-b.p.kcal);else if(tri==='prot')l.sort((a,b)=>b.p.prot-a.p.prot);
+  let h='<div class="bulle coach mn-b"><div>'+esc(m.texte)+'</div>';
+  if(l.length){
+    h+='<div class="mn-tri">Trier :'+[['menu','Ordre du menu'],['kcal','Moins de kcal'],['prot','Plus de protéines']].map(t=>'<button data-mtri="'+i+':'+t[0]+'"'+(tri===t[0]?' class="on"':'')+'>'+t[1]+'</button>').join('')+'</div>';
+    h+='<table class="mn"><thead><tr><th>Plat</th><th>kcal</th><th>P</th><th>L</th><th>G</th><th></th></tr></thead><tbody>';
+    l.forEach(x=>{const p=x.p;
+      h+='<tr><td class="mn-n">'+esc(p.nom)+(p.description||p.confiance==='faible'?'<small>'+esc(p.description)+(p.description&&p.confiance==='faible'?' · ':'')+(p.confiance==='faible'?'confiance faible':'')+'</small>':'')+'</td>'+
+        '<td><b>'+nb(p.kcal)+'</b></td><td>'+nb(p.prot)+'</td><td>'+nb(p.lip)+'</td><td>'+nb(p.gluc)+'</td>'+
+        '<td><button class="mn-add" data-mplat="'+i+':'+x.j+'" aria-label="Ajouter '+esc(p.nom)+' au repas">+</button></td></tr>';});
+    h+='</tbody></table><div class="mn-leg">P protéines, L lipides, G glucides, en g pour une portion.</div>';
+  }
+  if((d.illisible||[]).length)h+='<div class="mn-ill">Non lus ou douteux : '+d.illisible.map(esc).join(' ; ')+'</div>';
+  if(d.note)h+='<div class="mn-leg">'+esc(d.note)+'</div>';
+  return h+(tagIA(d)?'<div class="mn-leg">Estimé par '+tagIA(d)+'</div>':'')+'</div>';
+}
 function vueCoach(){
   let h='<section>';
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
-  S.coach.fil.forEach(m=>{h+='<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
+  S.coach.fil.forEach((m,i)=>{h+=m.menu?bulleMenu(m,i):'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
   if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
   if(S.coach.etat!=='envoi'){const sg=suggestionsCoach(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(q=>'<button data-csug="'+esc(q)+'">'+esc(q)+'</button>').join('')+'</div>';}
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
-     '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>';
+     '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>'+
+     '<h2>Photo d’un menu</h2><p class="vide">Le coach lit les plats et estime calories et macros de chacun.</p>'+
+     '<input id="c-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="c-galerie" type="file" accept="image/*" style="display:none">'+
+     '<div class="aj-photo"><button class="cam" id="c-cam"'+(S.coach.etat==='envoi'?' disabled':'')+'><span>📷</span>Appareil photo</button><button class="gal" id="c-gal"'+(S.coach.etat==='envoi'?' disabled':'')+'><span>🖼️</span>Galerie</button></div>';
   if(S.coach.fil.length)h+='<button class="lien" id="c-vider">Effacer la conversation</button>';
   return h+'</section>';
 }
@@ -5585,6 +5641,29 @@ function brancher(){
     rendre();
     basPage();
   });
+  ['#c-photo','#c-galerie'].forEach(sel=>on(sel,'change',async e=>{
+    const f=e.target.files&&e.target.files[0];
+    if(!f||S.coach.etat==='envoi')return;
+    const iaOrdre=piaListe();
+    if(!iaOrdre.length){S.piaOuv=true;rendre();return;}
+    S.coach.fil.push({role:'moi',texte:'Photo d’un menu à analyser'});
+    S.coach.etat='envoi';S.coach.t0=Date.now();rendre();basPage();
+    try{
+      const ph=await redim(f,{max:1400,plafond:650000,min:1100});
+      const r=await appel({action:'menu',photo:ph.b64,mime:'image/jpeg',ia_ordre:iaOrdre});
+      const n=(r.plats||[]).length;
+      S.coach.fil.push({role:'coach',texte:n?('Menu analysé : '+n+' plat'+(n>1?'s':'')+' lu'+(n>1?'s':'')+'.'):'Je n’ai lu aucun plat sur cette photo.',
+        menu:{plats:r.plats||[],illisible:r.illisible||[],note:r.note||'',ia:r.ia||'',tri:'menu'}});
+    }catch(err){S.coach.fil.push({role:'coach',texte:err.message});}
+    S.coach.etat=null;
+    try{localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));}catch(x){}
+    rendre();basPage();
+  }));
+  on('#c-cam','click',()=>{const e=$('#c-photo');if(e){e.value='';e.click();}});
+  on('#c-gal','click',()=>{const e=$('#c-galerie');if(e){e.value='';e.click();}});
+  document.querySelectorAll('[data-mtri]').forEach(b=>b.addEventListener('click',()=>{const [i,t]=b.dataset.mtri.split(':');const m=S.coach.fil[Number(i)];if(m&&m.menu){m.menu.tri=t;rendre();}}));
+  document.querySelectorAll('[data-mplat]').forEach(b=>b.addEventListener('click',()=>{const [i,j]=b.dataset.mplat.split(':').map(Number);const m=S.coach.fil[i],p=m&&m.menu&&m.menu.plats[j];
+    if(!p)return;platVersRepas(p,m.menu.ia);S.vue='ajout';rendre();hautPage();}));
   document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));
   on('#jn-q','input',e=>{S.jn.q=e.target.value;majRechJn();});
