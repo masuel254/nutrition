@@ -862,7 +862,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='08/10/2026 12h36';
+const APP_VERSION='08/10/2026 13h49';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4586,10 +4586,7 @@ function bandeau(d){
       '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
       '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
       '</div><span class="badge sous">'+esc(r.mode)+
-      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>'+
-      ((r.ecart_kcal!==null&&r.ecart_kcal!==undefined&&r.ecart!==null&&r.cible&&r.mb&&r.cible<=Math.round(r.mb*PLANCHER_MB)+1&&r.ecart_kcal<r.ecart-5)?
-        '<div class="plancher-j">Écart réglé '+sgn(r.ecart_kcal)+', limité à '+sgn(r.ecart)+' : la cible ne descend jamais plus de 10 % sous ton métabolisme ('+nb(r.mb)+').</div>':'')+
-      ((r.cible&&r.mb&&r.cible<r.mb)?'<div class="plancher-j">Cible sous ton métabolisme : à tenir quelques semaines seulement, protéines hautes, avis médical conseillé.</div>':'');
+      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
   if(perime)m+='<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+
