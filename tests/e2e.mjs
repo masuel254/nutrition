@@ -155,7 +155,7 @@ await page.click('[data-ko="pesee"]');
 
 console.log('Réglages');
 await page.click('#b-reglages'); await page.waitForTimeout(300);
-ok((await page.inputValue('#g-ecart')) === '-600' && /Besoins 2.280 kcal . 600 = cible 1.900 kcal/.test(await texte('#g-apercu')), 'objectif sèche : écart et cible calculée');
+ok((await page.inputValue('#g-ecart')) === '-600' && /Besoins 2.280 kcal . 600 = 1.680, plus de 10 % sous ton métabolisme \(1.900\)/.test(await texte('#g-apercu')) && /cible 1.710 kcal/.test(await texte('#g-apercu')) && /écart réel de -570/.test(await texte('#g-apercu')) && /Attention, ta cible est sous ton métabolisme/.test(await texte('#g-apercu')), 'objectif sèche : plancher à 90 % du métabolisme expliqué, avertissement');
 await page.click('[data-ob="prise"]');
 ok((await page.inputValue('#g-ecart')) === '+300', 'prise de masse : écart proposé +300');
 await page.click('#g-envoi'); await page.waitForTimeout(400);
