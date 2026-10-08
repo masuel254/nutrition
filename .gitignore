@@ -1,0 +1,16 @@
+# Dépendances et sorties de test
+node_modules/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+Thumbs.db
+
+# Workflow n8n : contient la clé Gemini, jamais sur GitHub
+n8n/*
+!n8n/README.md
+Agent_Nutrition*.json
+payload*.json
+
+# Réglages Claude Code personnels
+.claude/settings.local.json

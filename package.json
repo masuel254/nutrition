@@ -1,0 +1,16 @@
+{
+  "name": "nutrition",
+  "private": true,
+  "description": "PWA Agent Nutrition : tests et outils de développement (rien de tout ça n'est servi à l'appli).",
+  "scripts": {
+    "test": "node tools/check_html.mjs && node tests/e2e.mjs",
+    "test:n8n": "node tools/check_workflow.mjs && node n8n/run_tests.mjs",
+    "bump": "node tools/bump_version.mjs",
+    "secrets": "node tools/verif_secrets.mjs",
+    "layout": "python tools/layout.py n8n/Agent_Nutrition.json n8n/Agent_Nutrition.json",
+    "hooks": "node tools/installer_hook_git.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.0"
+  }
+}
