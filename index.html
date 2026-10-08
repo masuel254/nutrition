@@ -617,6 +617,8 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .maj-bandeau{position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:120;display:flex;align-items:center;gap:10px;
   background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:14px}
 .maj-bandeau span{flex:1}.maj-bandeau button{flex:none;background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px}
+.plancher{color:var(--jaune)}.plancher b{color:var(--ink)}
+.plancher-j{font-size:12.5px;color:var(--jaune);margin-top:6px;line-height:1.35}
 .ins-code{font-size:30px;font-weight:700;letter-spacing:.08em;text-align:center;padding:14px 10px;margin:6px 0 4px;border:1px dashed var(--rule);border-radius:12px;background:var(--card);font-variant-numeric:tabular-nums;user-select:all;-webkit-user-select:all}
 .etapes{margin:16px 0 8px;padding-left:20px;font-size:14px;line-height:1.5}
 .etapes li{margin-bottom:8px}
@@ -860,7 +862,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='05/10/2026 12h45';
+const APP_VERSION='08/10/2026 12h36';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3403,12 +3405,17 @@ function bornerEcart(o,e){const b=OBJ_DEF[o];if(typeof e!=='number'||isNaN(e))re
 function ciblePrevue(d,f,e){
   const r=(d&&d.reference)||{};
   const mb=Number(r.mb)||0;const td=mb?Math.round(mb*(f||r.facteur||1.2)):(Number(r.tdee)||0);
-  return td?{td:td,cible:Math.max(mb,td+e)}:null;
+  // plancher : la cible ne descend jamais plus de 10 % sous le métabolisme (même règle côté serveur)
+  const pl=Math.round(mb*PLANCHER_MB);
+  return td?{td:td,mb:mb,pl:pl,brut:td+e,cible:Math.max(pl,td+e),plancher:mb>0&&td+e<pl,sousMB:mb>0&&Math.max(pl,td+e)<mb}:null;
 }
+const PLANCHER_MB=0.9;
+const AVERT_MB='Attention, ta cible est sous ton métabolisme : à tenir quelques semaines seulement. Garde tes protéines hautes et ta musculation pour limiter la fonte musculaire, et parles-en à ton médecin.';
 function texteApercu(d,f,e){
   const p=ciblePrevue(d,f,e);
   if(!p)return 'Enregistre une pesée pour calculer ta cible.';
-  return 'Besoins '+nb(p.td)+' kcal '+(e<0?'−':'+')+' '+nb(Math.abs(e))+' = <b>cible '+nb(p.cible)+' kcal</b> aujourd’hui. Elle suit tes besoins à chaque pesée.';
+  if(p.plancher)return '<span class="plancher">Besoins '+nb(p.td)+' kcal − '+nb(Math.abs(e))+' = '+nb(p.brut)+', plus de 10 % sous ton métabolisme ('+nb(p.mb)+'). La cible ne descend jamais sous '+nb(p.pl)+' : <b>cible '+nb(p.cible)+' kcal</b>, soit un écart réel de '+sgn(p.cible-p.td)+' kcal aujourd’hui. Au-delà de '+sgn(p.pl-p.td)+', l’écart ne change plus rien. '+AVERT_MB+'</span>';
+  return 'Besoins '+nb(p.td)+' kcal '+(e<0?'−':'+')+' '+nb(Math.abs(e))+' = <b>cible '+nb(p.cible)+' kcal</b> aujourd’hui. Elle suit tes besoins à chaque pesée.'+(p.sousMB?' <span class="plancher">'+AVERT_MB+'</span>':'');
 }
 function lienInvite(code){
   return location.origin+location.pathname+'#invite='+encodeURIComponent(code)+'&api='+encodeURIComponent(S.cfg.api||'');
@@ -4579,7 +4586,10 @@ function bandeau(d){
       '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
       '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
       '</div><span class="badge sous">'+esc(r.mode)+
-      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
+      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>'+
+      ((r.ecart_kcal!==null&&r.ecart_kcal!==undefined&&r.ecart!==null&&r.cible&&r.mb&&r.cible<=Math.round(r.mb*PLANCHER_MB)+1&&r.ecart_kcal<r.ecart-5)?
+        '<div class="plancher-j">Écart réglé '+sgn(r.ecart_kcal)+', limité à '+sgn(r.ecart)+' : la cible ne descend jamais plus de 10 % sous ton métabolisme ('+nb(r.mb)+').</div>':'')+
+      ((r.cible&&r.mb&&r.cible<r.mb)?'<div class="plancher-j">Cible sous ton métabolisme : à tenir quelques semaines seulement, protéines hautes, avis médical conseillé.</div>':'');
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
   if(perime)m+='<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+
