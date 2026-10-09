@@ -374,7 +374,19 @@ console.log('Ergonomie');
 ok(await page.locator('nav button').count() === 5 && await page.locator('nav button[data-vue="coach"]').count() === 0, 'menu du bas à 5 onglets');
 ok(await page.locator('.bandeau.compact').count() === 1 && !/métabolisme/.test(await texte('.bandeau')), 'en-tête compact hors écran Jour');
 await page.click('#b-coach');
-ok(await page.locator('.vue.on .coach-sug button').count() === 3 && /kcal restantes|dépassé ma cible/.test(await texte('.vue.on .coach-sug')), 'Coach : ouvert depuis l\'en-tête, 3 questions toutes prêtes');
+ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restantes|dépassé ma cible/.test(await texte('.vue.on .coach-sug')), 'Coach : ouvert depuis l\'en-tête, 4 questions toutes prêtes');
+{ const qs = async () => (await page.locator('.vue.on .coach-sug button').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
+  const avant = await qs();
+  ok(avant.length === 4 && new Set(avant).size === 4 && /kcal restantes|dépassé ma cible/.test(avant[0]), 'Coach : 4 questions toutes prêtes, toutes différentes');
+  const posee = avant[1];
+  await page.locator('.vue.on .coach-sug button').nth(1).click(); await page.waitForSelector('.vue.on .coach-sug button');
+  const apres = await qs();
+  ok(apres.length === 4 && !apres.includes(posee) && new Set(apres).size === 4 && [0, 2, 3].every(i => apres.includes(avant[i])), 'Coach : la question touchée disparaît, une nouvelle prend sa place, les autres restent');
+  for (let k = 0; k < 6; k++) { await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button'); }
+  const fin = await qs();
+  ok(fin.length === 4 && new Set(fin).size === 4, 'Coach : toujours 4 questions différentes, même quand tout a été posé');
+  await page.click('#c-vider');
+  ok(JSON.stringify(await qs()) === JSON.stringify(avant), 'Coach : « Vider » remet les questions de départ'); }
 await page.click('nav button[data-vue="jour"]');
 ok(/métabolisme/.test(await texte('.bandeau')) && /reste \d/.test(await texte('.vue.on .repas-liste')), 'Jour : en-tête complet, « reste » par repas');
 await page.click('#b-pesee');
@@ -392,7 +404,27 @@ if (await page.locator('#jn-loin').count()) {
   ok(tout, 'Journal : tout l historique déjà chargé, pas de bouton « plus loin »');
 }
 await page.fill('#jn-q', ''); await page.dispatchEvent('#jn-q', 'input');
-ok(await page.locator('[data-jf]').count() === 4 && !/cible/.test(await texte('.jn-f')), 'Journal : 4 filtres (purines, alcool, saturés, sodium), plus « au-dessus de la cible »');
+ok(await page.locator('[data-jf]').count() === 5 && /Au-dessus de la cible/.test(await texte('.jn-f')), 'Journal : 5 filtres (purines, alcool, saturés, sodium, au-dessus de la cible)');
+{ // deux jours terminés forcés au-dessus de la cible (2 100) : +380 et +550 ; le jour en cours ne compte jamais
+  const j1 = DATA.jours.find(j => j.date === jour(-3)), j2 = DATA.jours.find(j => j.date === jour(-5)), j0 = DATA.jours.find(j => j.date === jour(0));
+  const sauve = [j1, j2, j0].map(j => j && j.kcal);
+  j1.kcal = 2480; j2.kcal = 2650; if (j0) j0.kcal = 3000;
+  await page.reload(); await page.waitForSelector('nav button'); await page.click('nav button[data-vue="journal"]');
+  await page.click('[data-jf="cib"]'); await page.waitForTimeout(100);
+  const att = DATA.jours.filter(j => j.date < jour(0) && j.kcal > j.cible);
+  ok(att.length === 2 && await page.locator('#jn-res .jn-rl').count() === 2 && /2 jours sur \d+ au-dessus/.test(await texte('#jn-res .jn-res-t')), 'Journal : au-dessus de la cible = un jour par ligne, jour en cours exclu');
+  ok(/2.480 \/ 2.100 kcal\s*\+380/.test(await texte('#jn-res .jn-rl')), 'Journal : écart « +380 » affiché, le plus récent en premier');
+  await page.click('[data-jtri="haut"]'); await page.waitForTimeout(100);
+  ok(/\+550/.test(await texte('#jn-res .jn-rl')), 'Journal : tri « Plus élevés » met le plus gros dépassement en premier');
+  await page.fill('#jn-q', 'zzzintrouvable'); await page.dispatchEvent('#jn-q', 'input');
+  ok(/Aucun jour au-dessus de ta cible avec ce plat/.test(await texte('#jn-res')), 'Journal : texte + au-dessus de la cible, aucun jour pour un plat inconnu');
+  await page.fill('#jn-q', ''); await page.dispatchEvent('#jn-q', 'input');
+  const dx = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
+  ok(dx <= 0, 'Journal : au-dessus de la cible, pas de débordement horizontal');
+  await page.click('[data-jf="cib"]');
+  ok(await page.locator('#jn-semaines').isVisible(), 'Journal : filtre au-dessus de la cible retiré, semaines de retour');
+  j1.kcal = sauve[0]; j2.kcal = sauve[1]; if (j0) j0.kcal = sauve[2];
+  await page.reload(); await page.waitForSelector('nav button'); await page.click('nav button[data-vue="journal"]'); }
 await page.click('[data-jf="alc"]');
 ok(await page.locator('#jn-res .jn-al').count() > 0 && (await page.locator('#jn-res .jn-al .q').allInnerTexts()).every(t => /^Vin rouge/.test(t)) && /verre/.test(await texte('#jn-res')), 'Journal : filtre alcool = la boisson seule, pas le repas');
 await page.click('[data-jf="pur"]');
