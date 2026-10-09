@@ -59,7 +59,7 @@ const erreurs = []; page.on('pageerror', e => erreurs.push(e.message));
 const PHOTOS = {}; let nPhotos = 0;
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
-const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false;
+const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false;
 await page.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
 await page.route('https://api.test/**', async r => {
   const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
@@ -68,6 +68,12 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
   if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'claude', ia: 'claude', echecs: 'Flash : 429 quota', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
+  if (q.action === 'menu') return menuKO ? json({ ok: false, ia: true, erreur: 'Menu trop flou pour être lu.' }, 503)
+    : json({ ok: true, menu: true, ia: 'flash', note: 'Portions standard de restaurant.', illisible: ['Plat du jour (ligne coupée)'],
+      plats: [{ nom: 'Burger du chef', description: 'boeuf, cheddar, frites', kcal: 1020, prot: 42, lip: 58, gluc: 75, confiance: 'moyenne' },
+        { nom: 'Salade chèvre chaud', description: '', kcal: 640, prot: 24, lip: 41, gluc: 38, confiance: 'haute' },
+        { nom: 'Tarte aux pommes', description: '', kcal: 420, prot: 5, lip: 18, gluc: 60, confiance: 'faible' }] });
+  if (q.action === 'conseil') return json({ ok: true, texte: 'Bien vu, prends la salade.' });
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
   if (q.action === 'crise') return json({ ok: true });
@@ -101,6 +107,23 @@ ok(/vers le/.test(await texte('.obj')), 'projection datée');
 await page.click('[data-jo="purines"]');
 ok(await page.locator('.pur-tete').count() === 1, 'onglet Purines');
 await page.click('[data-jo="repas"]');
+
+console.log('Jour : marge de marche');
+ok(await page.locator('#pas-t').count() === 0, 'marge de marche : rien quand les pas du jour sont sous la moyenne (131 pas)');
+{ const pasInit = DATA.activite[DATA.activite.length - 1].pas;
+  const recharger = async pas => { DATA.activite[DATA.activite.length - 1].pas = pas; await page.reload(); await page.waitForSelector('nav button'); };
+  await recharger(11200); // moyenne 7 jours précédents 5 962, 100 kg et 180 cm = 0,03735 kcal par pas : (11 200 − 5 962) × 0,03735 ≈ 196
+  ok(await page.locator('#pas-t').count() === 1 && /11.200 pas/.test(await texte('#pas-t')) && /\+196 kcal gagnées/.test(await texte('#pas-t')) && await page.locator('.pas-d').count() === 0, 'marge de marche : ligne repliée « 11 200 pas · +196 kcal gagnées »');
+  ok(/sur 2.100/.test(await texte('.cal-anneau')) && /1.200 kcal restantes/.test(await texte('.cal-pastille')), 'marge de marche : l\'anneau et la pastille gardent la cible 2 100');
+  await page.click('#pas-t');
+  const det = await texte('.pas-d');
+  ok(/5.962 pas/.test(det) && /\+5.238 pas/.test(det) && /\+196 kcal/.test(det) && /cible reste 2.100 kcal/.test(det) && /jusqu’à 2.296/.test(det), 'marge de marche : détail déplié (moyenne, pas en plus, kcal, cible inchangée)');
+  await page.click('#pas-t');
+  ok(await page.locator('.pas-d').count() === 0, 'marge de marche : se replie au second toucher');
+  const dx = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
+  ok(dx <= 0, 'marge de marche : pas de débordement horizontal');
+  await recharger(pasInit);
+  ok(await page.locator('#pas-t').count() === 0, 'marge de marche : disparaît quand les pas repassent sous la moyenne'); }
 
 console.log('Courbes et Corps');
 await page.click('nav button[data-vue="courbes"]');
@@ -512,6 +535,42 @@ ok(await page.locator('#k-une').count() === 1 && await page.locator('#k-cmp').co
 await page.click('#k-pdt [data-pdt=""]'); await page.waitForTimeout(150); ok(await page.locator('#k-cmp').count() === 1, 'Photos : retour avant / après');
 await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="corps"]'); await page.waitForTimeout(150);
 ok(await page.locator('#k-une').count() === 1 && /Profil/.test(await texte('#k-cmp-type .on')), 'Photos : au retour sur la page, dernière photo seule (de face, sinon de profil s il n y a pas de face)');
+
+console.log('Coach : photo d\'un menu');
+await page.click('#b-coach');
+ok(await page.locator('#c-cam').count() === 1 && await page.locator('#c-gal').count() === 1, 'Coach : boutons appareil photo et galerie');
+await page.setInputFiles('#c-galerie', { name: 'menu.jpg', mimeType: 'image/jpeg', buffer: imgPh });
+await page.waitForSelector('table.mn');
+const aMenu = appels.filter(a => a.action === 'menu').pop();
+ok(aMenu && aMenu.photo.length > 100 && aMenu.mime === 'image/jpeg' && Array.isArray(aMenu.ia_ordre) && aMenu.ia_ordre.length > 0, 'menu : photo, type et ordre des IA envoyés');
+ok(await page.locator('table.mn tbody tr').count() === 3 && /Burger du chef/.test(await texte('table.mn tbody tr')) && /1\D?020/.test(await texte('table.mn tbody tr')), 'menu : un plat par ligne avec ses kcal');
+ok(/confiance faible/.test(await texte('table.mn')) && /Plat du jour \(ligne coupée\)/.test(await texte('.mn-ill')) && /Flash/.test(await texte('.mn-b')), 'menu : confiance faible, plat non lu et IA affichés');
+await page.click('[data-mtri$=":kcal"]');
+ok(/Tarte aux pommes/.test(await texte('table.mn tbody tr')), 'menu : tri par moins de kcal');
+await page.click('[data-mtri$=":prot"]');
+ok(/Burger du chef/.test(await texte('table.mn tbody tr')), 'menu : tri par plus de protéines');
+ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - document.getElementById('defile').clientWidth) <= 0, 'menu : pas de débordement horizontal');
+ok((await page.evaluate(() => localStorage.getItem('suivi.chat'))).includes('Burger du chef'), 'menu : gardé dans la conversation');
+await page.click('[data-mplat$=":1"]');
+ok(await page.locator('.vue.on #e-auj').count() === 1 && /Salade chèvre chaud/.test(await texte('.vue.on .resu')) && /640/.test(await texte('#e-total')), 'menu : « + » ouvre Ajouter avec le plat choisi');
+await page.click('#b-coach');
+await page.click('[data-mplat$=":2"]');
+ok(/Tarte aux pommes/.test(await texte('.vue.on .resu')) && /1\D?060/.test(await texte('#e-total')), 'menu : un second plat s\'ajoute au même repas');
+const avant = appels.filter(a => a.action === 'enregistrer').length;
+await page.click('#e-auj');
+await page.waitForTimeout(300);
+const enrMenu = appels.filter(a => a.action === 'enregistrer').slice(avant).pop();
+ok(enrMenu && enrMenu.kcal === 1060 && /Salade chèvre chaud/.test(enrMenu.detail) && /Tarte aux pommes/.test(enrMenu.detail) && enrMenu.ia === 'flash', 'menu : enregistrement habituel (kcal cumulées, IA)');
+await page.click('#b-coach');
+await page.fill('#c-q', 'Je prends quoi ?'); await page.click('#c-envoi');
+await page.waitForFunction(() => /prends la salade/.test(document.body.innerText));
+const hist = appels.filter(a => a.action === 'conseil').pop().historique;
+ok(hist.some(m => /Menu analysé : 3 plats lus/.test(m.texte)) && hist.every(m => m.menu === undefined && Object.keys(m).length === 2), 'Coach : envoi d\'une question, historique en texte seul');
+menuKO = true;
+await page.setInputFiles('#c-photo', { name: 'menu2.jpg', mimeType: 'image/jpeg', buffer: imgPh });
+await page.waitForFunction(() => /trop flou/.test(document.body.innerText));
+ok(await page.locator('#c-envoi:not([disabled])').count() === 1, 'menu : erreur affichée dans le fil, Coach de nouveau disponible');
+menuKO = false;
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
