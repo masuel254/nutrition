@@ -27,3 +27,4 @@ Le workflow n8n n'est pas testé ici : son JSON contient la clé Gemini et ne do
 - Secours IA : une analyse faite par un modèle de secours (Gemma ou Groq) est signalée sur l'écran de résultat.
 - Pesées : historique dépliable sous la pesée du jour ; « Régulier ? » sans extrapolation des semaines courtes.
 - Brouillons : un repas non enregistré passe en ligne compacte ; ✓ l'enregistre et le retire.
+- Coach, photo d'un menu : photo envoyée avec l'action `menu`, tableau des plats (kcal et macros), plats non lus, tri par kcal ou protéines, « + » vers Ajouter (plats cumulés dans un même repas, enregistrement habituel), historique du Coach en texte seul, message d'erreur et Coach de nouveau disponible.

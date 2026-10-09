@@ -879,7 +879,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/10/2026 10h46';
+const APP_VERSION='09/10/2026 10h54';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4819,10 +4819,13 @@ function rendre(){
   hydraterPhotos();
 }
 
+// Quitter le Coach efface la conversation (sauf via le « + » d'un plat de menu, qui garde le tableau pour y revenir).
+function viderCoach(){if(S.vue!=='coach')return;S.coach.fil=[];S.coach.posees=[];try{localStorage.removeItem(S.chat);}catch(e){}}
 function brancher(){
   const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
   document.querySelectorAll('nav button').forEach(b=>{
     b.addEventListener('click',()=>{
+      viderCoach();
       if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;}
       S.vue=b.dataset.vue;S.reglages=false;S.corps.phInit=false;S.rac.q='';S.jn.q='';S.jn.f=null;rendre();hautPage();
     });
@@ -4834,7 +4837,7 @@ function brancher(){
     rendre();
   });
   on('#b-coach','click',()=>{S.vue='coach';S.reglages=false;rendre();hautPage();});
-  on('#b-pesee','click',()=>{S.vue='corps';S.corps.phInit=false;S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
+  on('#b-pesee','click',()=>{viderCoach();S.vue='corps';S.corps.phInit=false;S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
   on('#b-reglages','click',()=>{fermerAdmVolet();S.reglages=!S.reglages;S.regl.sale=false;S.regl.qr=null;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
     S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{

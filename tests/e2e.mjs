@@ -387,6 +387,14 @@ ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restan
   ok(fin.length === 4 && new Set(fin).size === 4, 'Coach : toujours 4 questions différentes, même quand tout a été posé');
   await page.click('#c-vider');
   ok(JSON.stringify(await qs()) === JSON.stringify(avant), 'Coach : « Vider » remet les questions de départ'); }
+{ await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button');
+  ok(await page.locator('.vue.on .bulle.moi').count() === 1 && /suivi\.chat/.test(await page.evaluate(() => Object.keys(localStorage).join(' '))), 'Coach : une question posée, conversation visible et mémorisée');
+  await page.click('nav button[data-vue="journal"]'); await page.click('#b-coach');
+  ok(await page.locator('.vue.on .bulle').count() === 0 && await page.evaluate(() => !Object.keys(localStorage).some(k => /chat/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== '[]')), 'Coach : quitter par la barre du bas efface la conversation (écran et mémoire)');
+  await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button');
+  await page.click('#b-reglages'); await page.click('#b-reglages');
+  ok(await page.locator('.vue.on .bulle.moi').count() === 1, 'Coach : ouvrir puis fermer les Réglages garde la conversation');
+  await page.click('#c-vider'); }
 await page.click('nav button[data-vue="jour"]');
 ok(/métabolisme/.test(await texte('.bandeau')) && /reste \d/.test(await texte('.vue.on .repas-liste')), 'Jour : en-tête complet, « reste » par repas');
 await page.click('#b-pesee');

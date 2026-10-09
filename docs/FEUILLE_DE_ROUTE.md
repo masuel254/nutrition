@@ -1,6 +1,6 @@
 # Agent Nutrition : feuille de route
 
-Mise à jour du 08/10/2026 (appli v66, workflow v59). La partie « Historique » plus bas est la feuille de route
+Mise à jour du 09/10/2026 (appli v71, workflow v60). La partie « Historique » plus bas est la feuille de route
 d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 
 ## Ouvert
@@ -14,12 +14,15 @@ d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 
 ## Plus tard (priorité 2 et 3)
 
-- Recherche et filtres dans le Journal (aliment, purines élevées, alcool, au-dessus de la cible).
-- Budget du jour ajusté aux pas (« cible + X kcal gagnées en marchant »).
 - Export PDF pour le médecin (poids, purines, alcool sur 3 mois).
 - Raccourci Siri « ajoute mon petit-déj habituel ».
 - Scan de plusieurs produits d'affilée.
 - Volume : archiver le Journal par année, envoyer le catalogue à part quand la lecture complète deviendra lente.
+- Bascule vers PostgreSQL sur le VPS n8n, seulement si des lenteurs apparaissent (étudiée le 08/10, non lancée).
+  Seul le workflow change : 86 nœuds Google Sheets sur 446, à faire par étapes en commençant par Journal et Poids
+  (30 nœuds, l'essentiel du gain). Seuil de gêne estimé vers 10 000 lignes de Journal (333 le 08/10, ~3 100 par an),
+  l'action `data` approchant alors la coupure de 25 s. À prévoir : outil d'admin (Adminer, NocoDB), `pg_dump` planifié,
+  credential Postgres (demander l'ID).
 
 ## Écarté ou seulement discuté
 
@@ -27,13 +30,13 @@ d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 - Appli payante sur l'App Store, TestFlight (99 €/an, versions valables 90 jours) : discuté le 02/10, non retenu.
   La PWA installée depuis Safari reste le mode de distribution.
 
-## Fait depuis le 28/09 (détail dans `docs/ARCHITECTURE.md`, sections 12 à 25)
+## Fait depuis le 28/09 (détail dans `docs/ARCHITECTURE.md`, sections 12 à 30)
 
 Favoris et composition, passe ergonomique, Réglages en onglets, secours IA payants (Claude Haiku, Sonnet), colonne `ia`
 du Journal, profils IA, Groq et disjoncteur Gemini, tableau de bord du coach, photos d'évolution (import, recadrage,
 fantôme, gestion, évolution animée), invitations fiables sur iPhone, mises à jour automatiques, repères qualité réglables,
 IA payantes par compte avec compteur en euros, pas en moyennes 3 j / 7 j, période 3 j des Courbes, plancher de la cible
-à 90 % du métabolisme.
+à 90 % du métabolisme, photo de menu dans le Coach (tableau kcal et macros par plat), marge de marche sur l’écran Jour, filtre « au-dessus de la cible » dans le Journal, 4 questions tournantes dans le Coach, conversation effacée à la sortie du Coach.
 
 ---
 
@@ -80,7 +83,6 @@ IA payantes par compte avec compteur en euros, pas en moyennes 3 j / 7 j, pério
   fréquence cardiaque, séances de sport (via Raccourci), tension.
 
 ## Plus tard (priorité 2 et 3)
-- Recherche et filtres dans le Journal (aliment, purines élevées, alcool, au-dessus de la cible).
 - Budget du jour ajusté aux pas (affichage « cible + X kcal gagnées en marchant »).
 - Repas favoris nommés, épinglés en tête de « Refaire un repas ».
 - Export PDF pour le médecin (poids, purines, alcool sur 3 mois).

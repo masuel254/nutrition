@@ -86,9 +86,9 @@ conserve la position de défilement de `#defile`.
 ### Communication avec le back
 Un seul POST vers le webhook `nutrition/api`, avec un champ `action`. Actions :
 `data`, `repas`, `poids`, `params`, `suppr`, `conseil`, `enregistrer`, `barcode`,
-`activite`, `mesure`, `photo`, `photo_get`, `journal`, `admin`, `compte`, `rappel`, `crise`, plus `invite`
+`activite`, `mesure`, `photo`, `photo_get`, `journal`, `admin`, `compte`, `rappel`, `crise`, `menu`, plus `invite`
 (sans jeton : inscription ou reconnexion par code d'invitation). Délai 120 s sans nouvel essai pour
-`repas`, `conseil`, `photo` ; 25 s avec 2 nouveaux essais pour les autres, `enregistrer`
+`repas`, `conseil`, `menu`, `photo` ; 25 s avec 2 nouveaux essais pour les autres, `enregistrer`
 compris : il porte l'`id` du repas, donc un rejeu met à jour la même ligne. Une réponse
 vide (n8n arrêté avant le nœud Respond) est rejouée de la même façon.
 
@@ -610,3 +610,52 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
   Avertissement (`AVERT_MB`) dès que la cible passe sous le métabolisme, dans les Réglages et sur l'écran Jour ; message « limité » si l'écart
   réglé dépasse le plancher. Les cibles se recalculent seules (écart enregistré dans Params) : pas besoin de réenregistrer. Tests `t59.js`, `t_v65.js`, e2e.
 - (08/10, appli v66) Messages jaunes retirés de l'écran Jour (plancher et avertissement) : ils restent dans Réglages › Objectif. Test `t_v66.js`.
+
+## 26. Photo de menu dans le Coach (08/10, appli v67 + workflow v60)
+- Onglet Coach : boutons appareil photo / galerie (`#c-cam`, `#c-gal`). La photo est compressée par `redim(f,{max:1400,plafond:650000,min:1100})`
+  (plus grande que pour un repas, le texte d'un menu doit rester lisible), puis envoyée avec l'action `menu` (120 s, sans nouvel essai).
+- Workflow : nouvelle sortie `menu` du Switch `Action` (index 19, ajoutée en dernier) → `Build Vision API` → chaîne IA Vision existante
+  (mêmes modèles, ordre `ia_ordre`, disjoncteur, plafond Claude, droits `ia_payante`) → `Parse IA API` → `Respond Repas`.
+  `Build Vision API` choisit le prompt de menu quand `action==='menu'` et marque `menu:true`. Les plats reviennent de l'IA sous la clé `aliments`
+  (les contrôles « Lisible » de la chaîne l'exigent) et `Parse IA API` les renvoie sous `plats`. Pas de nouvelle colonne Sheets, rien n'est écrit.
+- Réponse : `{ok, menu:true, plats:[{nom,description,kcal,prot,lip,gluc,confiance}], illisible:[...], note, ia, secours, echecs}` (80 plats au maximum).
+- Appli : `bulleMenu()` affiche le tableau dans le fil (tri : ordre du menu, moins de kcal, plus de protéines) ; le message garde le tableau
+  dans `S.coach.fil` (localStorage), mais seul son texte part dans `historique`. Le bouton « + » appelle `platVersRepas()` : le plat s'ajoute au repas
+  en cours de l'onglet Ajouter (ou crée un repas), puis l'enregistrement habituel s'applique.
+- Tests : `n8n/tests/t_menu.js` (18 vérifications), section « Coach : photo d'un menu » de `tests/e2e.mjs` (13 vérifications).
+- À vérifier en réel : Groq (`max_tokens` 4096) peut tronquer un très long menu, l'étape « Lisible » passe alors au modèle suivant.
+
+
+## 27. Marge de marche sur l'écran Jour (09/10, appli v68)
+
+- Écran Jour : sous le héros, une ligne repliable (`#pas-t`, style `.pia-t` comme le Profil IA) « 11 200 pas aujourd'hui · +196 kcal gagnées ».
+  Dépliée (`S.pasOuv`), elle donne la moyenne 7 jours, les pas en plus, les kcal et rappelle que la cible ne change pas.
+- Calcul (`bonusPas(d)`) : (pas du jour − moyenne des 7 jours précédents) × `kcalParPas(d)`, bas de la fourchette de Corps › Pas (sans le +20 %).
+  Seuls les pas au-delà de la moyenne comptent : le niveau d'activité des Réglages inclut déjà la marche habituelle, donc compter tous les pas ferait un doublon.
+  Rien n'est affiché sans pas du jour, sans poids ou taille, avec moins de 3 jours d'historique, ou si le bonus est nul ou négatif.
+- La cible, l'anneau, la pastille et le « reste » par repas ne changent pas (variante A choisie sur maquette). Appli seule : ni workflow, ni Telegram, ni colonne Sheets.
+- Tests : section « Jour : marge de marche » de `tests/e2e.mjs` (7 vérifications).
+
+## 28. Journal : filtre « Au-dessus de la cible » (09/10, appli v69)
+
+- Cinquième pastille de `JN_F` (`cib`), à côté de Purines, Alcool, Saturés, Sodium. Elle liste des **jours** (et non des aliments) : `joursAuDessus(d,q)`.
+- Un jour compte s'il est terminé (le jour en cours est exclu), valide, et que `kcal` dépasse la cible du jour (`cible` du jour, sinon `d.cibles.kcal`).
+  Une ligne par jour : date, kcal / cible, écart « +N » en orange, détail Matin / Midi / Soir issu des repas déjà chargés.
+- Tri Récents / Plus élevés (par écart) ; le texte de recherche garde les jours où un repas contient le plat. Appli seule : ni workflow, ni Sheets, ni Telegram.
+- Tests : bloc « Journal : au-dessus de la cible » de `tests/e2e.mjs` (7 vérifications) ; l'ancien test « 4 filtres » est remplacé par « 5 filtres ».
+
+## 29. Coach : 4 questions toutes prêtes qui tournent (09/10, appli v70)
+
+- `suggestionsCoach(d)` renvoie jusqu'à 7 questions (restantes ou dépassement, purines d'hier ou collation, semaine, protéines du jour, objectif de poids, dîner léger, fringales) ;
+  `suggestionsAffichees(d)` en montre 4. Toucher une question l'envoie, la fait disparaître et la remplace par la suivante, jamais une déjà posée tant qu'il en reste.
+- `S.coach.posees` (indices, en mémoire seulement) : les questions posées passent après les autres, la plus ancienne revient en premier ; « Vider » le remet à zéro.
+  Les indices servent parce que le texte de la première question change avec la journée.
+- Appli seule. Tests : 4 vérifications dans la section Coach de `tests/e2e.mjs`, l'ancien « 3 questions » devient « 4 questions ».
+
+## 30. Coach : la conversation s'efface quand on le quitte (09/10, appli v71)
+
+- `viderCoach()` (appelée seulement si `S.vue==='coach'`) vide `S.coach.fil`, `S.coach.posees` et la clé `suivi.chat` du localStorage.
+  Elle est appelée par les boutons de la barre du bas et par le raccourci pesée (`#b-pesee`).
+- Pas effacée : ouverture des Réglages (le Coach reste l'écran sous-jacent) et le « + » d'un plat de menu, qui envoie vers Ajouter en gardant le tableau
+  pour y revenir ajouter un autre plat. Le bouton « Effacer la conversation » reste disponible.
+- Pas de réglage pour garder les conversations : effacement toujours actif. Appli seule. Tests : 3 vérifications dans la section Coach de `tests/e2e.mjs`.
