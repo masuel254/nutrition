@@ -270,6 +270,20 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .scan-bas button{flex:1;padding:13px;border-radius:8px;font-size:15px;font-weight:600;
   background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(6px)}
 .scan-bas button.stop{background:#fff;color:#111;border-color:#fff}
+.scan-toast{position:absolute;left:16px;right:16px;top:calc(56px + env(safe-area-inset-top));z-index:3;background:#188040;color:#fff;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;text-align:center}
+.scan-toast.ko{background:#8a4a14}
+.scan-err.sc{bottom:210px}
+.scan-panier{position:absolute;left:0;right:0;bottom:0;z-index:3;background:rgba(14,20,22,.94);border-top:1px solid rgba(255,255,255,.2);border-radius:16px 16px 0 0;padding:12px 16px calc(20px + env(safe-area-inset-bottom));color:#fff}
+.scan-panier .tete{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:#b9c4c1}
+.scan-panier .tete b{color:#fff;font-size:16px}
+.scan-panier .puces{display:flex;gap:8px;overflow-x:auto;margin:10px 0 0;padding-bottom:2px}
+.scan-panier .puce{flex:none;max-width:170px;border:1px solid rgba(255,255,255,.28);border-radius:12px;padding:6px 10px;font-size:13px;line-height:1.25;background:rgba(255,255,255,.07)}
+.scan-panier .puce b{display:block;font-weight:600;font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scan-panier .puce small{color:#b9c4c1}
+.scan-panier .btns{display:flex;gap:10px;margin-top:12px}
+.scan-panier .btns button{flex:1;padding:13px;border-radius:8px;font-size:15px;font-weight:600;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.scan-panier .btns button.stop{background:#fff;color:#111;border-color:#fff;flex:1.6}
+.scan-panier .btns button:disabled{opacity:.4}
 .scan-err{position:absolute;bottom:88px;left:16px;right:16px;z-index:2;color:#fff;text-align:center;
   font-size:13.5px;background:rgba(0,0,0,.5);padding:10px 12px;border-radius:8px}
 /* Pastille Nutri-Score a..e */
@@ -879,7 +893,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/10/2026 10h54';
+const APP_VERSION='09/10/2026 11h16';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1201,10 +1215,10 @@ async function demarrerScan(){
       hints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128]);
     }
     const reader=new ZX.BrowserMultiFormatReader(hints);
-    const onResult=(result,err,controls)=>{
+    const onResult=(result)=>{
       if(result){
         const code=result.getText?result.getText():String(result.text||result);
-        if(code){controls&&controls.stop&&controls.stop();scanControls=null;onCodeScanne(code);}
+        if(code)onCodeScanne(code);
       }
     };
     // decodeFromConstraints permet de forcer la caméra arrière ; repli sur decodeFromVideoDevice
@@ -1219,7 +1233,7 @@ async function demarrerScan(){
     SC.etat='scan';
     scanEnCours=false;
     const haut=document.querySelector('.scan-haut');
-    if(haut)haut.textContent='Vise le code-barres du produit';
+    if(haut)haut.textContent='Vise le code-barres, produit après produit';
   }catch(e){
     scanEnCours=false;
     // si la camera s'est allumee avant l'echec, on coupe le flux tout de suite
@@ -1253,31 +1267,85 @@ function arreterScan(){
   }catch(e){}
   scanEnCours=false;
 }
-function fermerScan(){
+async function fermerScan(){
+  const SC=S.ajout.scan,n=(SC.lot||[]).length;
+  if(n&&!await modaleConfirm('Abandonner les '+n+' produit'+(n>1?'s':'')+' scanné'+(n>1?'s':'')+' ?',{ok:'Abandonner',annule:'Continuer',danger:true}))return;
   arreterScan();
-  S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;
+  SC.ouvert=false;SC.etat=null;SC.lot=[];SC.vus={};
   rendre();
 }
+// Scan à la chaîne : la caméra reste ouverte, chaque produit reconnu va dans le panier (SC.lot) avec sa portion
+// (100 g sans portion connue) ; les quantités se règlent à la fin sur l'écran du repas. Pas de rendre() ici : il
+// détruirait la vidéo, le panier est mis à jour à la main.
+let toastScanT=0;
+function lotScanHtml(){
+  const L=S.ajout.scan.lot||[],kc=L.reduce((t,x)=>t+calculProduit(x.p,x.g).kcal,0);
+  if(!L.length)return '<div class="tete"><span>Aucun produit pour l’instant</span></div>';
+  return '<div class="tete"><span><b>'+L.length+' produit'+(L.length>1?'s':'')+'</b> scanné'+(L.length>1?'s':'')+'</span><span><b>'+nb(kc)+' kcal</b> au total</span></div>'+
+    '<div class="puces">'+L.map(x=>'<div class="puce"><b>'+esc(x.p.nom)+'</b><small>'+nb(x.g)+' g · '+nb(calculProduit(x.p,x.g).kcal)+' kcal</small></div>').join('')+'</div>';
+}
+function majPanierScan(msg,ok){
+  const n=(S.ajout.scan.lot||[]).length,lot=document.getElementById('scan-lot'),fin=document.getElementById('scan-fin'),t=document.getElementById('scan-toast'),nul=document.getElementById('scan-fermer');
+  if(nul)nul.textContent=n?'Annuler':'Fermer';
+  if(lot){lot.innerHTML=lotScanHtml();const p=lot.querySelector('.puces');if(p)p.scrollLeft=p.scrollWidth;}
+  if(fin){fin.disabled=!n;fin.textContent=n?'Terminer · '+n+' produit'+(n>1?'s':''):'Terminer';}
+  if(t&&msg){t.textContent=msg;t.className='scan-toast'+(ok?'':' ko');t.hidden=false;clearTimeout(toastScanT);toastScanT=setTimeout(()=>{t.hidden=true;},3000);}
+}
 async function onCodeScanne(code){
+  const SC=S.ajout.scan,t=Date.now(),vu=SC.vus||(SC.vus={});
+  const deja=vu[code]&&t-vu[code]<3000;vu[code]=t;   // même code toujours en vue : une seule fois, il faut le quitter 3 s pour le rescanner
+  if(deja||!SC.ouvert)return;
   vibrer(70);
-  const SC=S.ajout.scan;
-  SC.ouvert=false;SC.etat='recherche';SC.message='';SC.produit=null;
-  rendre();hautPage();
   try{
     const r=await appel({action:'barcode',code:code});
-    if(r.trouve===false){
-      SC.etat='absent';SC.message=r.message||'Produit introuvable.';
-      rendre();return;
-    }
-    const p=r.produit;
-    SC.produit=p;SC.etat='ok';SC.mult=1;
-    // quantité initiale : portion si dispo, sinon 100
-    if(p.portion){SC.mode='portion';SC.qte=p.portion;}
-    else{SC.mode='libre';SC.qte=100;}
-    rendre();hautPage();
-  }catch(e){
-    SC.etat='ko';SC.message=e.message;rendre();
+    if(!SC.ouvert)return;
+    if(r.trouve===false){majPanierScan('Produit introuvable, passe au suivant');return;}
+    const p=r.produit,g=p.portion||100;
+    (SC.lot||(SC.lot=[])).push({p:p,g:g});
+    majPanierScan('✓ Ajouté : '+p.nom+' · '+nb(g)+' g · '+nb(calculProduit(p,g).kcal)+' kcal',true);
+  }catch(e){majPanierScan(e.message);}
+}
+// Produits scannés -> repas en cours (mode ajout d'aliment) ou nouveau repas, un aliment par produit.
+function utiliserProduits(items){
+  const A=S.ajout,SC=A.scan;
+  const al=items.map(x=>{const c=calculProduit(x.p,x.g);
+    return {nom:x.p.nom+(x.p.marque?' '+x.p.marque:''),quantite:nb(x.g)+' g',kcal:c.kcal,
+      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,
+      ...(c.purines!==undefined?{purines:c.purines,purines_risque:c.purines_risque,alcool:c.alcool,sucree:c.sucree,famille:x.p.famille||''}:{})};});
+  items.forEach(x=>pousserFoodScan(x.p,x.g));
+  SC.etat=null;
+  // --- MODE AJOUT : on greffe les produits sur le repas en cours ---
+  if(A.ajoutEnCours&&A.resultat){
+    A.resultat.aliments.push(...al);
+    recalculeTotal(A.resultat);
+    A.ajoutEnCours=false;
+    A.confirm=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+    ecrireRepasCache();rendre();hautPage();
+    return;
   }
+  A.enregistre=null; // nouveau repas : pas une modification
+  A.repas=repasParHeure();               // créneau selon l'heure, corrigeable dans le résultat
+  // basculer un éventuel repas actif en historique, comme une nouvelle analyse
+  pousserHisto(paquetRepas());
+  const un=items.length===1?items[0].p:null,ns=un&&un.nutriscore?un.nutriscore:'',lib=libelleRepas(A.repas);
+  A.resultat={
+    repas:lib,aliments:al,total:{},incertitude:'faible',
+    note:'Valeurs Open Food Facts'+(ns?' · Nutri-Score '+ns.toUpperCase():(items.length>1?' · '+items.length+' produits scannés':''))+'.',
+    nutriscore:ns,ia:'code-barres',
+    ligne:{repas:lib,detail:'',kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0,sucres_ajoutes:0,nutriscore:ns,
+      purines:0,purines_risque:0,alcool:0,boissons_sucrees:0}
+  };
+  recalculeTotal(A.resultat);
+  A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
+  ecrireRepasCache();
+  rendre();hautPage();
+}
+function terminerScan(){
+  const SC=S.ajout.scan,lot=SC.lot||[];
+  if(!lot.length)return;
+  arreterScan();
+  SC.ouvert=false;SC.lot=[];SC.vus={};
+  utiliserProduits(lot);
 }
 // calcule kcal + macros pour la quantité choisie
 function calculProduit(p,grammes){
@@ -1851,53 +1919,6 @@ function ligneMicro(o){
 function sectionScan(A){
   const SC=A.scan;
   let h='<section><h2>Code-barres</h2>';
-  // produit reconnu : panneau quantité
-  if(SC.etat==='ok'&&SC.produit){
-    const p=SC.produit,g=Number(SC.qte)||0;
-    const calc=calculProduit(p,g);
-    h+='<div class="prod"><div class="haut">';
-    if(p.nutriscore)h+='<span class="nutri nutri-lg '+esc(p.nutriscore)+'">'+esc(p.nutriscore)+'</span>';
-    h+='<div class="txt"><div class="nom">'+esc(p.nom)+'</div>';
-    if(p.marque)h+='<div class="marque">'+esc(p.marque)+'</div>';
-    h+='</div></div>';
-    h+='<div class="p100">Pour 100 g : <b>'+nb(p.per100.kcal)+'</b> kcal · P '+nb(p.per100.prot)+
-       ' · L '+nb(p.per100.lip)+' · G '+nb(p.per100.gluc)+
-       (p.per100.sucres?' · dont sucres '+nb(p.per100.sucres):'')+'</div>';
-    h+='<div class="qte-lab">Quelle quantité ?</div><div class="raccourcis" id="sc-racc">';
-    if(p.portion)h+='<button data-m="portion" class="'+(SC.mode==='portion'?'on':'')+'">Portion '+nb(p.portion)+' g</button>';
-    if(p.paquet)h+='<button data-m="paquet" class="'+(SC.mode==='paquet'?'on':'')+'">Tout le paquet '+nb(p.paquet)+' g</button>';
-    h+='<button data-m="libre" class="'+(SC.mode==='libre'?'on':'')+'">Autre</button></div>';
-    if(SC.mode==='portion'&&p.portion){
-      const m=Math.max(1,SC.mult||1);
-      h+='<div class="stepper"><span class="stepper-lab">Nombre de portions</span>'+
-         '<div class="stepper-ctrl"><button id="sc-moins" aria-label="Une portion de moins"'+(m<=1?' disabled':'')+'>\u2212</button>'+
-         '<span class="stepper-val" id="sc-mult">'+nb(m)+'</span>'+
-         '<button id="sc-plus" aria-label="Une portion de plus">+</button></div></div>';
-    }
-    if(SC.mode==='libre'){
-      h+='<div class="qte-saisie"><input id="sc-qte" type="number" inputmode="decimal" min="1" max="5000" step="1" value="'+esc(String(g))+'"><span class="unite">g / ml</span></div>';
-    }
-    h+='<div class="calc"><div><div class="kc">'+nb(calc.kcal)+' kcal</div>'+
-       '<div class="mac">P '+nb(calc.prot)+' · L '+nb(calc.lip)+' · G '+nb(calc.gluc)+' g pour '+nb(g)+' g</div></div></div>';
-    h+=ligneMicro(calc);
-    h+=lignePurines(calc,purMax(S.data),'sc-pur');
-    h+='<button class="primaire" id="sc-valide"'+(g<=0?' disabled':'')+'>Utiliser ce produit</button>';
-    h+='<button class="lien" id="sc-annule">Annuler</button>';
-    h+='</div></section>';
-    return h;
-  }
-  // recherche en cours
-  if(SC.etat==='recherche'){
-    h+='<div class="prod"><span class="attente"></span>Recherche du produit…</div></section>';
-    return h;
-  }
-  // produit absent -> bascule
-  if(SC.etat==='absent'){
-    h+='<p class="alerte">'+esc(SC.message||'Produit introuvable dans Open Food Facts.')+'</p>'+
-       '<p class="note">Pas de souci : prends-le en photo ou décris-le juste en dessous, l’analyse marche aussi bien.</p>'+
-       '<div class="deux"><button id="sc-relance">Scanner un autre</button><button id="sc-oublie">Fermer</button></div></section>';
-    return h;
-  }
   if(SC.etat==='ko'){
     h+='<p class="alerte">'+esc(SC.message)+'</p>';
   }
@@ -1910,9 +1931,11 @@ function overlayScan(){
   if(!SC.ouvert)return '';
   let h='<div class="scan-overlay"><video id="scan-video" class="scan-video" playsinline muted autoplay></video>'+
     '<div class="scan-cadre"><div class="box"></div></div>'+
-    '<div class="scan-haut">'+(SC.etat==='demarrage'?'Démarrage de la caméra…':'Vise le code-barres du produit')+'</div>';
-  if(SC.etat==='ko')h+='<div class="scan-err">'+esc(SC.message)+'</div>';
-  h+='<div class="scan-bas"><button class="stop" id="scan-fermer">Fermer</button></div></div>';
+    '<div class="scan-haut">'+(SC.etat==='demarrage'?'Démarrage de la caméra…':'Vise le code-barres, produit après produit')+'</div>';
+  if(SC.etat==='ko')h+='<div class="scan-err sc">'+esc(SC.message)+'</div>';
+  const n=(SC.lot||[]).length;
+  h+='<div class="scan-toast" id="scan-toast" hidden></div><div class="scan-panier"><div id="scan-lot">'+lotScanHtml()+'</div>'+
+    '<div class="btns"><button id="scan-fermer">'+(n?'Annuler':'Fermer')+'</button><button class="stop" id="scan-fin"'+(n?'':' disabled')+'>'+(n?'Terminer · '+n+' produit'+(n>1?'s':''):'Terminer')+'</button></div></div></div>';
   return h;
 }
 /* ---------- Raccourcis de l'écran Ajouter : refaire un repas, composer avec ses aliments ----------
@@ -5062,102 +5085,15 @@ function brancher(){
 
   // --- scanner code-barres ---
   on('#sc-ouvre','click',()=>{
-    const SC=S.ajout.scan;SC.ouvert=true;SC.etat='demarrage';SC.message='';SC.produit=null;
+    const SC=S.ajout.scan;SC.ouvert=true;SC.etat='demarrage';SC.message='';SC.lot=[];SC.vus={};
     rendre();
   });
   on('#scan-fermer','click',fermerScan);
+  on('#scan-fin','click',terminerScan);
   // lance la caméra dès que l'overlay est dans le DOM
   if(S.ajout.scan.ouvert&&document.getElementById('scan-video')&&!scanControls&&S.ajout.scan.etat!=='ko'){
     demarrerScan();
   }
-  on('#sc-relance','click',()=>{
-    const SC=S.ajout.scan;SC.ouvert=true;SC.etat='demarrage';SC.message='';SC.produit=null;
-    rendre();
-  });
-  on('#sc-oublie','click',()=>{S.ajout.scan.etat=null;S.ajout.scan.message='';rendre();});
-  on('#sc-annule','click',()=>{S.ajout.scan.etat=null;S.ajout.scan.produit=null;rendre();});
-  document.querySelectorAll('#sc-racc button').forEach(b=>{
-    b.addEventListener('click',()=>{
-      const SC=S.ajout.scan,p=SC.produit;SC.mode=b.dataset.m;
-      if(SC.mode==='portion')SC.qte=Math.round(p.portion*Math.max(1,SC.mult||1));
-      else if(SC.mode==='paquet')SC.qte=p.paquet;
-      else if(!SC.qte||SC.qte===p.portion||SC.qte===p.paquet)SC.qte=100;
-      rendre();
-      if(SC.mode==='libre'){const i=$('#sc-qte');if(i){i.focus();i.select();}}
-    });
-  });
-  const majMult=(delta)=>{
-    const SC=S.ajout.scan,p=SC.produit;if(!p||!p.portion)return;
-    SC.mult=Math.max(1,(SC.mult||1)+delta);
-    SC.qte=Math.round(p.portion*SC.mult);
-    // maj ciblee (pas de rendre() global : evite le saut de scroll)
-    const valMult=$('#sc-mult');if(valMult)valMult.textContent=nb(SC.mult);
-    const moins=$('#sc-moins');if(moins)moins.disabled=(SC.mult<=1);
-    const c=calculProduit(p,SC.qte);
-    const box=document.querySelector('.prod .calc');
-    if(box)box.innerHTML='<div><div class="kc">'+nb(c.kcal)+' kcal</div>'+
-      '<div class="mac">P '+nb(c.prot)+' · L '+nb(c.lip)+' · G '+nb(c.gluc)+' g pour '+nb(SC.qte)+' g</div></div>';
-    const micro=document.querySelector('.prod .micro:not(#sc-pur)');
-    if(micro){const nv=ligneMicro(c);
-      if(nv)micro.outerHTML=nv; else micro.remove();
-    }
-    const lp=$('#sc-pur');if(lp){const nv=lignePurines(c,purMax(S.data),'sc-pur');if(nv)lp.outerHTML=nv;}
-    const vb=$('#sc-valide');if(vb)vb.disabled=(SC.qte<=0);
-  };
-  on('#sc-plus','click',()=>majMult(1));
-  on('#sc-moins','click',()=>majMult(-1));
-  on('#sc-qte','input',e=>{
-    const v=Number(String(e.target.value).replace(',','.'));
-    S.ajout.scan.qte=isNaN(v)?0:v;
-    // maj live du calcul sans re-rendre tout (garde le focus clavier)
-    const p=S.ajout.scan.produit;
-    if(p){const c=calculProduit(p,S.ajout.scan.qte);
-      const box=document.querySelector('.prod .calc');
-      if(box)box.innerHTML='<div><div class="kc">'+nb(c.kcal)+' kcal</div>'+
-        '<div class="mac">P '+nb(c.prot)+' · L '+nb(c.lip)+' · G '+nb(c.gluc)+' g pour '+nb(S.ajout.scan.qte)+' g</div></div>';
-      const lp=$('#sc-pur');if(lp){const nv=lignePurines(c,purMax(S.data),'sc-pur');if(nv)lp.outerHTML=nv;}
-      const vb=$('#sc-valide');if(vb)vb.disabled=(S.ajout.scan.qte<=0);
-    }
-  });
-  on('#sc-valide','click',()=>{
-    const SC=S.ajout.scan,p=SC.produit,g=Number(SC.qte)||0;
-    if(!p||g<=0)return;
-    const c=calculProduit(p,g);
-    const A=S.ajout;
-    const alScan={nom:p.nom+(p.marque?' '+p.marque:''),quantite:nb(g)+' g',kcal:c.kcal,
-      prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,
-      ...(c.purines!==undefined?{purines:c.purines,purines_risque:c.purines_risque,alcool:c.alcool,sucree:c.sucree,famille:p.famille||''}:{})};
-    // --- MODE AJOUT : on greffe le produit scanné sur le repas en cours ---
-    if(A.ajoutEnCours&&A.resultat){
-      A.resultat.aliments.push(alScan);
-      recalculeTotal(A.resultat);
-      pousserFoodScan(p,g);
-      A.ajoutEnCours=false;SC.etat=null;SC.produit=null;
-      A.confirm=null;A.desc='';A.photo=null;A.apercu=null;A.taille=0;
-      ecrireRepasCache();rendre();hautPage();
-      return;
-    }
-    A.enregistre=null; // nouveau repas : pas une modification
-    A.repas=repasParHeure();               // créneau selon l'heure, corrigeable dans le résultat
-    // basculer un éventuel repas actif en historique, comme une nouvelle analyse
-    const precedent=paquetRepas();
-    pousserHisto(precedent);
-    const detail=p.nom+(p.marque?' ('+p.marque+')':'')+' · '+nb(g)+' g';
-    A.resultat={
-      repas:libelleRepas(A.repas),
-      aliments:[alScan],
-      total:Object.assign({},c,c.purines!==undefined?{boissons_sucrees:c.sucree||0}:{}),incertitude:'faible',
-      note:'Valeurs Open Food Facts'+(p.nutriscore?' · Nutri-Score '+p.nutriscore.toUpperCase():'')+'.',
-      nutriscore:p.nutriscore||'',ia:'code-barres',
-      ligne:{repas:libelleRepas(A.repas),detail:detail,kcal:c.kcal,prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,nutriscore:p.nutriscore||'',
-        purines:c.purines||0,purines_risque:c.purines_risque||0,alcool:c.alcool||0,boissons_sucrees:c.sucree||0}
-    };
-    A.confirm=null;A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;
-    pousserFoodScan(p,g);
-    SC.etat=null;SC.produit=null;
-    ecrireRepasCache();
-    rendre();hautPage();
-  });
 
   on('#a-nouveau','click',()=>{
     const A=S.ajout;

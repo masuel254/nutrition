@@ -57,6 +57,11 @@ const navigateur = await chromium.launch();
 const page = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
 const erreurs = []; page.on('pageerror', e => erreurs.push(e.message));
 const PHOTOS = {}; let nPhotos = 0;
+const PRODUITS = {
+  111: { nom: 'Yaourt nature', marque: 'Danone', nutriscore: 'b', portion: 125, paquet: 500, per100: { kcal: 64, prot: 4, lip: 2.4, gluc: 6.4, fibres: 0, sucres: 6.4, sodium: 50, satures: 1.6 } },
+  222: { nom: 'Pain complet', marque: '', nutriscore: 'a', portion: 0, paquet: 0, per100: { kcal: 250, prot: 9, lip: 3, gluc: 45, fibres: 7, sucres: 4, sodium: 400, satures: 0.6 } },
+  333: { nom: 'Jambon blanc', marque: '', nutriscore: '', portion: 0, paquet: 0, per100: { kcal: 120, prot: 20, lip: 4, gluc: 1, fibres: 0, sucres: 1, sodium: 900, satures: 1.5 } }
+};
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
 const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false;
@@ -74,6 +79,7 @@ await page.route('https://api.test/**', async r => {
         { nom: 'Salade chèvre chaud', description: '', kcal: 640, prot: 24, lip: 41, gluc: 38, confiance: 'haute' },
         { nom: 'Tarte aux pommes', description: '', kcal: 420, prot: 5, lip: 18, gluc: 60, confiance: 'faible' }] });
   if (q.action === 'conseil') return json({ ok: true, texte: 'Bien vu, prends la salade.' });
+  if (q.action === 'barcode') return json(PRODUITS[q.code] ? { ok: true, trouve: true, produit: PRODUITS[q.code] } : { ok: true, trouve: false, message: 'Produit introuvable.' });
   if (q.action === 'suppr') return json({ ok: true });
   if (q.action === 'poids') return json({ ok: true, poids: q.poids });
   if (q.action === 'crise') return json({ ok: true });
@@ -611,6 +617,36 @@ await page.setInputFiles('#c-photo', { name: 'menu2.jpg', mimeType: 'image/jpeg'
 await page.waitForFunction(() => /trop flou/.test(document.body.innerText));
 ok(await page.locator('#c-envoi:not([disabled])').count() === 1, 'menu : erreur affichée dans le fil, Coach de nouveau disponible');
 menuKO = false;
+
+console.log('Scan de plusieurs produits d\'affilée');
+{ const lot = () => page.evaluate(() => S.ajout.scan.lot.length);
+  const scanne = c => page.evaluate(x => onCodeScanne(x), c);
+  await page.click('nav button[data-vue="ajout"]');
+  await page.evaluate(() => { scanEnCours = true; S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; rendre(); }); // scanEnCours : pas de vraie caméra en test
+  await page.click('#sc-ouvre');
+  ok(await page.locator('.scan-overlay #scan-lot').count() === 1 && await page.locator('#scan-fin').isDisabled() && /Aucun produit/.test(await texte('#scan-lot')), 'scan à la chaîne : caméra ouverte, panier vide, « Terminer » désactivé');
+  await scanne('111'); await scanne('222');
+  ok(await lot() === 2 && /2 produits scannés/.test(await texte('#scan-lot')) && /330 kcal au total/.test(await texte('#scan-lot')) && /Terminer · 2 produits/.test(await texte('#scan-fin')) && /Annuler/.test(await texte('#scan-fermer')),'scan à la chaîne : 2 produits au panier (portion 125 g, sinon 100 g), total 330 kcal');
+  ok(/Ajouté : Pain complet · 100 g · 250 kcal/.test(await texte('#scan-toast')) && await page.locator('.scan-overlay').count() === 1, 'scan à la chaîne : bandeau « Ajouté », la caméra reste ouverte');
+  await scanne('111');
+  ok(await lot() === 2, 'scan à la chaîne : le même code toujours en vue n\'est pas ajouté deux fois');
+  await scanne('999');
+  ok(await lot() === 2 && /introuvable/.test(await texte('#scan-toast')) && await page.locator('.scan-overlay').count() === 1, 'scan à la chaîne : produit introuvable, message, on continue');
+  await page.click('#scan-fermer');
+  ok(await page.locator('#modale-hote').count() === 1 && /Abandonner les 2 produits/.test(await texte('#modale-hote')), 'scan à la chaîne : « Annuler » demande confirmation quand le panier n\'est pas vide');
+  await page.click('#modale-hote [data-mod="non"]');
+  ok(await lot() === 2 && await page.locator('.scan-overlay').count() === 1, 'scan à la chaîne : « Continuer » garde le panier');
+  await page.click('#scan-fin'); await page.waitForSelector('.resu .al-nom');
+  const noms = await page.locator('.resu .al-nom').allInnerTexts();
+  ok(await page.locator('.scan-overlay').count() === 0 && noms.length === 2 && /Yaourt nature Danone/.test(noms[0]) && /Pain complet/.test(noms[1]), 'scan à la chaîne : « Terminer » ouvre un repas avec un aliment par produit');
+  ok(/330 kcal/.test(await texte('#e-total')) && /2 produits scannés/.test(await texte('.resu .note')) && /P 14|Protéines\s*14/.test(await texte('#e-plg')), 'scan à la chaîne : total du repas et macros calculés');
+  // mode « Ajouter un aliment » : les produits scannés se greffent sur le repas existant
+  await page.click('#e-ajout-al'); await page.evaluate(() => { scanEnCours = true; }); await page.click('#sc-ouvre');
+  await scanne('333');
+  await page.click('#scan-fin'); await page.waitForSelector('.resu .al-nom');
+  ok(await page.locator('.resu .al-nom').count() === 3 && /450 kcal/.test(await texte('#e-total')), 'scan à la chaîne : ajout d\'un produit scanné à un repas existant');
+  await page.evaluate(() => { S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; S.ajout.histo = []; rendre(); });
+  await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {

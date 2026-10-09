@@ -659,3 +659,13 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Pas effacée : ouverture des Réglages (le Coach reste l'écran sous-jacent) et le « + » d'un plat de menu, qui envoie vers Ajouter en gardant le tableau
   pour y revenir ajouter un autre plat. Le bouton « Effacer la conversation » reste disponible.
 - Pas de réglage pour garder les conversations : effacement toujours actif. Appli seule. Tests : 3 vérifications dans la section Coach de `tests/e2e.mjs`.
+
+## 31. Scan de plusieurs produits d'affilée (09/10, appli v72)
+
+- Le scanner reste ouvert : chaque code reconnu (action `barcode`, inchangée) s'ajoute au panier `S.ajout.scan.lot` (`{p,g}`) avec sa portion, 100 g sans portion connue.
+  `onCodeScanne` ne fait **aucun `rendre()`** (il détruirait la vidéo) : le panier (`#scan-lot`), le bandeau (`#scan-toast`) et les boutons sont mis à jour à la main par `majPanierScan`.
+- Anti-doublon : un code revu dans les 3 s (`SC.vus`, date mise à jour à chaque vue) est ignoré, il faut le quitter 3 s pour le rescanner. Produit introuvable : bandeau orange, le scan continue.
+- « Terminer » (`terminerScan` → `utiliserProduits`) crée un repas avec un aliment par produit, ou greffe les produits sur le repas en cours en mode « Ajouter un aliment » ;
+  les quantités se règlent ensuite avec les − / + de l'écran de repas. « Annuler » demande confirmation si le panier n'est pas vide.
+- Supprimé : l'ancien panneau de quantité après un scan (portion / paquet / autre, `sc-valide`…). Le détail du Journal d'un repas scanné devient « Nom Marque (125 g) ».
+- Appli seule : ni workflow, ni Sheets, ni Telegram. Tests : section « Scan de plusieurs produits d'affilée » de `tests/e2e.mjs` (12 vérifications, caméra simulée par `onCodeScanne`).

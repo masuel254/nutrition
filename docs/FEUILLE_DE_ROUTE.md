@@ -1,6 +1,6 @@
 # Agent Nutrition : feuille de route
 
-Mise à jour du 09/10/2026 (appli v71, workflow v60). La partie « Historique » plus bas est la feuille de route
+Mise à jour du 09/10/2026 (appli v72, workflow v60). La partie « Historique » plus bas est la feuille de route
 d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 
 ## Ouvert
@@ -16,7 +16,6 @@ d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 
 - Export PDF pour le médecin (poids, purines, alcool sur 3 mois).
 - Raccourci Siri « ajoute mon petit-déj habituel ».
-- Scan de plusieurs produits d'affilée.
 - Volume : archiver le Journal par année, envoyer le catalogue à part quand la lecture complète deviendra lente.
 - Bascule vers PostgreSQL sur le VPS n8n, seulement si des lenteurs apparaissent (étudiée le 08/10, non lancée).
   Seul le workflow change : 86 nœuds Google Sheets sur 446, à faire par étapes en commençant par Journal et Poids
@@ -30,13 +29,13 @@ d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 - Appli payante sur l'App Store, TestFlight (99 €/an, versions valables 90 jours) : discuté le 02/10, non retenu.
   La PWA installée depuis Safari reste le mode de distribution.
 
-## Fait depuis le 28/09 (détail dans `docs/ARCHITECTURE.md`, sections 12 à 30)
+## Fait depuis le 28/09 (détail dans `docs/ARCHITECTURE.md`, sections 12 à 31)
 
 Favoris et composition, passe ergonomique, Réglages en onglets, secours IA payants (Claude Haiku, Sonnet), colonne `ia`
 du Journal, profils IA, Groq et disjoncteur Gemini, tableau de bord du coach, photos d'évolution (import, recadrage,
 fantôme, gestion, évolution animée), invitations fiables sur iPhone, mises à jour automatiques, repères qualité réglables,
 IA payantes par compte avec compteur en euros, pas en moyennes 3 j / 7 j, période 3 j des Courbes, plancher de la cible
-à 90 % du métabolisme, photo de menu dans le Coach (tableau kcal et macros par plat), marge de marche sur l’écran Jour, filtre « au-dessus de la cible » dans le Journal, 4 questions tournantes dans le Coach, conversation effacée à la sortie du Coach.
+à 90 % du métabolisme, photo de menu dans le Coach (tableau kcal et macros par plat), marge de marche sur l’écran Jour, filtre « au-dessus de la cible » dans le Journal, 4 questions tournantes dans le Coach, conversation effacée à la sortie du Coach, scan de plusieurs produits d’affilée.
 
 ---
 
@@ -87,7 +86,6 @@ IA payantes par compte avec compteur en euros, pas en moyennes 3 j / 7 j, pério
 - Repas favoris nommés, épinglés en tête de « Refaire un repas ».
 - Export PDF pour le médecin (poids, purines, alcool sur 3 mois).
 - Raccourci Siri « ajoute mon petit-déj habituel ».
-- Scan de plusieurs produits d'affilée.
 - Volume : archiver le Journal par année et envoyer le catalogue à part quand la lecture
   complète deviendra lente (au-delà de quelques milliers de lignes).
 
