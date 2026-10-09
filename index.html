@@ -869,6 +869,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 .pia-d{font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.4}.pia-vide{color:var(--rouge)}.ia-l{display:block;margin-bottom:4px}.ia-tag{display:inline-block;white-space:nowrap;font-size:11.5px;line-height:1.5;color:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:0 5px;vertical-align:1px}
 .ia-tag.sec{color:var(--ambre);border-color:color-mix(in srgb,var(--ambre) 55%,transparent);background:color-mix(in srgb,var(--ambre) 12%,transparent)}
 .jn-ev-vide{font-size:13px;color:var(--soft);padding:2px 0 10px}
+.pasb{margin-top:14px}.pia-t b.g,.pas-d b.g{color:var(--under)}
+.pas-d{padding:8px 2px 0;font-size:13.5px}.pas-d .ligne{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--rule)}.pas-d .ligne span{color:var(--soft)}
 </style>
 </head>
 <body>
@@ -876,7 +878,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='08/10/2026 15h10';
+const APP_VERSION='09/10/2026 10h27';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1683,6 +1685,26 @@ function barreMacro(k,lib,v,t){
   return '<div class="hm"><div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> / '+nb(t)+' g</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
     '<div class="hm-b"><i style="width:'+Math.min(100,v/t*100).toFixed(0)+'%;background:'+e.coul+'"></i></div></div>';
 }
+// Marge de marche du jour : pas au-delà de la moyenne des 7 jours précédents (le niveau d'activité des Réglages
+// inclut déjà la marche habituelle), au bas de la fourchette de kcalParPas. Ne change jamais la cible.
+function bonusPas(d){
+  const kpp=kcalParPas(d),a=auj(),act=d.activite||[];
+  const ajd=(act.filter(x=>x.date===a)[0]||{}).pas||0;
+  const prec=act.filter(x=>x.date<a).slice(-7);
+  if(!kpp||!ajd||prec.length<3)return null;
+  const moy=Math.round(prec.reduce((t,x)=>t+x.pas,0)/prec.length),kcal=Math.round((ajd-moy)*kpp);
+  return kcal>0?{pas:ajd,moy:moy,plus:ajd-moy,kcal:kcal}:null;
+}
+function blocPasJour(d,cible){
+  const b=bonusPas(d);if(!b)return '';
+  const ouv=!!S.pasOuv;
+  let h='<div class="pia pasb"><button class="pia-t'+(ouv?' o':'')+'" id="pas-t" aria-expanded="'+ouv+'"><span>👟 <b>'+nb(b.pas)+' pas</b> aujourd’hui · <b class="g">+'+nb(b.kcal)+' kcal</b> gagnées</span><span class="ch">▸</span></button>';
+  if(ouv)h+='<div class="pas-d"><div class="ligne"><span>Ta moyenne sur 7 jours</span><b>'+nb(b.moy)+' pas</b></div>'+
+    '<div class="ligne"><span>Pas en plus aujourd’hui</span><b>+'+nb(b.plus)+' pas</b></div>'+
+    '<div class="ligne"><span>Gagnées en marchant</span><b class="g">+'+nb(b.kcal)+' kcal</b></div>'+
+    '<p class="pia-d">Ta cible reste <b>'+nb(cible)+' kcal</b>. Ces '+nb(b.kcal)+' kcal sont une marge facultative, à n’utiliser que si tu as faim : tu peux aller jusqu’à '+nb(cible+b.kcal)+'. Seuls les pas au-delà de ta moyenne comptent, car ton niveau d’activité inclut déjà ta marche habituelle.</p></div>';
+  return h+'</div>';
+}
 function vueJour(d){
   const c=d.cibles,a=d.aujourdhui;
   let h=blocAttente()+alertesGoutte(d)+'<section>';
@@ -1692,6 +1714,7 @@ function vueJour(d){
       '<span class="cal-pastille" style="background:'+pk.coul+'">'+pk.txt+'</span>'+
       barreMacro('prot','Prot.',a.prot||0,c.prot)+barreMacro('lip','Lip.',a.lip||0,c.lip)+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc)+
       '</div></div>';
+    h+=blocPasJour(d,c.kcal);
     h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour la fixer.</p>';
   h+='</section>';
@@ -4917,6 +4940,7 @@ function brancher(){
   on('#att-plus','click',mettreEnAttente);
   on('#a-plus-tard','click',mettreEnAttente);
   on('#pia-t','click',()=>{S.piaOuv=!S.piaOuv;rendre();});
+  on('#pas-t','click',()=>{S.pasOuv=!S.pasOuv;rendre();});
   document.querySelectorAll('[data-pia-s]').forEach(b=>b.addEventListener('click',()=>{const p=piaEtat(),k=b.dataset.piaS;if(!iaOk(k))return;p.actif[k]=p.actif[k]?0:1;rendre();}));
   document.querySelectorAll('[data-pia-h]').forEach(b=>b.addEventListener('click',()=>{const o=piaEtat().ordre,i=Number(b.dataset.piaH);if(i>0){[o[i-1],o[i]]=[o[i],o[i-1]];rendre();}}));
   document.querySelectorAll('[data-pia-b]').forEach(b=>b.addEventListener('click',()=>{const o=piaEtat().ordre,i=Number(b.dataset.piaB);if(i<o.length-1){[o[i+1],o[i]]=[o[i],o[i+1]];rendre();}}));
