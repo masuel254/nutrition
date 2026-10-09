@@ -812,6 +812,7 @@ table.mn td.mn-n small{display:block;font-size:12px;color:var(--soft)}
 .jn-rl{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--rule)}
 .jn-rl .q{flex:1;min-width:0;font-size:14px;line-height:1.3}.jn-rl .q small{display:block;color:var(--soft);font-size:13px;margin-bottom:2px}
 .jn-rl b{white-space:nowrap;font-size:14px}
+.jn-ec{white-space:nowrap;font-size:14px;text-align:right}.jn-ec small{display:block;color:var(--over);font-weight:700;font-size:13px}
 .jn-res-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .jn-tri{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;flex:none}.jn-tri button{font-size:12px;padding:5px 8px;border:none;background:none;color:var(--soft)}.jn-tri button.on{background:var(--creux);color:var(--ink);font-weight:600}
 .jn-al .q .qte{color:var(--soft)}.jn-al b.haut{color:var(--over)}
@@ -878,7 +879,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/10/2026 10h27';
+const APP_VERSION='09/10/2026 10h46';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2568,7 +2569,19 @@ function ligneJourJn(d,iso,J){
 }
 /* Recherche dans le Journal : texte (plat ou aliment) et filtres. Porte sur le détail chargé
    (deux semaines au départ) ; « Chercher plus loin » charge 8 semaines de plus (action journal). */
-const JN_F=[['pur','Purines élevées'],['alc','Alcool'],['sat','Saturés élevés'],['na','Sodium élevé']];
+const JN_F=[['pur','Purines élevées'],['alc','Alcool'],['sat','Saturés élevés'],['na','Sodium élevé'],['cib','Au-dessus de la cible']];
+// Filtre « au-dessus de la cible » : une ligne par jour terminé (le jour en cours n'est pas compté), du plus récent au plus dépassé.
+// Le détail par repas vient des repas déjà chargés ; un texte tapé garde les jours où un repas le contient.
+function joursAuDessus(d,q){
+  const rows=d.journal||[],cb=Number((d.cibles||{}).kcal)||0;
+  return (d.jours||[]).filter(j=>{
+    const c=Number(j.cible)||cb;
+    if(j.date>=auj()||j.valide===false||!c||!(j.kcal>c))return false;
+    return !q||rows.some(r=>r.date===j.date&&normNom(String(r.detail||'')+' '+(Array.isArray(r.aliments)?r.aliments.map(a=>a.nom).join(' '):'')).indexOf(q)>=0);
+  }).map(j=>{const c=Number(j.cible)||cb,p={};
+    rows.filter(r=>r.date===j.date).forEach(r=>{const k=creneauDe(r.repas)||'autre';p[k]=(p[k]||0)+(Number(r.kcal)||0);});
+    return {j,c,plus:Math.round(j.kcal-c),repas:REPAS.filter(x=>p[x[0]]).map(x=>x[1]+' '+nb(p[x[0]])).join(' · ')};});
+}
 // Filtres du Journal : un aliment (et non le repas entier) dès qu'il dépasse le seuil.
 const JN_S={pur:{k:'purines_risque',s:150,t:'≥ 150 mg de purines',v:x=>nb(x)+' mg'},alc:{k:'alcool',s:0.01,t:'boissons alcoolisées',v:x=>verresTxt(x)},
   sat:{k:'satures',s:5,t:'≥ 5 g de graisses saturées',v:x=>(Math.round(x*10)/10).toLocaleString('fr-FR')+' g'},na:{k:'sodium',s:600,t:'≥ 600 mg de sodium',v:x=>nb(x)+' mg'}};
@@ -2619,6 +2632,16 @@ function resultatsJn(d){
   const q=normNom(S.jn.q||''),f=S.jn.f,max=purMax(d);
   const J={};(d.jours||[]).forEach(j=>{J[j.date]=j;});
   const ORD={matin:0,midi:1,encas:2,soir:3};
+  if(f==='cib'){
+    const L=joursAuDessus(d,q),tous=(d.jours||[]).filter(j=>j.date<auj()&&j.valide!==false).length,dep=((d.jours||[]).map(j=>j.date).sort()[0])||auj();
+    if(S.jn.tri==='haut')L.sort((x,y)=>y.plus-x.plus);else L.sort((x,y)=>y.j.date.localeCompare(x.j.date));
+    let g='<div class="jn-res"><div class="jn-res-t jn-res-h"><span><b style="color:var(--ink)">'+L.length+' jour'+(L.length>1?'s':'')+'</b> sur '+tous+' au-dessus de ta cible · depuis le '+jjmm(dep)+'</span>'+
+      '<span class="jn-tri"><button data-jtri="recent"'+(S.jn.tri!=='haut'?' class="on"':'')+'>Récents</button><button data-jtri="haut"'+(S.jn.tri==='haut'?' class="on"':'')+'>Plus élevés</button></span></div>';
+    if(!L.length)g+='<p class="note">Aucun jour au-dessus de ta cible'+(q?' avec ce plat':'')+'.</p>';
+    L.slice(0,80).forEach(x=>{g+='<div class="jn-rl"><div class="q"><b>'+esc(jourSemaine(x.j.date))+' '+jjmm(x.j.date)+'</b>'+(x.repas?'<small>'+esc(x.repas)+'</small>':'')+'</div><div class="jn-ec">'+nb(x.j.kcal)+' / '+nb(x.c)+' kcal<small>+'+nb(x.plus)+'</small></div></div>';});
+    if(L.length>80)g+='<div class="jn-res-t">… '+(L.length-80)+' de plus.</div>';
+    return g+'</div>';
+  }
   if(f&&JN_S[f]){
     const S0=JN_S[f],dates0=(d.journal||[]).map(r=>r.date).sort(),dep0=dates0[0]||auj();
     const L=alimentsFiltres(d.journal||[],f,q);
@@ -3442,7 +3465,18 @@ function suggestionsCoach(d){
   const hier=(d.jours||[]).find(j=>j.date===plusJours(auj(),-1)),max=purMax(d);
   out.push(hier&&(hier.purines_risque||0)>max?'Pourquoi mes purines étaient hautes hier ('+nb(hier.purines_risque)+' mg) ?':'Une collation riche en protéines pour moins de 200 kcal ?');
   out.push('Comment se passe ma semaine ?');
+  if(c.prot)out.push('Comment atteindre mes '+nb(c.prot)+' g de protéines aujourd’hui ?');
+  if(d.reference&&d.reference.objectif_poids)out.push('Où en suis-je de mon objectif de poids ?');
+  out.push('Une idée de dîner léger qui cale bien ?');
+  out.push('Comment limiter les fringales en fin de journée ?');
   return out;
+}
+// 4 questions à la fois : celle qu'on touche est remplacée par la suivante du lot, jamais une déjà posée
+// (S.coach.posees, en mémoire, vidée par « Vider »). Les questions déjà posées passent après les autres, la plus
+// ancienne revenant en premier. Le texte de la question du jour change : on la repère par sa position.
+function suggestionsAffichees(d){
+  const tout=suggestionsCoach(d).map((q,i)=>({q:q,i:i})),P=S.coach.posees||(S.coach.posees=[]);
+  return tout.filter(x=>P.indexOf(x.i)<0).concat(P.map(i=>tout[i]).filter(Boolean)).slice(0,4);
 }
 // Réponse de l'action « menu » : tableau des plats lus (tri par kcal ou protéines), « + » ajoute un plat au repas.
 function bulleMenu(m,i){
@@ -3468,7 +3502,7 @@ function vueCoach(){
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
   S.coach.fil.forEach((m,i)=>{h+=m.menu?bulleMenu(m,i):'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
   if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
-  if(S.coach.etat!=='envoi'){const sg=suggestionsCoach(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(q=>'<button data-csug="'+esc(q)+'">'+esc(q)+'</button>').join('')+'</div>';}
+  if(S.coach.etat!=='envoi'){const sg=suggestionsAffichees(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(x=>'<button data-csug="'+esc(x.q)+'" data-csi="'+x.i+'">'+esc(x.q)+'</button>').join('')+'</div>';}
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
      '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>'+
      '<h2>Photo d’un menu</h2><p class="vide">Le coach lit les plats et estime calories et macros de chacun.</p>'+
@@ -5688,7 +5722,7 @@ function brancher(){
   document.querySelectorAll('[data-mtri]').forEach(b=>b.addEventListener('click',()=>{const [i,t]=b.dataset.mtri.split(':');const m=S.coach.fil[Number(i)];if(m&&m.menu){m.menu.tri=t;rendre();}}));
   document.querySelectorAll('[data-mplat]').forEach(b=>b.addEventListener('click',()=>{const [i,j]=b.dataset.mplat.split(':').map(Number);const m=S.coach.fil[i],p=m&&m.menu&&m.menu.plats[j];
     if(!p)return;platVersRepas(p,m.menu.ia);S.vue='ajout';rendre();hautPage();}));
-  document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
+  document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){S.coach.posees=(S.coach.posees||[]).filter(i=>i!==Number(b.dataset.csi)).concat(Number(b.dataset.csi));t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));
   on('#jn-q','input',e=>{S.jn.q=e.target.value;majRechJn();});
   document.querySelectorAll('[data-jf]').forEach(b=>b.addEventListener('click',()=>{S.jn.f=S.jn.f===b.dataset.jf?null:b.dataset.jf;rendre();}));
@@ -5696,7 +5730,7 @@ function brancher(){
   document.querySelectorAll('[data-siap]').forEach(b=>b.addEventListener('click',()=>{S.jn.iaPer=Number(b.dataset.siap);S.jn.iaSel=null;rendre();}));
   document.querySelectorAll('[data-siab]').forEach(b=>b.addEventListener('click',()=>{S.jn.iaSel=S.jn.iaSel===b.dataset.siab?null:b.dataset.siab;rendre();}));
   on('#jn-res','click',e=>{if(e.target.closest('#jn-loin'))chargerPlusLoinJn();const t=e.target.closest('[data-jtri]');if(t){S.jn.tri=t.dataset.jtri;majRechJn();}});
-  on('#c-vider','click',()=>{S.coach.fil=[];localStorage.removeItem(S.chat);rendre();});
+  on('#c-vider','click',()=>{S.coach.fil=[];S.coach.posees=[];localStorage.removeItem(S.chat);rendre();});
 
   // --- Corps : pas, mensurations, photos ---
   on('#k-pas-ok','click',async()=>{
