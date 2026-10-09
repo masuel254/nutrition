@@ -1,6 +1,6 @@
 # Agent Nutrition : feuille de route
 
-Mise à jour du 09/10/2026 (appli v72, workflow v60). La partie « Historique » plus bas est la feuille de route
+Mise à jour du 09/10/2026 (appli v73, workflow v60). La partie « Historique » plus bas est la feuille de route
 d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 
 ## Ouvert
@@ -35,7 +35,7 @@ Favoris et composition, passe ergonomique, Réglages en onglets, secours IA paya
 du Journal, profils IA, Groq et disjoncteur Gemini, tableau de bord du coach, photos d'évolution (import, recadrage,
 fantôme, gestion, évolution animée), invitations fiables sur iPhone, mises à jour automatiques, repères qualité réglables,
 IA payantes par compte avec compteur en euros, pas en moyennes 3 j / 7 j, période 3 j des Courbes, plancher de la cible
-à 90 % du métabolisme, photo de menu dans le Coach (tableau kcal et macros par plat), marge de marche sur l’écran Jour, filtre « au-dessus de la cible » dans le Journal, 4 questions tournantes dans le Coach, conversation effacée à la sortie du Coach, scan de plusieurs produits d’affilée.
+à 90 % du métabolisme, photo de menu dans le Coach (tableau kcal et macros par plat), marge de marche sur l’écran Jour, filtre « au-dessus de la cible » dans le Journal, 4 questions tournantes dans le Coach, conversation effacée à la sortie du Coach, scan de plusieurs produits d’affilée, IMC avec silhouettes et courbe dans Corps › Mesures.
 
 ---
 

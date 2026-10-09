@@ -65,7 +65,11 @@ const PRODUITS = {
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
 const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false;
-await page.route('https://app.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+await page.route('https://app.test/**', r => {
+  const img = new URL(r.request().url()).pathname.match(/^\/(img\/imc\/[fh]-\d+\.webp)$/); // vraies images du dépôt
+  if (img) { try { return r.fulfill({ status: 200, contentType: 'image/webp', body: readFileSync(join(ICI, '..', img[1])) }); } catch { return r.fulfill({ status: 404, body: '' }); } }
+  return r.fulfill({ status: 200, contentType: 'text/html', body: HTML });
+});
 await page.route('https://api.test/**', async r => {
   const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
@@ -647,6 +651,28 @@ console.log('Scan de plusieurs produits d\'affilée');
   ok(await page.locator('.resu .al-nom').count() === 3 && /450 kcal/.test(await texte('#e-total')), 'scan à la chaîne : ajout d\'un produit scanné à un repas existant');
   await page.evaluate(() => { S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; S.ajout.histo = []; rendre(); });
   await page.click('nav button[data-vue="jour"]'); }
+
+console.log('Corps : IMC');
+{ // 180 cm, pesées de 102 à 100 kg, objectif 90 kg : IMC 31,5 → 30,9 → 27,8
+  const vaMesures = async () => { await page.click('nav button[data-vue="corps"]'); await page.click('.vue.on [data-ko="mesures"]'); await page.waitForTimeout(150); };
+  const srcs = () => page.locator('.vue.on .imc-c img').evaluateAll(l => l.map(i => i.getAttribute('src')));
+  await vaMesures();
+  ok(await page.locator('.vue.on .imc').count() === 1 && (await texte('.vue.on .imc-v')) === '30,9' && /Obésité modérée/.test(await texte('.vue.on .imc-z')), 'IMC : valeur actuelle 30,9 et zone « Obésité modérée »');
+  const cartes = (await page.locator('.vue.on .imc-c').allInnerTexts()).map(t => t.replace(/\s+/g, ' '));
+  ok(cartes.length === 3 && /Début 102 kg IMC 31,5/.test(cartes[0]) && /Maintenant 100 kg IMC 30,9/.test(cartes[1]) && /Objectif 90 kg IMC 27,8/.test(cartes[2]), 'IMC : cartes début, maintenant, objectif (kg et IMC)');
+  ok(JSON.stringify(await srcs()) === JSON.stringify(['img/imc/h-30.webp', 'img/imc/h-30.webp', 'img/imc/h-27.webp']), 'IMC : silhouette d\'homme du palier le plus proche (30, 30, 27)');
+  await page.waitForFunction(() => [...document.querySelectorAll('.vue.on .imc-c img')].every(i => i.complete));
+  ok(await page.locator('.vue.on .imc-c img').evaluateAll(l => l.every(i => i.naturalWidth > 200)), 'IMC : les images du dépôt se chargent');
+  ok(await page.locator('.vue.on .imc-j .pos span').count() === 3 && /objectif 27,8/.test(await page.locator('.vue.on .imc svg').innerHTML()), 'IMC : jauge avec 3 repères et courbe avec la ligne d\'objectif');
+  ok(await page.locator('.vue.on .imc + section h2').first().innerText() === 'Mensurations', 'IMC : placé au-dessus des mensurations');
+  DATA.profil.sexe = 'F'; await page.reload(); await page.waitForSelector('nav button'); await vaMesures();
+  ok((await srcs()).every(s => /^img\/imc\/f-/.test(s)), 'IMC : silhouettes de femme pour un compte « F »');
+  DATA.profil.sexe = 'H'; DATA.profil.taille = 0; await page.reload(); await page.waitForSelector('nav button'); await vaMesures();
+  ok(await page.locator('.vue.on .imc').count() === 0 && /Mensurations/.test(await texte('.vue.on')), 'IMC : rien sans taille dans le profil');
+  DATA.profil.taille = 180; await page.reload(); await page.waitForSelector('nav button'); await vaMesures();
+  const dx = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
+  ok(dx <= 0, 'IMC : pas de débordement horizontal');
+  await page.click('.vue.on [data-ko="pesee"]'); await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {

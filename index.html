@@ -826,6 +826,29 @@ table.mn td.mn-n small{display:block;font-size:12px;color:var(--soft)}
 .jn-rl{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--rule)}
 .jn-rl .q{flex:1;min-width:0;font-size:14px;line-height:1.3}.jn-rl .q small{display:block;color:var(--soft);font-size:13px;margin-bottom:2px}
 .jn-rl b{white-space:nowrap;font-size:14px}
+.imc-tete{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.imc-v{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.imc-z{padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700;color:var(--paper);white-space:nowrap}
+.imc-trois{display:grid;gap:8px}
+.imc-c{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:8px 0;text-align:center;min-width:0}
+.imc-c.now{border-color:var(--ink)}
+.imc-c.obj{background:color-mix(in srgb,var(--under) 12%,var(--card));border-color:color-mix(in srgb,var(--under) 45%,var(--rule))}
+.imc-c .l{font-size:13px;font-weight:600;color:var(--soft)}.imc-c.now .l{color:var(--ink)}.imc-c.obj .l{color:var(--under)}
+.imc-c .ph{margin:6px;border-radius:9px;background:#CACACB;height:236px;display:flex;justify-content:center;overflow:hidden}
+.imc-c .ph img{height:236px;width:auto;display:block}
+.imc-c .kg{font-size:15px;font-weight:700}.imc-c.obj .kg{color:var(--under)}
+.imc-c .im{font-size:12.5px;color:var(--soft)}
+.imc-j{margin:16px 0 4px}
+.imc-j .bar{display:flex;height:11px;border-radius:6px;overflow:hidden}.imc-j .bar i{display:block;height:100%}
+.imc-j .pos{position:relative;height:30px;margin-top:-6px}
+.imc-j .pos span{position:absolute;top:4px;width:11px;height:11px;border-radius:50%;background:var(--card);border:2.5px solid var(--soft);transform:translateX(-50%)}
+.imc-j .pos .o{border-color:var(--under)}
+.imc-j .pos .m{top:-8px;width:19px;height:19px;border:4px solid var(--ink)}
+.imc-j .tk{position:relative;height:16px;font-size:11.5px;color:var(--soft)}.imc-j .tk span{position:absolute;transform:translateX(-50%)}
+.imc-j .lg{display:flex;gap:12px;font-size:12px;color:var(--soft);margin-top:6px;flex-wrap:wrap}
+.imc-j .lg i{display:inline-block;width:10px;height:10px;border-radius:50%;border:2.5px solid var(--soft);background:var(--card);vertical-align:-1px;margin-right:4px}
+.imc-j .lg i.n{border-color:var(--ink)}.imc-j .lg i.o{border-color:var(--under)}
+.imc-h{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin:16px 0 4px}.imc-h span{color:var(--soft);font-weight:400}
 .jn-ec{white-space:nowrap;font-size:14px;text-align:right}.jn-ec small{display:block;color:var(--over);font-weight:700;font-size:13px}
 .jn-res-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .jn-tri{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;flex:none}.jn-tri button{font-size:12px;padding:5px 8px;border:none;background:none;color:var(--soft)}.jn-tri button.on{background:var(--creux);color:var(--ink);font-weight:600}
@@ -893,7 +916,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/10/2026 11h16';
+const APP_VERSION='09/10/2026 16h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3222,7 +3245,7 @@ function vueCorps(d){
   CORPS_ONGLETS.forEach(x=>{h+='<button role="tab" data-ko="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';});
   h+='</div></section>';
   if(o==='pas')return h+sectionPas(d);
-  if(o==='mesures')return h+sectionMesures(d);
+  if(o==='mesures')return h+blocIMC(d)+sectionMesures(d);
   if(o==='photos')return h+sectionPhotos(d);
   if(o==='goutte')return h+sectionGoutte(d);
   return h+sectionPesee(d);
@@ -4081,6 +4104,51 @@ function sectionPas(d){
   h+='<div class="qte-saisie pas-saisie"><input id="k-pas" type="number" inputmode="numeric" min="0" max="150000" placeholder="Pas du jour" value="'+(ajd||'')+'"><button class="secondaire" id="k-pas-ok"'+(C.pasEtat==='envoi'?' disabled':'')+'>'+(C.pasEtat==='envoi'?'<span class="attente"></span>':'Enregistrer')+'</button></div>';
   if(C.pasEtat==='ko')h+='<p class="alerte">'+esc(C.pasMsg)+'</p>';
   if(C.pasEtat==='ok')h+='<p class="bien">'+esc(C.pasMsg)+'</p>';
+  return h+'</section>';
+}
+/* IMC (Corps › Mesures) : calculé à la volée (dernière pesée / taille²), rien n'est stocké.
+   Début = première pesée, objectif = objectif_poids. Zones OMS. Images : 5 paliers par sexe (img/imc), le plus proche. */
+const IMC_Z=[[0,18.5,'var(--c-soir)','Maigreur'],[18.5,25,'var(--under)','Corpulence normale'],[25,30,'var(--ambre)','Surpoids'],[30,35,'var(--over)','Obésité modérée'],[35,99,'var(--rouge)','Obésité sévère']];
+const IMC_IMG=[24,27,30,33,36];
+function imcZone(v){return IMC_Z.find(z=>v<z[1])||IMC_Z[4];}
+function imgIMC(sx,v){const n=IMC_IMG.reduce((a,c)=>Math.abs(c-v)<Math.abs(a-v)?c:a);return 'img/imc/'+(sx==='F'?'f':'h')+'-'+n+'.webp';}
+function courbeIMC(pts,ob){
+  const W=340,H=150,x0=26,x1=W-8,T=8,B=20,vs=pts.map(p=>p.v).concat(ob?[ob]:[]);
+  const lo=Math.floor(Math.min.apply(null,vs)-.5),hi=Math.ceil(Math.max.apply(null,vs)+.5),pas=hi-lo>8?2:1;
+  const t0=jourNum(pts[0].date),sp=(jourNum(pts[pts.length-1].date)-t0)||1;
+  const X=dt=>x0+(jourNum(dt)-t0)/sp*(x1-x0),Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Évolution de l’IMC">';
+  IMC_Z.forEach(z=>{const a=Math.max(z[0],lo),b=Math.min(z[1],hi);if(b>a)s+='<rect x="'+x0+'" y="'+Y(b).toFixed(1)+'" width="'+(x1-x0)+'" height="'+(Y(a)-Y(b)).toFixed(1)+'" fill="'+z[2]+'" opacity=".16"/>';});
+  [18.5,25,30,35].filter(v=>v>lo&&v<hi).forEach(v=>{s+='<line x1="'+x0+'" y1="'+Y(v).toFixed(1)+'" x2="'+x1+'" y2="'+Y(v).toFixed(1)+'" stroke="var(--rule)" stroke-dasharray="3 3"/>';});
+  for(let v=lo;v<=hi;v+=pas)s+='<text x="'+(x0-5)+'" y="'+(Y(v)+3.5).toFixed(1)+'" text-anchor="end" font-size="10" fill="var(--soft)">'+v+'</text>';
+  if(ob)s+='<line x1="'+x0+'" y1="'+Y(ob).toFixed(1)+'" x2="'+x1+'" y2="'+Y(ob).toFixed(1)+'" stroke="var(--under)" stroke-width="1.5" stroke-dasharray="5 4"/>'+
+    '<text x="'+(x1-2)+'" y="'+(Y(ob)-4).toFixed(1)+'" text-anchor="end" font-size="10.5" font-weight="600" fill="var(--under)">objectif '+fr1(ob)+'</text>';
+  const P=pts.map(p=>[X(p.date),Y(p.v)]),a=P[0],z=P[P.length-1];
+  s+='<polyline points="'+P.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<circle cx="'+a[0].toFixed(1)+'" cy="'+a[1].toFixed(1)+'" r="3.5" fill="var(--card)" stroke="var(--soft)" stroke-width="2"/>'+
+    '<circle cx="'+z[0].toFixed(1)+'" cy="'+z[1].toFixed(1)+'" r="5" fill="var(--ink)" stroke="var(--card)" stroke-width="2"/>'+
+    '<text x="'+z[0].toFixed(1)+'" y="'+(z[1]-9).toFixed(1)+'" text-anchor="end" font-size="12" font-weight="700" fill="var(--ink)">'+fr1(pts[pts.length-1].v)+'</text>'+
+    '<text x="'+x0+'" y="'+(H-5)+'" font-size="10.5" fill="var(--soft)">'+jjmm(pts[0].date)+'</text><text x="'+x1+'" y="'+(H-5)+'" text-anchor="end" font-size="10.5" fill="var(--soft)">'+jjmm(pts[pts.length-1].date)+'</text>';
+  return s+'</svg>';
+}
+function blocIMC(d){
+  const t=(Number(d.profil&&d.profil.taille)||0)/100;
+  const pes=(d.poids||[]).filter(p=>p&&p.date&&typeof p.poids==='number').sort((a,b)=>a.date.localeCompare(b.date));
+  if(!t||!pes.length)return '';
+  const sx=String((d.profil&&d.profil.sexe)||'H').toUpperCase().charAt(0)==='F'?'F':'H';
+  const imc=p=>p/(t*t),obK=Number(d.reference&&d.reference.objectif_poids)||0,ob=obK?imc(obK):0;
+  const dep=pes[0],der=pes[pes.length-1],bi=imc(der.poids),bd=imc(dep.poids),zn=imcZone(bi);
+  const C=(pes.length>1?[['Début',dep.poids,bd,'']]:[]).concat([['Maintenant',der.poids,bi,' now']]).concat(obK?[['Objectif',obK,ob,' obj']]:[]);
+  let h='<section class="imc"><h2>IMC</h2><div class="imc-tete"><span class="imc-v">'+fr1(bi)+'</span><span class="imc-z" style="background:'+zn[2]+'">'+zn[3]+'</span></div>'+
+    '<div class="imc-trois" style="grid-template-columns:repeat('+C.length+',1fr)">'+C.map(c=>'<div class="imc-c'+c[3]+'"><div class="l">'+c[0]+'</div>'+
+      '<div class="ph"><img src="'+imgIMC(sx,c[2])+'" alt="Silhouette proche d’un IMC de '+fr1(c[2])+'" decoding="async"></div><div class="kg">'+kgTxt(c[1])+' kg</div><div class="im">IMC '+fr1(c[2])+'</div></div>').join('')+'</div>';
+  const X0=15,X1=40,pc=v=>((Math.min(Math.max(v,X0),X1)-X0)/(X1-X0)*100).toFixed(1)+'%';
+  h+='<div class="imc-j"><div class="bar">'+IMC_Z.map(z=>'<i style="width:'+((Math.min(z[1],X1)-Math.max(z[0],X0))/(X1-X0)*100).toFixed(1)+'%;background:'+z[2]+'"></i>').join('')+'</div>'+
+    '<div class="pos">'+(pes.length>1?'<span class="d" style="left:'+pc(bd)+'"></span>':'')+(ob?'<span class="o" style="left:'+pc(ob)+'"></span>':'')+'<span class="m" style="left:'+pc(bi)+'"></span></div>'+
+    '<div class="tk">'+[18.5,25,30,35].map(v=>'<span style="left:'+pc(v)+'">'+String(v).replace('.',',')+'</span>').join('')+'</div>'+
+    '<div class="lg">'+(pes.length>1?'<span><i></i>début</span>':'')+'<span><i class="n"></i>maintenant</span>'+(ob?'<span><i class="o"></i>objectif</span>':'')+'</div></div>';
+  if(pes.length>1)h+='<div class="imc-h">Évolution de l’IMC <span>depuis le '+jjmm(dep.date)+'</span></div>'+courbeIMC(pes.map(p=>({date:p.date,v:imc(p.poids)})),ob);
+  h+='<p class="note">L’IMC ne voit pas les muscles : lis-le avec ton tour de taille et ta masse grasse, juste en dessous. Les silhouettes montrent la corpulence la plus proche, par paliers de 3 points.'+(obK?'':' Fixe un objectif de poids dans Réglages pour voir ta silhouette cible.')+'</p>';
   return h+'</section>';
 }
 function sectionMesures(d){

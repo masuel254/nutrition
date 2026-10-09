@@ -669,3 +669,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
   les quantités se règlent ensuite avec les − / + de l'écran de repas. « Annuler » demande confirmation si le panier n'est pas vide.
 - Supprimé : l'ancien panneau de quantité après un scan (portion / paquet / autre, `sc-valide`…). Le détail du Journal d'un repas scanné devient « Nom Marque (125 g) ».
 - Appli seule : ni workflow, ni Sheets, ni Telegram. Tests : section « Scan de plusieurs produits d'affilée » de `tests/e2e.mjs` (12 vérifications, caméra simulée par `onCodeScanne`).
+
+## 32. IMC dans Corps › Mesures (09/10, appli v73)
+
+- Bloc `blocIMC(d)` en tête de l'onglet Mesures : IMC actuel = dernier poids / (taille en m)², zone OMS (`IMC_Z` : 18,5 / 25 / 30 / 35), trois cartes Début (première pesée, si plus d'une), Maintenant, Objectif (si `objectif_poids`).
+- Chaque carte montre une photo de corpulence `img/imc/{h|f}-{24,27,30,33,36}.webp` (palier le plus proche, `imgIMC`), choisie selon `profil.sexe`. Images générées par IA et fournies par Samuel, découpées en webp d'environ 15 Ko.
+- Jauge des zones (échelle 15 à 40, repères début / maintenant / objectif) et courbe SVG `courbeIMC` (fonds par zone, ligne d'objectif).
+- Rien n'est stocké : l'IMC est recalculé à l'affichage. Pas de bloc sans taille ou sans pesée. Ni workflow, ni Sheets. Tests : section « Corps : IMC » de `tests/e2e.mjs` (9 vérifications).
