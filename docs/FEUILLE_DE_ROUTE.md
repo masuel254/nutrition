@@ -1,6 +1,6 @@
 # Agent Nutrition : feuille de route
 
-Mise à jour du 09/10/2026 (appli v74, workflow v60). La partie « Historique » plus bas est la feuille de route
+Mise à jour du 09/10/2026 (appli v75, workflow v60). La partie « Historique » plus bas est la feuille de route
 d'origine (27-28/09), conservée pour les décisions qu'elle contient.
 
 ## Ouvert

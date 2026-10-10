@@ -687,3 +687,4 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
   Limite : le détail par repas dépend des lignes du Journal chargées (au moins 7 jours, `journal_depuis`).
 - En-tête : poids, métabolisme, besoins et cible quittent l'écran Jour, remplacés par la pastille « Sèche -600 kcal/j ». Ils sont dans Réglages › « Mes chiffres » (4 cartes). Le raccourci poids > Pesée (`#b-pesee`) est supprimé.
 - Appli seule : ni workflow, ni Sheets, ni Telegram. Tests : section « Icônes et calendrier des 7 jours » de `tests/e2e.mjs`.
+- Courbes (appli v75) : mêmes icônes. Onglets Poids / Calories / Purines / Qualité en `.seg-i` (balance, flamme, pied, brocoli), icône optionnelle en 5e argument de `tuile()` (Balance, Rythme, Théorique, Moyenne, Écart cumulé, Purines, Plafond, nutriments), puces Saturées / Fibres / Sodium / Sucres / Alcool, titres Régularité et Qualité des produits scannés. Tests : 4 vérifications dans « Icônes et calendrier des 7 jours ».

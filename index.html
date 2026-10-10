@@ -616,7 +616,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .cg-per button.on{border-color:var(--ink);color:var(--ink);font-weight:700}
 .tuiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
 .tu{border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:9px 10px;min-width:0}
-.tu small{display:block;font-size:12px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tu small{display:flex;align-items:center;font-size:12px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tu b{display:block;font-size:17px;margin:3px 0 1px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .tu span{display:block;font-size:12px;color:var(--soft);line-height:1.3}
 .crb-ac{font-size:13px;line-height:1.4;margin:-2px 0 14px;padding:8px 11px;border-radius:8px;border-left:3px solid var(--rule)}
@@ -936,7 +936,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='10/10/2026 23h12';
+const APP_VERSION='10/10/2026 23h22';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2442,7 +2442,7 @@ function blocNutriscore(d){
   if(N.b)tete.push('<span class="nutri b" style="width:18px;height:18px;font-size:10px;vertical-align:-3px;margin-right:4px">B</span>'+Math.round(pct('b'))+'%');
   const teteTxt=tete.length?tete.join('<span style="color:var(--soft);margin:0 6px">·</span>'):'Aucun produit bien noté';
 
-  let h='<section><h2>Qualité des produits scannés</h2>';
+  let h='<section><h2>'+ico('pomme','x')+'Qualité des produits scannés</h2>';
   h+='<div class="ns-tete"><div class="ns-note"><b>'+moy.toFixed(1).replace('.',',')+'</b><small>/5</small></div>'+
      '<div class="ns-tete-t"><b>'+teteTxt+'</b>'+
      '<small>sur '+tot+(tot>1?' produits consommés':' produit consommé')+'</small></div></div>';
@@ -2513,8 +2513,8 @@ function calcProgression(d,periode){
 }
 const kgSigne=v=>(v<0?'−':v>0?'+':'±')+Math.abs(v).toFixed(1).replace('.',',');
 const coulKg=v=>{const s=sensObj();if(!v||s===0)return '';return (v>0)===(s>0)?'var(--under)':'var(--over)';};
-function tuile(lib,val,sub,coul){
-  return '<div class="tu"><small>'+lib+'</small><b'+(coul?' style="color:'+coul+'"':'')+'>'+val+'</b><span>'+sub+'</span></div>';
+function tuile(lib,val,sub,coul,ic){
+  return '<div class="tu"><small>'+(ic?ico(ic,'x'):'')+lib+'</small><b'+(coul?' style="color:'+coul+'"':'')+'>'+val+'</b><span>'+sub+'</span></div>';
 }
 function aide(txt,titre){return '<details class="aide"><summary>'+(titre||'Comment lire ce graphique ?')+'</summary>'+txt+'</details>';}
 
@@ -2526,9 +2526,9 @@ function ongletPoids(d,P){
   else{
     h+='<div class="tuiles">'+
       tuile('Balance',pr.reel===null?'—':kgSigne(pr.reel)+' kg',
-        pr.reel===null?'pas assez de pesées':'en '+pr.nbJours+' jour'+(pr.nbJours>1?'s':'')+(pr.refEstime?', début estimé':''),pr.reel===null?'':coulKg(pr.reel))+
-      tuile('Rythme',pr.ryth===null?'—':kgSigne(pr.ryth)+' kg','par semaine',pr.ryth===null?'':coulKg(pr.ryth))+
-      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg','d’après ton écart',pr.theoKg===null?'':coulKg(pr.theoKg))+
+        pr.reel===null?'pas assez de pesées':'en '+pr.nbJours+' jour'+(pr.nbJours>1?'s':'')+(pr.refEstime?', début estimé':''),pr.reel===null?'':coulKg(pr.reel),'balance')+
+      tuile('Rythme',pr.ryth===null?'—':kgSigne(pr.ryth)+' kg','par semaine',pr.ryth===null?'':coulKg(pr.ryth),'calendrier')+
+      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg','d’après ton écart',pr.theoKg===null?'':coulKg(pr.theoKg),'cible')+
       '</div>';
     if(pr.reel!==null&&pr.theoKg!==null){
       const diff=pr.reel-pr.theoKg,e=kgTxt(Math.abs(diff));
@@ -2569,8 +2569,8 @@ function ongletCalories(d,P){
   const som=js.reduce((t,j)=>t+(Number(j.ecart)||0),0);
   const sous=js.filter(j=>coulEcart(j.ecart)==='var(--under)').length;
   let h='<div class="tuiles">'+
-    tuile('Moyenne',nb(moy),'kcal/j')+
-    tuile('Écart cumulé',(som<0?'−':som>0?'+':'')+nb(Math.abs(Math.round(som))),'kcal ≈ '+kgSigne(som/7000)+' kg',coulKg(som))+
+    tuile('Moyenne',nb(moy),'kcal/j',null,'flamme')+
+    tuile('Écart cumulé',(som<0?'−':som>0?'+':'')+nb(Math.abs(Math.round(som))),'kcal ≈ '+kgSigne(som/7000)+' kg',coulKg(som),'courbes')+
     tuile(['Sous besoins','Équilibre','Au-dessus'][sensObj()+1],sous+' / '+js.length,'jour'+(js.length>1?'s':''))+
     '</div>';
   h+=barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+detailJour(d,S.insp?S.insp.date:null);
@@ -2586,9 +2586,9 @@ function vueCourbes(d){
   [[3,'3 j'],[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
     h+='<button data-cper="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
-  h+='</div><div class="seg" role="tablist">';
-  [['poids','Poids'],['calories','Calories'],['purines','Purines'],['qualite','Qualité']].forEach(x=>{
-    h+='<button role="tab" data-cong="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';
+  h+='</div><div class="seg seg-i" role="tablist">';
+  [['poids','Poids','balance'],['calories','Calories','flamme'],['purines','Purines','pied'],['qualite','Qualité','brocoli']].forEach(x=>{
+    h+='<button role="tab" data-cong="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+ico(x[2])+x[1]+'</button>';
   });
   h+='</div>';
   if(o==='calories')h+=ongletCalories(d,P);
@@ -2597,7 +2597,7 @@ function vueCourbes(d){
   else h+=ongletPoids(d,P);
   h+='</section>';
   if(o==='calories'){
-    h+='<section><h2>Régularité</h2><p class="crb-st">4 dernières semaines</p>'+calendrier(d.jours||[])+
+    h+='<section><h2>'+ico('calendrier','x')+'Régularité</h2><p class="crb-st">4 dernières semaines</p>'+calendrier(d.jours||[])+
        detailJour(d,S.inspCal?S.inspCal.date:null)+
        aide('<p class="note">'+libCouleursEcart()+' Plus la case est foncée plus l’écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p>','Comment lire le calendrier ?')+
        '</section>';
@@ -3262,14 +3262,14 @@ function ongletQualite(d,P){
     const qx=Q[x];
     const jv=js.filter(j=>j.date>=debut&&j.date<auj()&&j.valide&&j[x]!==null&&j[x]!==undefined);
     const ta=d.aujourdhui||{},enc=(ta.repas>0&&ta[x]!==null&&ta[x]!==undefined)?'aujourd\u2019hui en cours : '+nb(Math.round(Number(ta[x])||0))+' '+qx.u:'';
-    if(!jv.length){h+=tuile(qx.court,'—',enc||'pas encore de données');return;}
+    if(!jv.length){h+=tuile(qx.court,'—',enc||'pas encore de données',null,qx.ico);return;}
     const moy=jv.reduce((t,j)=>t+(Number(j[x])||0),0)/jv.length,e=etatNut(qx,moy);
     const nb2=qx.plancher?jv.filter(j=>j[x]>=qx.max).length:jv.filter(j=>j[x]>qx.max).length;
-    h+=tuile(qx.court,nb(moy)+' '+qx.u+'/j',(qx.plancher?'objectif ':'max ')+nb(qx.max)+' '+qx.u+' · '+nb2+' jour'+(nb2>1?'s':'')+(qx.plancher?' atteint'+(nb2>1?'s':''):' au-dessus')+(enc?' · '+enc:''),e.coul);
+    h+=tuile(qx.court,nb(moy)+' '+qx.u+'/j',(qx.plancher?'objectif ':'max ')+nb(qx.max)+' '+qx.u+' · '+nb2+' jour'+(nb2>1?'s':'')+(qx.plancher?' atteint'+(nb2>1?'s':''):' au-dessus')+(enc?' · '+enc:''),e.coul,qx.ico);
   });
   h+=blocAlcool(d)+'</div><div class="nut-sel" role="tablist">';
-  NUTS.forEach(x=>{h+='<button data-cnut="'+x+'" class="'+(x===k?'on':'')+'">'+Q[x].court+'</button>';});
-  h+='<button data-cnut="alcool" class="'+(k==='alcool'?'on':'')+'">Alcool</button></div>';
+  NUTS.forEach(x=>{h+='<button data-cnut="'+x+'" class="'+(x===k?'on':'')+'">'+ico(Q[x].ico,'x')+Q[x].court+'</button>';});
+  h+='<button data-cnut="alcool" class="'+(k==='alcool'?'on':'')+'">'+ico('vin','x')+'Alcool</button></div>';
   if(k==='alcool')return h+graphiqueAlcool(d,n)+aide('<p class="note">1 verre standard = 10 g d\'alcool pur : un demi de bière (25 cl à 5 %), un verre de vin (10 cl), une coupe de champagne, un petit verre d\'alcool fort (3 cl). Repères de Santé publique France : au plus 10 verres par semaine, 2 par jour, et des jours sans alcool. Pour l\'acide urique, la bière est un facteur aggravant : elle apporte à la fois de l\'alcool et des purines.</p>');
   const par={};js.forEach(j=>{if(j[k]!==null&&j[k]!==undefined)par[j.date]=Math.round(Number(j[k])||0);});
   const itemsQ=joursCalendaires(n,par);
@@ -3412,9 +3412,9 @@ function coulVerres(g){return g<=0?'var(--under)':(g<=20?'var(--jaune)':'var(--o
 function blocAlcool(d){
   const W=semainesAlcool(d,2),c=W[0],p=W[1];
   const cours='cette semaine : '+(c.suivis?vTxt(verresNb(c.g))+' pour l’instant':'rien de noté');
-  if(!p.suivis)return '<div class="tu tu-large" data-tu="alcool"><small>Alcool · repère 10 verres par semaine</small><b style="color:'+(verresNb(c.g)<=10?'var(--under)':'var(--over)')+'">'+verresTxt(c.g)+' cette semaine</b><span>pour l’instant · '+c.avec+' jour'+(c.avec>1?'s':'')+' avec, '+c.sans+' sans</span></div>';
+  if(!p.suivis)return '<div class="tu tu-large" data-tu="alcool"><small>'+ico('vin','x')+'Alcool · repère 10 verres par semaine</small><b style="color:'+(verresNb(c.g)<=10?'var(--under)':'var(--over)')+'">'+verresTxt(c.g)+' cette semaine</b><span>pour l’instant · '+c.avec+' jour'+(c.avec>1?'s':'')+' avec, '+c.sans+' sans</span></div>';
   const v=verresNb(p.g),inc=p.ns>0||p.suivis<5;
-  return '<div class="tu tu-large" data-tu="alcool"><small>Alcool · repère 10 verres par semaine</small><b style="color:'+(v<=10?'var(--under)':'var(--over)')+'">'+verresTxt(p.g)+' la semaine dernière</b><span>'+
+  return '<div class="tu tu-large" data-tu="alcool"><small>'+ico('vin','x')+'Alcool · repère 10 verres par semaine</small><b style="color:'+(v<=10?'var(--under)':'var(--over)')+'">'+verresTxt(p.g)+' la semaine dernière</b><span>'+
     p.avec+' jour'+(p.avec>1?'s':'')+' avec, '+p.sans+' sans'+(inc?' (semaine incomplète)':'')+' · '+cours+'</span></div>';
 }
 // Grille jour par jour : une ligne par semaine, la plus récente en haut.
@@ -4059,9 +4059,9 @@ function blocPurinesCourbes(d,P){
   const dessus=pleins.filter(i=>i.v>max).length;
   const moyP=pleins.length?Math.round(pleins.reduce((t,i)=>t+i.v,0)/pleins.length):null;
   let h='<div class="tuiles">'+
-    tuile('Moyenne',moyP===null?'—':nb(moyP),'mg/j',moyP===null?'':(moyP>max?'var(--over)':'var(--under)'))+
-    tuile('Au-dessus',dessus+' / '+pleins.length,'jours saisis',dessus?'var(--over)':'var(--under)')+
-    tuile('Plafond',nb(max),'mg/j')+
+    tuile('Moyenne',moyP===null?'—':nb(moyP),'mg/j',moyP===null?'':(moyP>max?'var(--over)':'var(--under)'),'pied')+
+    tuile('Au-dessus',dessus+' / '+pleins.length,'jours saisis',dessus?'var(--over)':'var(--under)','calendrier')+
+    tuile('Plafond',nb(max),'mg/j',null,'cible')+
     '</div>';
   h+=barresSeuil(items,{seuil:max,bonSiHaut:false,libSeuil:'plafond '+nb(max)+' mg',titre:'Purines animales et bière par jour',cle:'pur',coul:v=>coulPur(v,max),fmt:v=>nb(v)+' mg',marques:(d.crises||[]).map(c=>c.date)});
   // le détail des repas n'est chargé que depuis le lundi de la semaine précédente

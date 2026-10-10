@@ -14,3 +14,9 @@ payload*.json
 
 # Réglages Claude Code personnels
 .claude/settings.local.json
+
+# Sauvegardes locales des données réelles (Google Sheets) : jamais sur GitHub
+sauvegardes/
+
+# Maquettes (captures PNG), jamais sur GitHub
+maquettes/

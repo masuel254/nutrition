@@ -699,6 +699,14 @@ await page.click('.vue.on #j-retour');
 ok(await page.locator('.vue.on #j-ajout').count() === 1 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && await page.locator('.vue.on #j-retour').count() === 0, 'Revenir à aujourd hui : écran Jour normal');
 await page.click('nav button[data-vue="corps"]');
 ok(await page.locator('.vue.on .seg-i .ic').count() === 5 && await chargees('.vue.on .seg-i .ic'), 'Corps : une icône par onglet');
+await page.click('nav button[data-vue="courbes"]');
+ok(await page.locator('.vue.on .seg-i .ic').count() === 4 && await chargees('.vue.on .seg-i .ic') && await page.locator('.vue.on .tu small .ic').count() >= 3, 'Courbes : icônes sur les onglets et les tuiles du Poids');
+for (const [o, n] of [['calories', 2], ['purines', 3], ['qualite', 5]]) {
+  await page.click('.vue.on [data-cong="' + o + '"]');
+  ok(await page.locator('.vue.on .tu small .ic').count() >= n && await chargees('.vue.on .tu small .ic'), 'Courbes > ' + o + ' : icônes sur les tuiles');
+}
+ok(await page.locator('.vue.on .nut-sel .ic').count() === 5, 'Courbes > Qualité : une icône par nutriment, alcool compris');
+await page.click('.vue.on [data-cong="poids"]');
 await page.click('nav button[data-vue="ajout"]');
 if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
 ok(await page.locator('.vue.on .aj-photo .ic').count() === 2 && !/📷|🖼/.test(await texte('.vue.on .aj-photo')), 'Ajouter : icônes appareil photo et galerie (plus d émojis)');
