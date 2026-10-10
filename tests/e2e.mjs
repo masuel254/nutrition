@@ -66,7 +66,7 @@ const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administra
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
 const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false;
 await page.route('https://app.test/**', r => {
-  const img = new URL(r.request().url()).pathname.match(/^\/(img\/imc\/[fh]-\d+\.webp)$/); // vraies images du dépôt
+  const img = new URL(r.request().url()).pathname.match(/^\/(img\/(?:imc\/[fh]-\d+|ico\/[a-z]+)\.webp)$/); // vraies images du dépôt
   if (img) { try { return r.fulfill({ status: 200, contentType: 'image/webp', body: readFileSync(join(ICI, '..', img[1])) }); } catch { return r.fulfill({ status: 404, body: '' }); } }
   return r.fulfill({ status: 200, contentType: 'text/html', body: HTML });
 });
@@ -406,9 +406,10 @@ ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restan
   ok(await page.locator('.vue.on .bulle.moi').count() === 1, 'Coach : ouvrir puis fermer les Réglages garde la conversation');
   await page.click('#c-vider'); }
 await page.click('nav button[data-vue="jour"]');
-ok(/métabolisme/.test(await texte('.bandeau')) && /reste \d/.test(await texte('.vue.on .repas-liste')), 'Jour : en-tête complet, « reste » par repas');
-await page.click('#b-pesee');
-ok(await page.locator('.vue.on #p-val').count() === 1, 'toucher le poids ouvre la pesée');
+ok(!/métabolisme|besoins/.test(await texte('.bandeau')) && /Seche -600/.test(await texte('.bandeau')) && /reste \d/.test(await texte('.vue.on .repas-liste')), 'Jour : en-tête allégé (pastille Sèche, plus de chiffres), « reste » par repas');
+await page.click('#b-reglages');
+ok(/Mes chiffres/.test(await texte('.vue.on')) && /100,0 kg/.test(await texte('.chif')) && /1 ?900/.test(await texte('.chif')) && /2 ?700/.test(await texte('.chif')), 'Réglages : poids, cible, métabolisme et besoins dans « Mes chiffres »');
+await page.click('#b-reglages');
 await page.click('nav button[data-vue="journal"]');
 await page.fill('#jn-q', 'poulet'); await page.waitForTimeout(300);
 ok(await page.locator('#jn-semaines').isHidden() && /résultat/.test(await texte('#jn-res')) && await page.locator('#jn-res .jn-rl').count() > 0, 'Journal : recherche par aliment');
@@ -673,6 +674,35 @@ console.log('Corps : IMC');
   const dx = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
   ok(dx <= 0, 'IMC : pas de débordement horizontal');
   await page.click('.vue.on [data-ko="pesee"]'); await page.click('nav button[data-vue="jour"]'); }
+
+console.log('Icônes et calendrier des 7 jours');
+await page.click('nav button[data-vue="jour"]');
+const chargees = async s => page.evaluate(sel => { const l = [...document.querySelectorAll(sel)]; return l.length > 0 && l.every(i => i.complete && i.naturalWidth > 50); }, s);
+ok(await page.locator('nav button .ic').count() === 5 && await page.locator('nav button svg').count() === 0 && await chargees('nav button .ic'), 'barre du bas : 5 icônes images (plus de pictos au trait), toutes chargées');
+ok(await page.locator('nav button').evaluateAll(l => l.every(b => b.textContent.trim().length > 2)), 'barre du bas : le libellé reste sous chaque icône');
+ok(await page.locator('.vue.on .rep-nom .ic').count() >= 2 && await page.locator('.vue.on .cr-dot').count() === 0 && await chargees('.vue.on .rep-nom .ic'), 'Jour : une icône par repas (plus de pastille de couleur)');
+ok(await page.locator('.vue.on .hero .hm .ic').count() === 3 && await page.locator('.vue.on .cal-pastille .ic').count() === 1 && await page.locator('.vue.on .seg-i .ic').count() === 4, 'Jour : icônes des macros, de la pastille et des onglets');
+ok(await page.locator('.vue.on .qj .hm .ic').count() >= 4 && await chargees('.vue.on .qj .hm .ic'), 'Qualité du jour : une icône par ligne (saturées, fibres, sodium, sucres)');
+ok(await page.locator('#b-coach .ic, #b-maj .ic, #b-reglages .ic').count() === 3, 'en-tête : icônes Coach, Actualiser, Réglages');
+ok(await page.locator('.vue.on .sem button').count() === 7 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && /auj/i.test(await page.locator('.vue.on .sem button').last().innerText()), 'calendrier : 7 jours, aujourd hui à droite et sélectionné');
+const nb = n => String(Math.round(n)).replace(/(\d)(?=\d{3}$)/, '$1\\s?'); // 2350 -> /2\s?350/ (espace fine de l'appli)
+const veille = jour(-1), jv = DATA.jours.find(j => j.date === veille), nVeille = Number(veille.slice(8));
+ok((await page.locator('.vue.on .sem button').nth(5).getAttribute('data-jd')) === veille && (await texte('.vue.on .sem button:nth-child(6) b')) === String(nVeille), 'calendrier : la veille est l avant-dernier carré');
+await page.click('.vue.on .sem button:nth-child(6)');
+ok(await page.locator('.vue.on #j-retour').count() === 1 && await page.locator('.vue.on #j-ajout').count() === 0 && await page.locator('.vue.on .seg-i').count() === 0, 'jour passé : bandeau « Revenir à aujourd hui », sans bouton Ajouter ni onglets');
+ok(new RegExp(String(nVeille)).test(await texte('.bandeau .lejour')) && new RegExp(nb(jv.kcal)).test(await texte('.vue.on .anneau, .vue.on .cal-anneau')) && /Cible|au-delà|en dessous/.test(await texte('.vue.on .cal-pastille')), 'jour passé : date de l en-tête, kcal du jour et verdict (plus de « restantes »)');
+const repV = LIGNES.filter(l => l.date === veille && l.repas === 'Matin').reduce((t, l) => t + l.kcal, 0);
+ok(await page.locator('.vue.on .rep-ligne').count() >= 2 && new RegExp(nb(repV)).test(await texte('.vue.on .rep-ligne')), 'jour passé : détail par repas recomposé depuis le Journal (Matin ' + repV + ' kcal)');
+await page.click('nav button[data-vue="courbes"]'); await page.click('nav button[data-vue="jour"]');
+ok(await page.locator('.vue.on #j-retour').count() === 1, 'le jour choisi reste choisi en changeant d onglet');
+await page.click('.vue.on #j-retour');
+ok(await page.locator('.vue.on #j-ajout').count() === 1 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && await page.locator('.vue.on #j-retour').count() === 0, 'Revenir à aujourd hui : écran Jour normal');
+await page.click('nav button[data-vue="corps"]');
+ok(await page.locator('.vue.on .seg-i .ic').count() === 5 && await chargees('.vue.on .seg-i .ic'), 'Corps : une icône par onglet');
+await page.click('nav button[data-vue="ajout"]');
+if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+ok(await page.locator('.vue.on .aj-photo .ic').count() === 2 && !/📷|🖼/.test(await texte('.vue.on .aj-photo')), 'Ajouter : icônes appareil photo et galerie (plus d émojis)');
+await page.click('nav button[data-vue="jour"]');
 
 console.log('Affichage');
 for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {

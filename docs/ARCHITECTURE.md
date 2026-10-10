@@ -676,3 +676,14 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Chaque carte montre une photo de corpulence `img/imc/{h|f}-{24,27,30,33,36}.webp` (palier le plus proche, `imgIMC`), choisie selon `profil.sexe`. Images générées par IA et fournies par Samuel, découpées en webp d'environ 15 Ko.
 - Jauge des zones (échelle 15 à 40, repères début / maintenant / objectif) et courbe SVG `courbeIMC` (fonds par zone, ligne d'objectif).
 - Rien n'est stocké : l'IMC est recalculé à l'affichage. Pas de bloc sans taille ou sans pesée. Ni workflow, ni Sheets. Tests : section « Corps : IMC » de `tests/e2e.mjs` (9 vérifications).
+
+## 33. Icônes de la palette, calendrier des 7 jours, en-tête allégé (10/10, appli v74)
+
+- Palette d'icônes (générée par IA, fournie par Samuel) : `img/ico/*.webp`, 96 px, fond transparent, environ 5 Ko chacune. Helper `ico(nom, classe)`, purement décoratif (`alt=""`).
+  Mises : barre du bas (`VUES`, assiette + pastille « + » en CSS pour Ajouter), onglets Jour et Corps (`.seg-i`), repas (`IC_REPAS`), macros P/L/G, Qualité du jour (`seuilsQualite().ico`), pastille kcal, pas, boutons Coach / Actualiser / Réglages, photo et galerie.
+  Les émojis 📷 🖼️ 👟 et les points de couleur des repas disparaissent. Pas d'icône sur les macros de la barre d'avancement du bas (trop étroit).
+- Calendrier : `bandeSemaine(d)` en tête de l'écran Jour, 7 carrés (le plus ancien à gauche, aujourd'hui à droite), pastille verte / orange selon la cible du jour. `S.jour.date` (null = aujourd'hui) choisit le jour affiché, il n'est pas mémorisé au redémarrage.
+  Jour passé (`jourPasse()`) : totaux depuis `d.jours`, détail par repas recomposé depuis `d.journal` (`donneesJour`), verdict `pastilleJourPasse` (« Cible tenue », « N kcal au-delà / en dessous ») à la place de « restantes », bandeau « Revenir à aujourd'hui », ni Ajouter ni pas ni onglets (Repas seulement).
+  Limite : le détail par repas dépend des lignes du Journal chargées (au moins 7 jours, `journal_depuis`).
+- En-tête : poids, métabolisme, besoins et cible quittent l'écran Jour, remplacés par la pastille « Sèche -600 kcal/j ». Ils sont dans Réglages › « Mes chiffres » (4 cartes). Le raccourci poids > Pesée (`#b-pesee`) est supprimé.
+- Appli seule : ni workflow, ni Sheets, ni Telegram. Tests : section « Icônes et calendrier des 7 jours » de `tests/e2e.mjs`.

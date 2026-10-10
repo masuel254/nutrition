@@ -54,9 +54,6 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .perime{margin-top:9px;padding:7px 10px;border-radius:4px;background:var(--over);color:var(--paper);
   font-size:13px;font-weight:400;line-height:1.35}
 .bandeau .roue{font-size:13px;color:var(--soft);padding:4px 2px}
-.mesures{display:flex;gap:6px 0;margin-top:8px;font-size:13px;color:var(--soft);font-weight:300;flex-wrap:wrap}
-.mesures span{padding-right:10px;margin-right:10px;border-right:1px solid var(--rule)}
-.mesures span:last-child{border-right:none;padding-right:0;margin-right:0}
 .badge{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:999px;font-size:13px;font-weight:600}
 .badge.sous{background:var(--under);color:var(--paper)}
 .badge.sur{background:var(--over);color:var(--paper)}
@@ -82,7 +79,6 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .peson button{width:58px;flex:none;border:1px solid var(--rule);border-radius:3px;font-size:24px;font-weight:300;background:var(--card)}
 .raccourci{width:100%;margin-top:14px;padding:11px;border:1px solid var(--ink);border-radius:3px;
   font-size:14.5px;font-weight:600}
-.mesures b{font-weight:600;color:var(--ink)}
 
 main{padding:18px 18px 8px;max-width:640px;margin:0 auto;width:100%;overflow-x:hidden;min-width:0}
 .vue{display:none;min-width:0}.vue.on{display:block}
@@ -744,7 +740,6 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .pes-l .e small{color:var(--soft);font-weight:400}
 .aj-photo{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
 .aj-photo button{border-radius:14px;padding:20px 10px;font-size:17px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:6px}
-.aj-photo button span{font-size:30px;line-height:1}
 .aj-photo .cam{border:0;background:var(--under);color:var(--paper)}
 .aj-photo .gal{border:1px solid var(--rule);background:var(--card);color:var(--ink);font-weight:600;font-size:16px}
 .aj-apercu{margin-bottom:10px;text-align:center}.aj-apercu img{max-width:100%;border-radius:12px;display:block;margin:0 auto}
@@ -795,7 +790,32 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 /* en-tête compact hors écran Jour */
 .bandeau.compact{padding-bottom:10px}.bandeau.compact h1{font-size:22px}
 .bandeau .qui .roue+.roue{margin-left:14px}
-.mes-pds{font:inherit;color:inherit;background:none;border:0;padding:0;text-decoration:underline dotted;text-underline-offset:4px}
+/* icônes de la palette (img/ico) */
+.ic{display:inline-block;vertical-align:middle;object-fit:contain;flex:none;pointer-events:none}
+.ic.m{width:26px;height:26px;margin-right:10px}.ic.s{width:22px;height:22px}.ic.x{width:15px;height:15px;margin:-2px 3px 0 0}
+.ic.p{width:22px;height:22px;margin:-3px 6px 0 0}.ic.fl{width:20px;height:20px;margin:-3px 6px 0 -4px}.ic.ph{width:30px;height:30px}
+.rep-nom{display:inline-flex;align-items:center}.rep-tete{align-items:center}
+.hm.i{display:grid;grid-template-columns:22px 1fr;column-gap:7px;align-items:center}.hm.i>.ic{grid-row:1/3}
+.seg-i button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px}.seg-i .ic{width:22px;height:22px}
+.bandeau .btns{display:flex;flex:none;white-space:nowrap}.bandeau .roue{display:inline-flex;align-items:center}
+.bandeau .qui .badge{margin:0}.bandeau>.badge{margin-top:6px;font-size:12px;padding:2px 8px}
+/* calendrier des 7 derniers jours */
+.sem{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 14px}
+.sem button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;border-radius:12px;background:var(--creux);color:var(--ink)}
+.sem small{font-size:11px;color:var(--soft);font-weight:600;text-transform:uppercase}
+.sem b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.sem i{width:6px;height:6px;border-radius:50%;background:var(--rule)}.sem i.ok{background:var(--under)}.sem i.ko{background:var(--over)}
+.sem button.on{background:var(--ink);color:var(--paper)}.sem button.on small{color:var(--paper);opacity:.75}
+.sem button.auj:not(.on){box-shadow:inset 0 0 0 1.5px var(--ink)}
+.passe{display:flex;justify-content:space-between;align-items:center;background:var(--creux);border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px}.passe span::first-letter{text-transform:uppercase}
+.passe button{color:var(--under);font-weight:700;font-size:14px}
+/* barre du bas en icônes */
+nav button .ic{width:26px;height:26px;opacity:.78}nav button.on .ic{opacity:1}
+nav button .plus{position:absolute;right:-5px;bottom:-2px;width:14px;height:14px;border-radius:50%;background:var(--under);color:var(--paper);font:700 12px/14px system-ui;text-align:center;box-shadow:0 0 0 2px var(--card)}
+nav button .ico-b{position:relative;display:inline-block;line-height:0}
+/* Mes chiffres (Réglages) */
+.chif{display:grid;grid-template-columns:1fr 1fr;gap:8px}.chif div{background:var(--creux);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--soft)}
+.chif b{display:block;font-size:20px;color:var(--ink);font-weight:700;margin-top:2px}.chif small{font-size:13px;font-weight:400;color:var(--soft)}
 /* attente de l'IA */
 #a-etape{min-height:18px}
 /* coach : questions toutes prêtes */
@@ -916,13 +936,13 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='09/10/2026 16h45';
+const APP_VERSION='10/10/2026 23h12';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
+  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false,date:null},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},regTab:'objectif',prof:{etat:null,message:'',sexe:null},
   adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,gt:{quand:'auj',date:'',art:null,int:null,rem:'',etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{onglet:'pesee',periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
@@ -946,7 +966,9 @@ const auj=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+
 const isoLocal=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
 const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-const dateLongue=()=>{const d=new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
+const dateLongue=(iso)=>{const d=iso?new Date(iso+'T12:00:00'):new Date();return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()];};
+// Icône de la palette (img/ico/NOM.webp), purement décorative : le texte à côté dit la même chose.
+const ico=(n,c)=>'<img class="ic'+(c?' '+c:'')+'" src="img/ico/'+n+'.webp" alt="" aria-hidden="true">';
 const formatVersion=v=>{const m=String(v||'').match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}h\d{2})$/);return m?m[1]+' à '+m[2]:String(v||'');};
 /* jour de la semaine capitalisé à partir d'une date AAAA-MM-JJ, construite en heure locale */
 const jourSemaine=s=>{
@@ -1703,6 +1725,7 @@ function anneau(v,cible,coul,label,taille,coulDep){
 
 /* ---------- vues ---------- */
 const REPAS=[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir'],['autre','Autre']];
+const IC_REPAS={matin:'toast',midi:'poulet',encas:'yaourt',soir:'soupe',autre:'pomme'};
 function libelleRepas(r){return {matin:'Matin',midi:'Midi',soir:'Soir',encas:'En-cas',estim:'Estimation'}[r]||r;}
 
 /* Répartition des cibles par repas. Stockée dans Params (colonne repartition)
@@ -1771,10 +1794,11 @@ function macroEtat(k,v,t){
   if(ecart>=0)return {coul:'var(--under)',txt:nb(ecart)+' g restant'+(ecart>1?'s':'')};
   return {coul:couleurDepassement(v,t),txt:nb(-ecart)+' g en trop'};
 }
-function barreMacro(k,lib,v,t){
-  if(!t)return '<div class="hm"><div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> g</span></div></div>';
+function barreMacro(k,lib,v,t,ic){
+  const i=ic?ico(ic,'s'):'',cl=ic?'hm i':'hm';
+  if(!t)return '<div class="'+cl+'">'+i+'<div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> g</span></div></div>';
   const e=macroEtat(k,v,t);
-  return '<div class="hm"><div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> / '+nb(t)+' g</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
+  return '<div class="'+cl+'">'+i+'<div class="hm-l"><span>'+lib+' <b>'+nb(v)+'</b> / '+nb(t)+' g</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
     '<div class="hm-b"><i style="width:'+Math.min(100,v/t*100).toFixed(0)+'%;background:'+e.coul+'"></i></div></div>';
 }
 // Marge de marche du jour : pas au-delà de la moyenne des 7 jours précédents (le niveau d'activité des Réglages
@@ -1790,33 +1814,71 @@ function bonusPas(d){
 function blocPasJour(d,cible){
   const b=bonusPas(d);if(!b)return '';
   const ouv=!!S.pasOuv;
-  let h='<div class="pia pasb"><button class="pia-t'+(ouv?' o':'')+'" id="pas-t" aria-expanded="'+ouv+'"><span>👟 <b>'+nb(b.pas)+' pas</b> aujourd’hui · <b class="g">+'+nb(b.kcal)+' kcal</b> gagnées</span><span class="ch">▸</span></button>';
+  let h='<div class="pia pasb"><button class="pia-t'+(ouv?' o':'')+'" id="pas-t" aria-expanded="'+ouv+'"><span>'+ico('pas','p')+'<b>'+nb(b.pas)+' pas</b> aujourd’hui · <b class="g">+'+nb(b.kcal)+' kcal</b> gagnées</span><span class="ch">▸</span></button>';
   if(ouv)h+='<div class="pas-d"><div class="ligne"><span>Ta moyenne sur 7 jours</span><b>'+nb(b.moy)+' pas</b></div>'+
     '<div class="ligne"><span>Pas en plus aujourd’hui</span><b>+'+nb(b.plus)+' pas</b></div>'+
     '<div class="ligne"><span>Gagnées en marchant</span><b class="g">+'+nb(b.kcal)+' kcal</b></div>'+
     '<p class="pia-d">Ta cible reste <b>'+nb(cible)+' kcal</b>. Ces '+nb(b.kcal)+' kcal sont une marge facultative, à n’utiliser que si tu as faim : tu peux aller jusqu’à '+nb(cible+b.kcal)+'. Seuls les pas au-delà de ta moyenne comptent, car ton niveau d’activité inclut déjà ta marche habituelle.</p></div>';
   return h+'</div>';
 }
+// Jour affiché sur l'écran Jour : S.jour.date (null = aujourd'hui). Pour un jour passé, les totaux viennent de d.jours,
+// le détail par repas se recompose depuis les lignes du Journal (chargées sur au moins 7 jours).
+function jourPasse(){const j=S.jour.date;return (j&&j!==auj())?j:null;}
+function repasCle(lib){return {Matin:'matin',Midi:'midi','En-cas':'encas',Soir:'soir'}[lib]||'autre';}
+function donneesJour(d,iso){
+  const j=(d.jours||[]).filter(x=>x.date===iso)[0]||{},a=Object.assign({kcal:0,prot:0,lip:0,gluc:0,repas:0},j,{date:iso,parRepas:{}});
+  (d.journal||[]).filter(l=>l.date===iso).forEach(l=>{
+    const p=a.parRepas[repasCle(l.repas)]=a.parRepas[repasCle(l.repas)]||{kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0};
+    ['kcal','prot','lip','gluc','fibres','sucres','sodium','satures'].forEach(k=>{p[k]+=Number(l[k])||0;});
+  });
+  return a;
+}
+// Verdict d'un jour terminé (la pastille « restantes » n'a plus de sens).
+function pastilleJourPasse(v,t){
+  if(!v)return {coul:'var(--soft)',txt:'Aucun repas ce jour-là'};
+  if(bonJourApp(v,t))return {coul:'var(--under)',txt:'Cible tenue'};
+  return {coul:couleurKcal(v,t),txt:nb(Math.round(Math.abs(v-t)))+' kcal '+(v>t?'au-delà':'en dessous')};
+}
+// Bande des 7 derniers jours (le plus ancien à gauche, aujourd'hui à droite) : toucher un jour affiche ses données.
+function bandeSemaine(d){
+  const sel=jourPasse()||auj(),c=d.cibles||{},a=d.aujourdhui||{};
+  let h='<div class="sem" role="group" aria-label="7 derniers jours">';
+  for(let n=6;n>=0;n--){
+    const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()-n);
+    const iso=isoLocal(x),j=(d.jours||[]).filter(y=>y.date===iso)[0];
+    const kcal=n?(j&&j.repas>0?j.kcal:0):(a.kcal||0),cible=(j&&j.cible)||c.kcal;
+    const etat=(!kcal||!cible)?'':((n?bonJourApp(kcal,cible):(sensObj()>0||bonJourApp(kcal,cible)))?'ok':'ko');
+    h+='<button data-jd="'+iso+'" aria-label="'+dateLongue(iso)+'" aria-pressed="'+(iso===sel)+'" class="'+(iso===sel?'on':'')+(n?'':' auj')+'">'+
+      '<small>'+(n?JOURS[x.getDay()][0]:'auj.')+'</small><b>'+x.getDate()+'</b><i class="'+etat+'"></i></button>';
+  }
+  return h+'</div>';
+}
 function vueJour(d){
-  const c=d.cibles,a=d.aujourdhui;
-  let h=blocAttente()+alertesGoutte(d)+'<section>';
+  const pas=jourPasse();
+  const c=pas?Object.assign({},d.cibles,{kcal:(((d.jours||[]).filter(x=>x.date===pas)[0]||{}).cible)||d.cibles.kcal}):d.cibles;
+  const a=pas?donneesJour(d,pas):d.aujourdhui;
+  if(pas)d=Object.assign({},d,{aujourdhui:a});
+  let h=bandeSemaine(S.data)+(pas?'<div class="passe"><span>'+dateLongue(pas)+'</span><button id="j-retour">Revenir à aujourd’hui</button></div>':blocAttente()+alertesGoutte(d))+'<section>';
   if(c.kcal){
-    const pk=pastilleKcal(a.kcal,c.kcal);
+    const pk=pas?pastilleJourPasse(a.kcal,c.kcal):pastilleKcal(a.kcal,c.kcal);
     h+='<div class="hero">'+anneauCalories(a.kcal,c.kcal,true)+'<div class="hero-d">'+
-      '<span class="cal-pastille" style="background:'+pk.coul+'">'+pk.txt+'</span>'+
-      barreMacro('prot','Prot.',a.prot||0,c.prot)+barreMacro('lip','Lip.',a.lip||0,c.lip)+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc)+
+      '<span class="cal-pastille" style="background:'+pk.coul+'">'+(pas?'':ico('flamme','fl'))+pk.txt+'</span>'+
+      barreMacro('prot','Prot.',a.prot||0,c.prot,'steak')+barreMacro('lip','Lip.',a.lip||0,c.lip,'huile')+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc,'pain')+
       '</div></div>';
-    h+=blocPasJour(d,c.kcal);
-    h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';
+    if(!pas){h+=blocPasJour(d,c.kcal);
+      h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';}
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour la fixer.</p>';
   h+='</section>';
 
-  const o=S.jour.onglet;
-  h+='<section><div class="seg" role="tablist">';
-  [['repas','Repas'],['tendance','Tendance'],['purines','Purines'],['objectif','Objectif']].forEach(x=>{
-    h+='<button role="tab" data-jo="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';
-  });
-  h+='</div>';
+  const o=pas?'repas':S.jour.onglet;
+  h+='<section>';
+  if(!pas){
+    h+='<div class="seg seg-i" role="tablist">';
+    [['repas','Repas','assiette'],['tendance','Tendance','courbes'],['purines','Purines','pied'],['objectif','Objectif','cible']].forEach(x=>{
+      h+='<button role="tab" data-jo="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+ico(x[2])+x[1]+'</button>';
+    });
+    h+='</div>';
+  }
 
   if(o==='repas'){
     const frac=repartFrac(d);
@@ -1830,9 +1892,9 @@ function vueJour(d){
       if(!p.kcal&&!ci)return;
       const cp=cibleRepas('prot',r[0]),cl=cibleRepas('lip',r[0]),cg=cibleRepas('gluc',r[0]);
       h+='<div class="rep-ligne" data-ouvre tabindex="0" role="button" aria-expanded="false"><div class="rep-tete">'+
-         '<span class="rep-nom"><i class="cr-dot" style="background:var(--c-'+r[0]+')"></i>'+r[1]+'<span class="rep-chev">›</span></span>'+
+         '<span class="rep-nom">'+ico(IC_REPAS[r[0]],'m')+r[1]+'<span class="rep-chev">›</span></span>'+
          '<span class="rep-kcal">'+nb(p.kcal)+(ci?'<span class="rep-cible"> / '+nb(ci)+'</span> <span class="'+clsRepas(p.kcal,ci)+'">'+(p.kcal<=ci?'reste '+nb(ci-p.kcal):'+'+nb(p.kcal-ci))+'</span>':'')+'</span></div>'+
-         '<div class="rep-detail"><span>P '+cellPLG(p.prot||0,cp)+'</span><span>L '+cellPLG(p.lip||0,cl)+'</span><span>G '+cellPLG(p.gluc||0,cg)+'</span></div>'+
+         '<div class="rep-detail"><span title="Protéines">'+ico('steak','x')+cellPLG(p.prot||0,cp)+'</span><span title="Lipides">'+ico('huile','x')+cellPLG(p.lip||0,cl)+'</span><span title="Glucides">'+ico('pain','x')+cellPLG(p.gluc||0,cg)+'</span></div>'+
          '<div class="rep-micro">'+ligneMicro(p)+'</div>'+
          '</div>';
     });
@@ -1933,10 +1995,10 @@ function ligneMicro(o){
   const sat=Math.round(o.satures||0),sa=Math.round(o.sucres_ajoutes||0);
   if(!f&&!s&&!so&&!sat)return '';
   const p=[];
-  p.push('fibres '+nb(f)+' g');
-  p.push('sucres '+nb(s)+' g'+(sa?' (dont ajoutés '+nb(sa)+')':''));
-  if(sat||o.satures===0)p.push('saturées '+nb(sat)+' g');
-  p.push('sodium '+nb(so)+' mg');
+  p.push(ico('brocoli','x')+'fibres '+nb(f)+' g');
+  p.push(ico('sucre','x')+'sucres '+nb(s)+' g'+(sa?' (dont ajoutés '+nb(sa)+')':''));
+  if(sat||o.satures===0)p.push(ico('beurre','x')+'saturées '+nb(sat)+' g');
+  p.push(ico('sel','x')+'sodium '+nb(so)+' mg');
   return '<div class="micro">'+p.join(' · ')+'</div>';
 }
 function sectionScan(A){
@@ -2247,7 +2309,7 @@ function vueAjout(d){
     // photo en premier
     h+='<section><h2>Photo du repas</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none">';
     if(A.apercu)h+='<div class="aj-apercu"><img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div><button class="lien" id="a-retire">Retirer la photo</button></div>';
-    h+='<div class="aj-photo"><button class="cam" id="a-cam"><span>📷</span>'+(A.apercu?'Reprendre':'Appareil photo')+'</button><button class="gal" id="a-gal"><span>🖼️</span>Galerie</button></div></section>';
+    h+='<div class="aj-photo"><button class="cam" id="a-cam">'+ico('photo','ph')+(A.apercu?'Reprendre':'Appareil photo')+'</button><button class="gal" id="a-gal">'+ico('galerie','ph')+'Galerie</button></div></section>';
     h+='<section><h2>'+(A.apercu?'Précision (facultatif)':'Ou décris-le')+'</h2><textarea id="a-desc" placeholder="Ex : 200 g de poulet, moitié du plat, x2">'+esc(A.desc)+'</textarea>';
     const pret=!!(A.photo||A.desc.trim());
     const lbl=A.ajoutEnCours?'Analyser et ajouter':'Analyser';
@@ -3161,10 +3223,10 @@ function seuilsAuto(d){
 }
 function seuilsQualite(d){
   const A=seuilsAuto(d),R=reperesReg(d),v=k=>R[k]>0?R[k]:A[k];
-  return {satures:{max:v('satures'),lib:'Graisses saturées',court:'Saturées',u:'g',plancher:false,auto:!R.satures},
-    fibres:{max:v('fibres'),lib:'Fibres',court:'Fibres',u:'g',plancher:true,auto:!R.fibres},
-    sodium:{max:v('sodium'),lib:'Sodium',court:'Sodium',u:'mg',plancher:false,auto:!R.sodium},
-    sucres_ajoutes:{max:v('sucres_ajoutes'),lib:'Sucres ajoutés',court:'Sucres ajoutés',u:'g',plancher:false,auto:!R.sucres_ajoutes}};
+  return {satures:{max:v('satures'),lib:'Graisses saturées',court:'Saturées',u:'g',plancher:false,auto:!R.satures,ico:'beurre'},
+    fibres:{max:v('fibres'),lib:'Fibres',court:'Fibres',u:'g',plancher:true,auto:!R.fibres,ico:'brocoli'},
+    sodium:{max:v('sodium'),lib:'Sodium',court:'Sodium',u:'mg',plancher:false,auto:!R.sodium,ico:'sel'},
+    sucres_ajoutes:{max:v('sucres_ajoutes'),lib:'Sucres ajoutés',court:'Sucres ajoutés',u:'g',plancher:false,auto:!R.sucres_ajoutes,ico:'sucre'}};
 }
 function etatNut(q,v){
   const bon=q.plancher?v>=q.max:v<=q.max;
@@ -3175,7 +3237,7 @@ function etatNut(q,v){
 }
 function barreNut(q,v){
   const e=etatNut(q,v);
-  return '<div class="hm"><div class="hm-l"><span>'+q.lib+' <b>'+nb(v)+'</b> / '+nb(q.max)+' '+q.u+'</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
+  return '<div class="hm i">'+ico(q.ico,'s')+'<div class="hm-l"><span>'+q.lib+' <b>'+nb(v)+'</b> / '+nb(q.max)+' '+q.u+'</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
     '<div class="hm-b"><i style="width:'+Math.min(100,q.max?v/q.max*100:0).toFixed(0)+'%;background:'+e.coul+'"></i></div></div>';
 }
 function blocQualiteJour(d){
@@ -3237,12 +3299,12 @@ function ongletQualite(d,P){
 }
 
 /* ---------- Corps : onglets (pesée, pas, mesures, photos, goutte) ---------- */
-const CORPS_ONGLETS=[['pesee','Pesée'],['pas','Pas'],['mesures','Mesures'],['photos','Photos'],['goutte','Goutte']];
+const CORPS_ONGLETS=[['pesee','Pesée','balance'],['pas','Pas','pas'],['mesures','Mesures','metre'],['photos','Photos','portrait'],['goutte','Goutte','pied']];
 function corpsOngletInit(){try{const v=localStorage.getItem('suivi.corps.onglet');return CORPS_ONGLETS.some(x=>x[0]===v)?v:'pesee';}catch(e){return 'pesee';}}
 function vueCorps(d){
   const o=S.corps.onglet||'pesee';
-  let h='<section class="corps-tete"><div class="seg" role="tablist">';
-  CORPS_ONGLETS.forEach(x=>{h+='<button role="tab" data-ko="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+x[1]+'</button>';});
+  let h='<section class="corps-tete"><div class="seg seg-i" role="tablist">';
+  CORPS_ONGLETS.forEach(x=>{h+='<button role="tab" data-ko="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+ico(x[2])+x[1]+'</button>';});
   h+='</div></section>';
   if(o==='pas')return h+sectionPas(d);
   if(o==='mesures')return h+blocIMC(d)+sectionMesures(d);
@@ -3321,7 +3383,7 @@ function verresNb(g){return Math.round((Number(g)||0)/10);}
 function verresTxt(g){const v=verresNb(g);if(!v&&(Number(g)||0)>0)return 'moins d\u2019un verre';return v+' verre'+(v>1?'s':'');}
 function barreAlcool(g){
   const x=Number(g)||0,v=verresNb(x),bon=x<=20,coul=bon?'var(--under)':(x<=30?'var(--jaune)':'var(--over)');
-  return '<div class="hm"><div class="hm-l"><span>Alcool <b>'+(!v&&x>0?'<1':v)+'</b> / 2 verres</span><span class="hm-e" style="color:'+coul+'">'+(bon?'dans le repère':'au-delà du repère')+'</span></div>'+
+  return '<div class="hm i">'+ico('vin','s')+'<div class="hm-l"><span>Alcool <b>'+(!v&&x>0?'<1':v)+'</b> / 2 verres</span><span class="hm-e" style="color:'+coul+'">'+(bon?'dans le repère':'au-delà du repère')+'</span></div>'+
     '<div class="hm-b"><i style="width:'+Math.min(100,x/20*100).toFixed(0)+'%;background:'+coul+'"></i></div></div>';
 }
 // Jours avec l'alcool : null = non suivi (repas antérieurs au suivi), sinon grammes d'alcool pur.
@@ -3553,7 +3615,7 @@ function vueCoach(){
      '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>'+
      '<h2>Photo d’un menu</h2><p class="vide">Le coach lit les plats et estime calories et macros de chacun.</p>'+
      '<input id="c-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="c-galerie" type="file" accept="image/*" style="display:none">'+
-     '<div class="aj-photo"><button class="cam" id="c-cam"'+(S.coach.etat==='envoi'?' disabled':'')+'><span>📷</span>Appareil photo</button><button class="gal" id="c-gal"'+(S.coach.etat==='envoi'?' disabled':'')+'><span>🖼️</span>Galerie</button></div>';
+     '<div class="aj-photo"><button class="cam" id="c-cam"'+(S.coach.etat==='envoi'?' disabled':'')+'>'+ico('photo','ph')+'Appareil photo</button><button class="gal" id="c-gal"'+(S.coach.etat==='envoi'?' disabled':'')+'>'+ico('galerie','ph')+'Galerie</button></div>';
   if(S.coach.fil.length)h+='<button class="lien" id="c-vider">Effacer la conversation</button>';
   return h+'</section>';
 }
@@ -3604,7 +3666,11 @@ function vueRéglages(d){
   const pan=k=>'<div class="rg-p" data-rgp="'+k+'"'+(S.regTab===k?'':' hidden')+'>';
   // un seul Enregistrer pour Objectif et Repères : barre fixe en bas (barreReglages), message en tête des deux panneaux
   const btnEnr=()=>(S.para.etat==='ko'?'<p class="alerte">'+esc(S.para.message)+'</p>':'')+(S.para.etat==='ok'?'<p class="bien">'+esc(S.para.message)+'</p>':'');
-  let h='<section class="rg-tete"><div class="seg" role="tablist" id="rg-onglets">';
+  let h='<section class="chif-s"><h2>Mes chiffres</h2><div class="chif">'+
+    '<div>'+ico('balance','x')+'Poids<b>'+(r.poids?String(r.poids.toFixed(1)).replace('.',','):'—')+' <small>kg</small></b></div>'+
+    '<div>'+ico('flamme','x')+'Cible<b>'+(r.cible?nb(r.cible):'—')+' <small>kcal</small></b></div>'+
+    '<div>Métabolisme<b>'+nb(r.mb)+' <small>kcal</small></b></div><div>Besoins<b>'+nb(r.tdee)+' <small>kcal</small></b></div></div></section>'+
+    '<section class="rg-tete"><div class="seg" role="tablist" id="rg-onglets">';
   ONG.forEach(x=>{h+='<button role="tab" data-rg="'+x[0]+'" aria-selected="'+(S.regTab===x[0])+'" class="'+(S.regTab===x[0]?'on':'')+'">'+x[1]+'</button>';});
   h+='</div></section>'+pan('objectif')+'<section>'+btnEnr()+'<div class="seg" role="tablist" id="g-obj">';
   Object.keys(OBJ_DEF).forEach(k=>{h+='<button role="tab" data-ob="'+k+'" aria-selected="'+(R.obj===k)+'" class="'+(R.obj===k?'on':'')+'">'+OBJ_DEF[k].lib+'</button>';});
@@ -4784,34 +4850,28 @@ function bandeau(d){
   const r=d.reference;
   let m='';
   if(r.tdee){
-    m='<div class="mesures">'+
-      '<span><button class="mes-pds" id="b-pesee" aria-label="Enregistrer une pesée"><b>'+(r.poids?r.poids.toFixed(1):'\u2014')+'</b> kg</button></span>'+
-      '<span>métabolisme <b>'+nb(r.mb)+'</b></span>'+
-      '<span>besoins <b>'+nb(r.tdee)+'</b></span>'+
-      '<span>cible <b>'+(r.cible?nb(r.cible):'\u2014')+'</b></span>'+
-      '</div><span class="badge sous">'+esc(r.mode)+
-      (r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
+    m='<span class="badge sous">'+esc(r.mode)+(r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
   if(perime)m+='<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+
     '. Touche Actualiser pour passer à aujourd\'hui.</div>';
-  const btns='<div><button class="roue" id="b-coach">Coach</button><button class="roue" id="b-maj">Actualiser</button>'+
-    '<button class="roue" id="b-reglages">'+(S.reglages?'Fermer':'Réglages')+'</button></div>';
+  const btns='<div class="btns"><button class="roue" id="b-coach">'+ico('coach','x')+'Coach</button><button class="roue" id="b-maj">'+ico('actualiser','x')+'Actualiser</button>'+
+    '<button class="roue" id="b-reglages">'+(S.reglages?'Fermer':ico('reglages','x')+'Réglages')+'</button></div>';
   // hors de l'écran Jour : une seule ligne (titre de l'écran), les chiffres restent sur Jour
   if(S.reglages||S.vue!=='jour'){
     const t=S.reglages?'Réglages':({ajout:'Ajouter',courbes:'Courbes',corps:'Corps',journal:'Journal',coach:'Coach'}[S.vue]||'Suivi');
     return '<div class="bandeau compact"><div class="qui"><h1>'+t+'</h1>'+btns+'</div>'+(perime?'<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+'. Touche Actualiser pour passer à aujourd\'hui.</div>':'')+'</div>';
   }
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
-    ' <span class="lejour">'+dateLongue()+'</span></h1>'+btns+'</div>'+m+'</div>';
+    ' <span class="lejour">'+dateLongue(jourPasse())+'</span></h1>'+btns+'</div>'+m+'</div>';
 }
 
 const VUES=[
- ['jour','Jour','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 12l4-4"/><path d="M7 18h10"/></svg>'],
- ['ajout','Ajouter','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'],
- ['courbes','Courbes','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3-8 5-8 8-3s5 5 10-7"/></svg>'],
- ['corps','Corps','<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.4"/><path d="M12 8.5v6.5M7 11h10M9 21l3-6 3 6"/></svg>'],
- ['journal','Journal','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>']
+ ['jour','Jour',ico('calendrier')],
+ ['ajout','Ajouter','<span class="ico-b">'+ico('assiette')+'<b class="plus" aria-hidden="true">+</b></span>'],
+ ['courbes','Courbes',ico('courbes')],
+ ['corps','Corps',ico('corps')],
+ ['journal','Journal',ico('livre')]
 ];
 
 /* Modales maison, en remplacement de window.confirm / window.alert (bloquants
@@ -4928,7 +4988,6 @@ function brancher(){
     rendre();
   });
   on('#b-coach','click',()=>{S.vue='coach';S.reglages=false;rendre();hautPage();});
-  on('#b-pesee','click',()=>{viderCoach();S.vue='corps';S.corps.phInit=false;S.reglages=false;S.corps.onglet='pesee';try{localStorage.setItem('suivi.corps.onglet','pesee');}catch(e){}rendre();hautPage();});
   on('#b-reglages','click',()=>{fermerAdmVolet();S.reglages=!S.reglages;S.regl.sale=false;S.regl.qr=null;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
     S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
@@ -4990,6 +5049,8 @@ function brancher(){
   }));
   on('#j-ajout','click',()=>{S.vue='ajout';rendre();hautPage();});
   on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});
+  document.querySelectorAll('.sem button').forEach(b=>b.addEventListener('click',()=>{S.jour.date=b.dataset.jd===auj()?null:b.dataset.jd;rendre();}));
+  on('#j-retour','click',()=>{S.jour.date=null;rendre();});
   document.querySelectorAll('[data-jo]').forEach(b=>b.addEventListener('click',()=>{
     S.jour.onglet=b.dataset.jo;try{localStorage.setItem('suivi.jour.onglet',S.jour.onglet);}catch(e){}rendre();}));
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
