@@ -707,9 +707,22 @@ for (const [o, n] of [['calories', 2], ['purines', 3], ['qualite', 5]]) {
 }
 ok(await page.locator('.vue.on .nut-sel .ic').count() === 5, 'Courbes > Qualité : une icône par nutriment, alcool compris');
 await page.click('.vue.on [data-cong="poids"]');
+await page.evaluate(() => { const a = S.data.aujourdhui; S.data.journal.unshift({ id: 'alc1', date: a.date, repas: 'Midi', detail: 'Poulet, vin', kcal: 300, prot: 40, lip: 5, gluc: 2, alcool: 20, aliments: [] }); a.parRepas.midi = { kcal: 300, prot: 40, lip: 5, gluc: 2, fibres: 1, sucres: 1, sodium: 100, satures: 1 }; rendre(); });
+await page.click('nav button[data-vue="jour"]');
+await page.locator('.vue.on .rep-ligne').nth(1).click();
+ok(/alcool 20 g \(2 verres\)/.test(await texte('.vue.on .rep-ligne:nth-child(2) .rep-micro')) && !/alcool/.test(await texte('.vue.on .rep-ligne:nth-child(1) .rep-micro')), 'Jour : le détail d un repas montre l alcool bu (20 g = 2 verres), pas les repas sans alcool');
+await page.click('nav button[data-vue="corps"]');
+for (const [o, n, h2] of [['mesures', 1, '.vue.on section h2 .ic'], ['goutte', 6, '.vue.on .chips .ic'], ['pesee', 1, '.vue.on section h2 .ic']]) {
+  await page.click('.vue.on [data-ko="' + o + '"]');
+  ok(await page.locator(h2).count() >= n && await chargees(h2), 'Corps > ' + o + ' : icônes (' + (o === 'goutte' ? 'une par articulation' : 'titres de section') + ')');
+}
+await page.click('#b-reglages'); await page.waitForTimeout(400);
+ok(await page.locator('#rg-onglets .ic').count() >= 4 && await chargees('#rg-onglets .ic') && await page.locator('.vue.on section h2 .ic').count() >= 2, 'Réglages : icônes sur les onglets et les titres de section');
+await page.click('#b-reglages');
 await page.click('nav button[data-vue="ajout"]');
 if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
 ok(await page.locator('.vue.on .aj-photo .ic').count() === 2 && !/📷|🖼/.test(await texte('.vue.on .aj-photo')), 'Ajouter : icônes appareil photo et galerie (plus d émojis)');
+ok(await page.locator('.aj-autres .ic').count() === 4 && await chargees('.aj-autres .ic'), 'Ajouter : une icône sur Refaire, Composer, À la main et Code-barres');
 await page.click('nav button[data-vue="jour"]');
 
 console.log('Affichage');

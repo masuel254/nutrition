@@ -211,3 +211,5 @@ existent déjà dans l'appli. Restent :
   en prise de masse (couleurs inversées), modification du profil.
 - Mise à jour de `ARCHITECTURE_Agent_Nutrition.md` (feuilles, actions, flux).
 - Ordre conseillé : 1, 2, 3, 4, puis 5 et 6. Les étapes 1 et 2 servent déjà à Samuel.
+
+- Appli v76 : icônes sur Ajouter (4 tuiles), Réglages, Corps (Mesures, Goutte, pesée) ; alcool affiché dans le détail d'un repas (Jour), recomposé depuis le Journal.
