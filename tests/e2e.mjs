@@ -707,10 +707,11 @@ for (const [o, n] of [['calories', 2], ['purines', 3], ['qualite', 5]]) {
 }
 ok(await page.locator('.vue.on .nut-sel .ic').count() === 5, 'Courbes > Qualité : une icône par nutriment, alcool compris');
 await page.click('.vue.on [data-cong="poids"]');
-await page.evaluate(() => { const a = S.data.aujourdhui; S.data.journal.unshift({ id: 'alc1', date: a.date, repas: 'Midi', detail: 'Poulet, vin', kcal: 300, prot: 40, lip: 5, gluc: 2, alcool: 20, aliments: [] }); a.parRepas.midi = { kcal: 300, prot: 40, lip: 5, gluc: 2, fibres: 1, sucres: 1, sodium: 100, satures: 1 }; rendre(); });
+await page.evaluate(() => { const a = S.data.aujourdhui; S.data.journal.unshift({ id: 'alc1', date: a.date, repas: 'Midi', detail: 'Poulet, vin', kcal: 300, prot: 40, lip: 5, gluc: 2, alcool: 20, purines_risque: 180, aliments: [] }); a.parRepas.midi = { kcal: 300, prot: 40, lip: 5, gluc: 2, fibres: 1, sucres: 1, sodium: 100, satures: 1 }; rendre(); });
 await page.click('nav button[data-vue="jour"]');
 await page.locator('.vue.on .rep-ligne').nth(1).click();
 ok(/alcool 20 g \(2 verres\)/.test(await texte('.vue.on .rep-ligne:nth-child(2) .rep-micro')) && !/alcool/.test(await texte('.vue.on .rep-ligne:nth-child(1) .rep-micro')), 'Jour : le détail d un repas montre l alcool bu (20 g = 2 verres), pas les repas sans alcool');
+ok(/purines à risque 180 mg/.test(await texte('.vue.on .rep-ligne:nth-child(2) .rep-micro')) && !/purines/.test(await texte('.vue.on .rep-ligne:nth-child(1) .rep-micro')), 'Jour : le détail d un repas indique les purines à risque');
 await page.click('nav button[data-vue="corps"]');
 for (const [o, n, h2] of [['mesures', 1, '.vue.on section h2 .ic'], ['goutte', 6, '.vue.on .chips .ic'], ['pesee', 1, '.vue.on section h2 .ic']]) {
   await page.click('.vue.on [data-ko="' + o + '"]');

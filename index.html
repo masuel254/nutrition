@@ -936,7 +936,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='10/10/2026 23h47';
+const APP_VERSION='11/10/2026 20h44';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1827,7 +1827,8 @@ function jourPasse(){const j=S.jour.date;return (j&&j!==auj())?j:null;}
 function repasCle(lib){return {Matin:'matin',Midi:'midi','En-cas':'encas',Soir:'soir'}[lib]||'autre';}
 // Alcool (g) par repas d'un jour, depuis les lignes du Journal : {matin:12,...}
 function alcoolParRepas(d,iso){
-  const o={};(d.journal||[]).filter(l=>l.date===iso).forEach(l=>{const a=Number(l.alcool)||0;if(a>0)o[repasCle(l.repas)]=(o[repasCle(l.repas)]||0)+a;});
+  const o={};(d.journal||[]).filter(l=>l.date===iso).forEach(l=>{const c=repasCle(l.repas),x=o[c]=o[c]||{alcool:0,purines_risque:0};
+    x.alcool+=Number(l.alcool)||0;x.purines_risque+=Number(l.purines_risque)||0;});
   return o;
 }
 function donneesJour(d,iso){
@@ -1892,7 +1893,7 @@ function vueJour(d){
     h+='<div class="repas-liste">';
     const cellPLG=(v,ci)=>nb(v)+'<span style="color:var(--soft)">/'+nb(ci)+'</span> <span class="'+(ci&&v>ci?'sur':'sous')+'">'+(ci?sgn(v-ci):'—')+'</span>';
     REPAS.forEach(r=>{
-      const p=Object.assign({kcal:0,prot:0,lip:0,gluc:0},a.parRepas[r[0]],{alcool:alcR[r[0]]||0});
+      const p=Object.assign({kcal:0,prot:0,lip:0,gluc:0},a.parRepas[r[0]],alcR[r[0]]);
       const ci=(r[0]==='autre')?0:cibleRepas('kcal',r[0]);
       if(!p.kcal&&!ci)return;
       const cp=cibleRepas('prot',r[0]),cl=cibleRepas('lip',r[0]),cg=cibleRepas('gluc',r[0]);
@@ -1997,14 +1998,15 @@ function repasParHeure(){
 function ligneMicro(o){
   if(!o)return '';
   const f=Math.round(o.fibres||0),s=Math.round(o.sucres||0),so=Math.round(o.sodium||0);
-  const sat=Math.round(o.satures||0),sa=Math.round(o.sucres_ajoutes||0),al=Math.round(o.alcool||0);
-  if(!f&&!s&&!so&&!sat&&!al)return '';
+  const sat=Math.round(o.satures||0),sa=Math.round(o.sucres_ajoutes||0),al=Math.round(o.alcool||0),pu=Math.round(o.purines_risque||0);
+  if(!f&&!s&&!so&&!sat&&!al&&!pu)return '';
   const p=[];
   p.push(ico('brocoli','x')+'fibres '+nb(f)+' g');
   p.push(ico('sucre','x')+'sucres '+nb(s)+' g'+(sa?' (dont ajoutés '+nb(sa)+')':''));
   if(sat||o.satures===0)p.push(ico('beurre','x')+'saturées '+nb(sat)+' g');
   p.push(ico('sel','x')+'sodium '+nb(so)+' mg');
   if(al)p.push(ico('vin','x')+'alcool '+nb(al)+' g ('+verresTxt(al)+')');
+  if(pu)p.push(ico('pied','x')+'purines à risque '+nb(pu)+' mg');
   return '<div class="micro">'+p.join(' · ')+'</div>';
 }
 function sectionScan(A){
