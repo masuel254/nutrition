@@ -883,7 +883,7 @@ table.mn td.mn-n small{display:block;font-size:12px;color:var(--soft)}
 .sia-b{display:grid;grid-template-columns:108px 1fr 72px;align-items:center;gap:8px;padding:6px 4px;width:100%;border:none;background:none;color:var(--ink);text-align:left;font-size:14px;border-radius:6px}
 .sia-b small{display:block;font-size:12px;color:var(--soft)}
 .sia-b .tr{height:14px;position:relative}.sia-b .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--ia-g);min-width:3px}
-.sia-b.pay .tr i{background:var(--ia-p)}.sia-b.sel{background:var(--creux)}
+.sia-b.pay .tr i{background:var(--ia-p)}.sia-b.hors .tr i{background:var(--soft)}.sia-g{font-size:12.5px;color:var(--soft);margin:10px 0 2px;letter-spacing:.02em}.sia-b.sel{background:var(--creux)}
 .sia-b .n{text-align:right;font-size:13px;color:var(--soft)}.sia-b .n b{color:var(--ink);font-size:14px}
 .sia-d{margin-top:8px;padding:9px 11px;border-radius:8px;background:var(--creux);font-size:13.5px;line-height:1.45}.sia-d.vide{color:var(--soft)}
 .sia-l{display:flex;gap:14px;font-size:13px;color:var(--soft);margin-top:10px}.sia-l span{display:flex;align-items:center;gap:5px}.sia-l i{width:10px;height:10px;border-radius:2px;display:inline-block}
@@ -936,7 +936,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/10/2026 20h42';
+const APP_VERSION='13/10/2026 21h23';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2709,7 +2709,7 @@ function alimentsFiltres(rows,f,q){const S0=JN_S[f],out=[];
     if(!trouve&&sansValeur&&(Number(r[S0.k])||0)>=S0.s&&(!q||normNom(String(r.detail||'')).indexOf(q)>=0))out.push({r,a:{nom:String(r.detail||r.repas||'Repas').slice(0,90),quantite:''},v:Number(r[S0.k])||0,repasEntier:true});});
   return out;}
 const SIA_L={flash:'Gemini Flash',lite:'Gemini Flash-Lite',groq:'Groq',claude:'Claude Haiku',sonnet:'Claude Sonnet',gemma:'Gemma',manuel:'Manuel','code-barres':'Code-barres'};
-const SIA_PRIX={claude:0.01,sonnet:0.05};
+const SIA_PRIX={claude:0.01,sonnet:0.05},SIA_HORS={manuel:1,'code-barres':1};
 const SIA_PER=[[7,'7 j'],[30,'30 j'],[90,'3 mois'],[0,'Tout']];
 function coutTxt(x){return x<1?Math.round(x*100)+' ct':(Math.round(x*100)/100).toLocaleString('fr-FR')+' $';}
 function statsIA(d){
@@ -2717,8 +2717,8 @@ function statsIA(d){
   const c={};let sans=0;(d.ia_jours||[]).forEach(j=>{if(j.d<lim)return;Object.entries(j.c||{}).forEach(([k,n])=>{if(SIA_L[k])c[k]=(c[k]||0)+n;else sans+=n;});});
   const L=Object.keys(SIA_L).map(k=>({k,n:c[k]||0})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
   const tot=L.reduce((s,x)=>s+x.n,0),nPay=(c.claude||0)+(c.sonnet||0),cout=(c.claude||0)*SIA_PRIX.claude+(c.sonnet||0)*SIA_PRIX.sonnet;
-  const ia=tot-(c.manuel||0)-(c['code-barres']||0),goo=(c.flash||0)+(c.lite||0);
-  return {p,L,tot,sans,nPay,cout,ia,goo};
+  const hors=(c.manuel||0)+(c['code-barres']||0),ia=tot-hors,goo=(c.flash||0)+(c.lite||0);
+  return {p,L,tot,sans,nPay,cout,ia,goo,hors};
 }
 function blocStatsIA(d){
   if(!d.ia_jours)return '';
@@ -2727,14 +2727,17 @@ function blocStatsIA(d){
   if(!ouv)return h+'</div>';
   h+='<div class="sia-c"><div class="periode">'+SIA_PER.map(([v,t])=>'<button data-siap="'+v+'"'+(s.p===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
   if(!s.tot)return h+'<p class="sia-p">Aucun repas enregistré avec l’IA connue sur cette période. L’info existe depuis le 01/10/2026.</p></div></div>';
-  h+='<div class="sia-k"><div><small>Estimés par Gemini</small><b>'+(s.ia?Math.round(s.goo/s.ia*100):0)+'</b><span>% des analyses</span></div><div><small>IA payantes</small><b>'+s.nPay+'</b><span>repas ≈ '+coutTxt(s.cout)+'</span></div></div>';
+  h+='<div class="sia-k"><div><small>Estimés par Gemini</small><b>'+(s.ia?Math.round(s.goo/s.ia*100):0)+'</b><span>% des analyses IA</span></div><div><small>IA payantes</small><b>'+s.nPay+'</b><span>repas ≈ '+coutTxt(s.cout)+'</span></div></div>';
   const mx=Math.max(...s.L.map(x=>x.n));
-  s.L.forEach(x=>{const pay=!!SIA_PRIX[x.k];
-    h+='<button class="sia-b'+(pay?' pay':'')+(S.jn.iaSel===x.k?' sel':'')+'" data-siab="'+x.k+'"><span>'+SIA_L[x.k]+(pay?'<small>payant</small>':'')+'</span><span class="tr"><i style="width:'+(x.n/mx*100)+'%"></i></span><span class="n"><b>'+x.n+'</b> · '+Math.round(x.n/s.tot*100)+' %</span></button>';});
+  const barre=x=>{const pay=!!SIA_PRIX[x.k],hors=!!SIA_HORS[x.k];
+    return '<button class="sia-b'+(pay?' pay':'')+(hors?' hors':'')+(S.jn.iaSel===x.k?' sel':'')+'" data-siab="'+x.k+'"><span>'+SIA_L[x.k]+(pay?'<small>payant</small>':'')+'</span><span class="tr"><i style="width:'+(x.n/mx*100)+'%"></i></span><span class="n"><b>'+x.n+'</b> · '+Math.round(x.n/s.tot*100)+' %</span></button>';};
+  const Lia=s.L.filter(x=>!SIA_HORS[x.k]),Lhors=s.L.filter(x=>SIA_HORS[x.k]);
+  h+='<p class="sia-g">Analysés par une IA · '+s.ia+' repas</p>'+(Lia.length?Lia.map(barre).join(''):'<p class="sia-p">Aucun repas analysé par une IA sur cette période.</p>');
+  if(Lhors.length)h+='<p class="sia-g">Sans IA · '+s.hors+' repas</p>'+Lhors.map(barre).join('');
   const t=s.L.find(x=>x.k===S.jn.iaSel);
   h+='<div class="sia-d'+(t?'':' vide')+'">'+(t?'<b>'+SIA_L[t.k]+'</b> : '+t.n+' repas sur '+s.tot+' ('+Math.round(t.n/s.tot*100)+' %)'+(SIA_PRIX[t.k]?' · ≈ '+coutTxt(t.n*SIA_PRIX[t.k]):'')+(t.k==='manuel'?' · Composer, Refaire, saisie à la main':'')+(t.k==='code-barres'?' · produits scannés':''):'Touche une barre pour le détail.')+'</div>';
-  h+='<div class="sia-l"><span><i style="background:var(--ia-g)"></i>gratuit</span><span><i style="background:var(--ia-p)"></i>payant</span></div>';
-  h+='<p class="sia-p">Repas enregistrés seulement'+(s.sans?' ; '+s.sans+' sans l’info (avant le 01/10/2026)':'')+'. Coût estimé : ~1 ct par repas Claude Haiku, ~5 ct par Claude Sonnet ; le réel est dans la console Claude.</p>';
+  h+='<div class="sia-l"><span><i style="background:var(--ia-g)"></i>IA gratuite</span><span><i style="background:var(--ia-p)"></i>IA payante</span><span><i style="background:var(--soft)"></i>sans IA</span></div>';
+  h+='<p class="sia-p">Repas enregistrés seulement : une analyse lancée puis non enregistrée n’apparaît pas ici, même si elle est payante'+(s.sans?' ; '+s.sans+' sans l’info (avant le 01/10/2026)':'')+'. Coût estimé : ~1 ct par repas Claude Haiku, ~5 ct par Claude Sonnet ; le réel est dans Réglages › Inviter (résumé du mois) et dans la console Claude.</p>';
   return h+'</div></div>';
 }
 function rechJnActive(){return !!(String(S.jn.q||'').trim()||S.jn.f);}

@@ -465,6 +465,11 @@ ok(/7 jours/.test(await texte('#sia-t')) && /sans l’info/.test(await texte('.s
 await page.click('[data-siap="0"]');
 ok(/2 sans l’info/.test(await texte('.sia-p')), 'Journal : repas anciens sans IA signalés');
 await page.click('#sia-t');
+await page.evaluate(d => { S.data.ia_jours.push({ d, c: { manuel: 4, 'code-barres': 2 } }); S.jn.iaPer = 30; S.jn.iaOuv = true; rendre(); }, jour(-1));
+ok(await page.locator('.sia-g').count() === 2 && /Sans IA · 6 repas/.test(await texte('.sia-c')) && await page.locator('.sia-b.hors').count() === 2, 'Journal : plats hors IA (manuel, code-barres) montrés à part');
+ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')), 'Journal : le total IA ne compte pas les plats hors IA');
+ok(/non enregistrée n’apparaît pas/.test(await texte('.sia-p')), 'Journal : la note précise que seuls les repas enregistrés sont comptés');
+await page.click('#sia-t');
 
 console.log('Inscription par invitation');
 const pi = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
