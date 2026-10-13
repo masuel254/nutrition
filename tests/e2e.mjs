@@ -632,6 +632,23 @@ await page.locator('.rep-ligne').last().click(); await page.evaluate(() => rendr
 ok(await page.locator('.rep-ligne.ouvert').count() === 0, 'Jour : un repas replié le reste après un rendu');
 await page.click('#b-coach');
 
+console.log('Rendus réseau : état de l\'écran préservé');
+await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="mesures"]');
+await page.fill('#k-taille', '97.5'); await page.evaluate(() => document.activeElement.blur());
+await page.evaluate(() => rendreSiLibre());
+ok(await page.inputValue('#k-taille') === '97.5', 'rendu réseau : un champ rempli (Corps › Mesures) garde sa valeur');
+await page.click('nav button[data-vue="courbes"]');
+await page.locator('.vue.on details.aide summary').first().click();
+await page.evaluate(() => rendreSiLibre());
+ok(await page.locator('.vue.on details.aide[open]').count() === 1, 'rendu réseau : un menu d\'aide déplié (Courbes) reste déplié');
+await page.click('nav button[data-vue="corps"]'); await page.fill('#k-taille', '97.5');
+await page.click('#k-taille'); await page.evaluate(() => { window.__r = 0; const o = rendre; rendre = function () { window.__r++; return o.apply(this, arguments); }; rendreSiLibre(); });
+ok(await page.evaluate(() => window.__r) === 0, 'rendu réseau : différé tant qu\'un champ a le focus');
+await page.evaluate(() => document.activeElement.blur()); await page.waitForTimeout(600);
+ok(await page.evaluate(() => window.__r) === 1 && await page.inputValue('#k-taille') === '97.5', 'rendu réseau : rejoué dès que le champ perd le focus, valeur intacte');
+await page.fill('#k-taille', ''); await page.click('nav button[data-vue="jour"]');
+await page.click('#b-coach');
+
 console.log('Coach : saisie préservée');
 await page.click('#c-q'); await page.keyboard.type('Question en cours de frappe');
 await page.evaluate(() => rendre());

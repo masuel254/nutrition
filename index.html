@@ -936,7 +936,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/10/2026 20h40';
+const APP_VERSION='13/10/2026 20h42';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4954,13 +4954,38 @@ function dezoomer(){
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tard();});
   if(window.visualViewport)window.visualViewport.addEventListener('resize',tard);
 })();
-// Rendu déclenché par une réponse réseau : on ne reconstruit pas la page sous les doigts de quelqu'un qui tape
-// dans le Coach (le clavier se fermerait). Les données sont déjà dans S.data, le prochain rendu les affichera.
-function rendreSiLibre(){
-  const a=document.activeElement;
-  if(a&&a.id==='c-q')return;
-  rendre();
+// Rendu déclenché par une réponse réseau (données fraîches, retour dans l'appli, minuit) : on ne reconstruit pas la
+// page sous les doigts de quelqu'un qui tape (le clavier se fermerait) et, sinon, on rend à l'identique ce qui
+// n'existait que dans le DOM : valeurs de champs, menus d'aide dépliés, lignes dépliées.
+// Les données sont déjà dans S.data : un rendu différé affichera la même chose plus tard.
+function cleEph(e){return e.id||(Object.keys(e.dataset||{}).length?'d:'+Object.keys(e.dataset).map(k=>k+'='+e.dataset[k]).join('&'):'');}
+function instantaneEph(){
+  const o={v:{},d:{},l:{}};
+  document.querySelectorAll('#racine input,#racine textarea,#racine select').forEach(e=>{
+    if(e.type==='file'||e.type==='button'||e.type==='submit')return;
+    const k=cleEph(e);if(k)o.v[k]=(e.type==='checkbox'||e.type==='radio')?e.checked:e.value;
+  });
+  document.querySelectorAll('#racine details').forEach(e=>{const t=(e.querySelector('summary')||{}).textContent;if(t)o.d[t]=e.open;});
+  document.querySelectorAll('#racine [data-ouvre].ouvert:not(.rep-ligne)').forEach(e=>{o.l[e.getAttribute('data-ouvre')]=1;});
+  return o;
 }
+function restaurerEph(o){
+  document.querySelectorAll('#racine input,#racine textarea,#racine select').forEach(e=>{
+    if(e.type==='file'||e.type==='button'||e.type==='submit')return;
+    const k=cleEph(e);if(!k||!(k in o.v))return;
+    if(e.type==='checkbox'||e.type==='radio'){e.checked=o.v[k];}else if(e.value!==o.v[k]){e.value=o.v[k];}
+  });
+  document.querySelectorAll('#racine details').forEach(e=>{const t=(e.querySelector('summary')||{}).textContent;if(t&&t in o.d)e.open=o.d[t];});
+  document.querySelectorAll('#racine [data-ouvre]:not(.rep-ligne)').forEach(e=>{if(o.l[e.getAttribute('data-ouvre')])e.classList.add('ouvert');});
+}
+function rendreSiLibre(){
+  if(saisieActive()){S.rendreDiffere=true;return;}
+  S.rendreDiffere=false;
+  const o=instantaneEph();
+  rendre();
+  restaurerEph(o);
+}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(S.rendreDiffere&&!saisieActive())rendreSiLibre();},400));
 function rendre(){
   if(S.vue!=='ajout'||S.reglages){S.pia=null;S.piaOuv=false;}
   const d=S.data,r=$('#racine');
