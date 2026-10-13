@@ -623,6 +623,18 @@ await page.waitForFunction(() => /trop flou/.test(document.body.innerText));
 ok(await page.locator('#c-envoi:not([disabled])').count() === 1, 'menu : erreur affichée dans le fil, Coach de nouveau disponible');
 menuKO = false;
 
+console.log('Coach : saisie préservée');
+await page.click('#c-q'); await page.keyboard.type('Question en cours de frappe');
+await page.evaluate(() => rendre());
+ok(await page.inputValue('#c-q') === 'Question en cours de frappe' && await page.evaluate(() => document.activeElement.id) === 'c-q', 'Coach : un rendu complet garde le texte tapé et le focus');
+await page.evaluate(() => { window.__rendus = 0; const o = rendre; rendre = function () { window.__rendus++; return o.apply(this, arguments); }; rendreSiLibre(); });
+ok(await page.evaluate(() => window.__rendus) === 0, 'Coach : un rendu déclenché par le réseau est différé pendant la saisie');
+await page.evaluate(() => document.activeElement.blur()); await page.evaluate(() => rendreSiLibre());
+ok(await page.evaluate(() => window.__rendus) === 1, 'Coach : le rendu réseau repasse dès que le champ n\'a plus le focus');
+await page.fill('#c-q', 'Autre question'); await page.click('#c-envoi');
+await page.waitForFunction(() => document.getElementById('c-envoi') && !document.getElementById('c-envoi').disabled);
+ok(await page.inputValue('#c-q') === '', 'Coach : le champ est vide après l\'envoi (pas de brouillon fantôme)');
+
 console.log('Scan de plusieurs produits d\'affilée');
 { const lot = () => page.evaluate(() => S.ajout.scan.lot.length);
   const scanne = c => page.evaluate(x => onCodeScanne(x), c);
