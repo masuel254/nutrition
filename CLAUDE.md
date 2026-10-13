@@ -79,7 +79,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
   `enregistrer`, `barcode`, `activite`, `mesure`, `photo`, `photo_get`, `photo_gerer`, `journal`, `admin`, `compte`,
   `rappel`, `crise`, `favoris`, `invite`). Le Switch `Action` du workflow route chaque action vers sa branche.
 - **Google Sheets** : mapping **par nom de colonne** (ajouter une colonne ne casse rien). Feuilles : Users, Journal,
-  Poids, Params, Invitations, Crises, Activite, Mesures. Params est un journal daté (`date_effet`).
+  Poids, Params, Invitations, Crises, Activite, Mesures, Analyses. Params est un journal daté (`date_effet`).
 - **Appli et Telegram iso** : mêmes calculs, mêmes chiffres. Le bloc de calcul commun est recopié à l'identique
   dans 15 nœuds Code ; référence : `n8n/lib_calculs_n8n.js`. Toute modification d'un calcul se fait partout.
 - **Cible calorique** : cible = max(round(MB × 0,9), besoins + écart). Appli : `PLANCHER_MB=0.9`, `ciblePrevue()`.
@@ -103,10 +103,10 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
   Claude `JoqQ4ay5xIRB9G2C`, Google Sheets `ut38KIHX9AdxsvQy`.
 - Nouvelle colonne Sheets : le dire explicitement à Samuel (feuille, nom exact, format Texte brut si date ou clé).
 
-## État au 11/10/2026
+## État au 13/10/2026
 
-- Appli v77 (`APP_VERSION` 11/10/2026 20h44), dernière entrée détaillée : `docs/ARCHITECTURE.md` section 33 (v74) puis commits v75 à v77.
-- Workflow v60 (dernière version documentée), tests n8n au vert.
+- Appli v78 (`APP_VERSION` 13/10/2026 21h42), dernière entrée détaillée : `docs/ARCHITECTURE.md` section 34.
+- Workflow v61 (449 nœuds, feuille Analyses), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
 ## Hors sujet

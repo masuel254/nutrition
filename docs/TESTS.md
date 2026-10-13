@@ -35,6 +35,7 @@ Ces tests lisent `n8n/Agent_Nutrition.json` (ou le chemin passé en argument). `
 | `t_reperes.js` | Repères qualité (`qual`), payload `reference.reperes` |
 | `t_ia_payante.js`, `t_compteur.js`, `t_admin_ia.js` | IA payantes par compte, trois niveaux, compteur Haiku / Sonnet, administration |
 | `t_plancher.js` | Cible plancher à 90 % du métabolisme |
+| `t_analyses.js` | Feuille Analyses : une ligne par analyse IA réussie (appli, menu, coach, Telegram), aucune en échec, `analyses_jours` |
 
 `n8n/tests/sim.js` : mini-exécuteur qui suit les connexions, exécute les vrais nœuds Code / IF / Switch et simule
 les HTTP (clé du modèle déduite du nom du nœud). Les fixtures de ces tests contiennent des prénoms réels : c'est une

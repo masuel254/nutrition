@@ -469,6 +469,15 @@ await page.evaluate(d => { S.data.ia_jours.push({ d, c: { manuel: 4, 'code-barre
 ok(await page.locator('.sia-g').count() === 2 && /Sans IA · 6 repas/.test(await texte('.sia-c')) && await page.locator('.sia-b.hors').count() === 2, 'Journal : plats hors IA (manuel, code-barres) montrés à part');
 ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')), 'Journal : le total IA ne compte pas les plats hors IA');
 ok(/non enregistrée n’apparaît pas/.test(await texte('.sia-p')), 'Journal : la note précise que seuls les repas enregistrés sont comptés');
+// analyses_jours (feuille Analyses) : toutes les analyses IA, enregistrées ou non, à partir de son premier jour
+await page.evaluate(d => { S.data.analyses_jours = [{ d, c: { flash: 5, sonnet: 2 } }]; rendre(); }, jour(-2));
+ok(/Analysés par une IA · 14 repas/.test(await texte('.sia-c')) && await page.locator('[data-siab="sonnet"].pay').count() === 1 && await page.locator('[data-siab="claude"]').count() === 0, 'Journal : barres des IA tirées de analyses_jours depuis son 1er jour, ia_jours avant');
+ok(/Sans IA · 6 repas/.test(await texte('.sia-c')), 'Journal : manuel et code-barres toujours tirés de ia_jours');
+ok(new RegExp('Depuis le ' + jour(-2).slice(8, 10) + '/' + jour(-2).slice(5, 7) + ', les barres des IA comptent toutes les analyses, même non enregistrées').test(await texte('.sia-p')), 'Journal : la note dit que les analyses non enregistrées sont comptées');
+await page.evaluate(() => { S.data.analyses_jours = []; rendre(); });
+ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')) && /non enregistrée n’apparaît pas/.test(await texte('.sia-p')), 'Journal : feuille Analyses vide → repli sur ia_jours');
+await page.evaluate(() => { delete S.data.analyses_jours; rendre(); });
+ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')), 'Journal : ancien workflow (sans analyses_jours) → comme avant');
 await page.click('#sia-t');
 
 console.log('Inscription par invitation');
@@ -758,6 +767,7 @@ ok(/purines à risque 180 mg/.test(await texte('.vue.on .rep-ligne:nth-child(2) 
 await page.click('nav button[data-vue="corps"]');
 for (const [o, n, h2] of [['mesures', 1, '.vue.on section h2 .ic'], ['goutte', 6, '.vue.on .chips .ic'], ['pesee', 1, '.vue.on section h2 .ic']]) {
   await page.click('.vue.on [data-ko="' + o + '"]');
+  if (o === 'goutte') ok(await page.locator('.vue.on label .ic').count() >= 2 && await chargees('.vue.on label .ic'), 'Corps > goutte : icônes calendrier sur Quand et niveau sur Intensité');
   ok(await page.locator(h2).count() >= n && await chargees(h2), 'Corps > ' + o + ' : icônes (' + (o === 'goutte' ? 'une par articulation' : 'titres de section') + ')');
 }
 await page.click('#b-reglages'); await page.waitForTimeout(400);

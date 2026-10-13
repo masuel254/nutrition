@@ -688,3 +688,17 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - En-tête : poids, métabolisme, besoins et cible quittent l'écran Jour, remplacés par la pastille « Sèche -600 kcal/j ». Ils sont dans Réglages › « Mes chiffres » (4 cartes). Le raccourci poids > Pesée (`#b-pesee`) est supprimé.
 - Appli seule : ni workflow, ni Sheets, ni Telegram. Tests : section « Icônes et calendrier des 7 jours » de `tests/e2e.mjs`.
 - Courbes (appli v75) : mêmes icônes. Onglets Poids / Calories / Purines / Qualité en `.seg-i` (balance, flamme, pied, brocoli), icône optionnelle en 5e argument de `tuile()` (Balance, Rythme, Théorique, Moyenne, Écart cumulé, Purines, Plafond, nutriments), puces Saturées / Fibres / Sodium / Sucres / Alcool, titres Régularité et Qualité des produits scannés. Tests : 4 vérifications dans « Icônes et calendrier des 7 jours ».
+
+## 34. Toutes les analyses IA comptées, enregistrées ou non (13/10, appli v78 + workflow v61)
+
+- Problème : « Quelles IA ont estimé tes repas » (Journal) ne comptait que les repas enregistrés (`ia_jours`, colonne `ia` du Journal).
+  Une analyse lancée puis abandonnée n'apparaissait pas, alors qu'elle est facturée si Claude Haiku ou Sonnet a répondu.
+- Feuille Google Sheets **Analyses** (nouvelle) : `date` (AAAA-MM-JJ, Paris), `heure` (HH:MM), `uid`, `ia` (flash, lite, groq, claude, sonnet, gemma), `source` (repas, menu, coach, telegram). Une ligne par analyse **réussie**, seulement pour l'IA qui a répondu (ni échec, ni IA sautée).
+- Workflow : `Parse IA API`, `Parse Conseil API`, `Parse IA`, `Parse Conseil` ajoutent un champ `analyse:{uid, ia, source}` à leur sortie (hors de `reponse`, la réponse à l'appli ne change pas ; `null` si le coach n'a rien renvoyé).
+  `Prep Analyse` (Code, ne lève jamais d'erreur) retrouve ce champ dans le Parse qui a tourné et produit la ligne, puis `Analyses Append` (Sheets, append par nom de colonne, `onError: continueRegularOutput`) l'écrit.
+  Branché **après** la réponse : `Respond Repas`, `Respond Conseil`, `Ask Confirm`, `Send Result Estim`, `Send Conseil` → `Prep Analyse`. La réponse part donc avant l'écriture, et un échec Sheets ne bloque rien.
+- `Read Analyses API` (executeOnce, alwaysOutputData, `continueRegularOutput` : feuille absente tolérée) entre `Read Crises API` et `Build API Payload`, qui renvoie `analyses_jours` [{d, c:{ia:n}}] (400 jours, même forme que `ia_jours`, réutilise `iaJours`). `ia_jours` est inchangé.
+- Appli `statsIA` : à partir du premier jour présent dans `analyses_jours`, les barres des IA viennent de `analyses_jours` ; `ia_jours` garde manuel, code-barres et les jours d'avant. `analyses_jours` absent ou vide : comportement d'avant. La note du bas indique la date à partir de laquelle les analyses non enregistrées sont comptées.
+  Les comptes incluent le coach et Telegram : le libellé « repas » des barres est donc approximatif.
+- Tests : `n8n/tests/t_analyses.js` (graphe, une ligne par analyse réussie, aucune en échec, `analyses_jours`), 5 vérifications e2e dans la section Journal.
+
