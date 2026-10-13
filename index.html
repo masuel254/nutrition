@@ -936,13 +936,13 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/10/2026 20h23';
+const APP_VERSION='13/10/2026 20h40';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false,date:null},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
+  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false,date:null,repOuv:{}},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},regTab:'objectif',prof:{etat:null,message:'',sexe:null},
   adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,gt:{quand:'auj',date:'',art:null,int:null,rem:'',etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{onglet:'pesee',periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
@@ -4966,6 +4966,8 @@ function rendre(){
   const d=S.data,r=$('#racine');
   const ancien=$('#defile'),y=ancien?ancien.scrollTop:0;
   // champ du Coach : le texte tapé survit à une reconstruction (le DOM est régénéré en entier)
+  // repas dépliés de l'écran Jour : l'état n'existe que dans le DOM, on le garde d'un rendu à l'autre
+  document.querySelectorAll('.rep-ligne').forEach(l=>{const n=(l.querySelector('.rep-nom')||{}).textContent;if(n)S.jour.repOuv[n]=l.classList.contains('ouvert');});
   const cq=$('#c-q');if(cq)S.coach.brouillon=cq.value;
   const cqFocus=!!cq&&document.activeElement===cq,cqDeb=cq?cq.selectionStart:0,cqFin=cq?cq.selectionEnd:0;
   COMPO=null;
@@ -4984,6 +4986,7 @@ function rendre(){
   VUES.forEach(v=>{h+='<button data-vue="'+v[0]+'" class="'+(!S.reglages&&S.vue===v[0]?'on':'')+'" aria-label="'+v[1]+'">'+v[2]+v[1]+'</button>';});
   r.innerHTML=h+'</nav>'+overlayScan();
   const nd=$('#defile');if(nd&&y)nd.scrollTop=y;
+  document.querySelectorAll('.rep-ligne').forEach(l=>{const n=(l.querySelector('.rep-nom')||{}).textContent;if(n&&S.jour.repOuv[n]){l.classList.add('ouvert');l.setAttribute('aria-expanded','true');}});
   const nq=$('#c-q');
   if(nq&&S.coach.brouillon){nq.value=S.coach.brouillon;if(cqFocus){try{nq.focus({preventScroll:true});nq.setSelectionRange(cqDeb,cqFin);}catch(e){}}}
   brancher();

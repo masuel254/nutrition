@@ -623,6 +623,15 @@ await page.waitForFunction(() => /trop flou/.test(document.body.innerText));
 ok(await page.locator('#c-envoi:not([disabled])').count() === 1, 'menu : erreur affichée dans le fil, Coach de nouveau disponible');
 menuKO = false;
 
+console.log('Jour : repas déplié');
+await page.click('nav button[data-vue="jour"]');
+await page.locator('.rep-ligne').last().click();
+await page.evaluate(() => rendre());
+ok(await page.locator('.rep-ligne.ouvert').count() === 1 && await page.locator('.rep-ligne.ouvert').first().getAttribute('aria-expanded') === 'true', 'Jour : un repas déplié le reste après un rendu (arrivée des données)');
+await page.locator('.rep-ligne').last().click(); await page.evaluate(() => rendre());
+ok(await page.locator('.rep-ligne.ouvert').count() === 0, 'Jour : un repas replié le reste après un rendu');
+await page.click('#b-coach');
+
 console.log('Coach : saisie préservée');
 await page.click('#c-q'); await page.keyboard.type('Question en cours de frappe');
 await page.evaluate(() => rendre());
