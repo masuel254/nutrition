@@ -26,7 +26,7 @@ for (let n = -60; n <= -1; n++) {
   const d = jour(n);
   [['Matin', AL.pdj], ['Midi', AL.midi]].forEach(([r, als], k) => {
     const t = tot(als);
-    LIGNES.push(Object.assign({ id: 'test' + (-n) + k, ia: k === 1 ? 'claude' : (n % 2 ? 'flash' : ''), date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 ? 0 : 12, boissons_sucrees: 0, aliments: n % 9 || k ? als : als.concat([{ nom: 'Vin rouge', quantite: '1 verre', kcal: 0, alcool: 12 }]) }, t));
+    LIGNES.push(Object.assign({ id: 'test' + (-n) + k, ia: k === 1 ? 'claude' : (n % 2 ? 'flash' : ''), date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 && n !== -4 ? 0 : 12, boissons_sucrees: 0, aliments: (n % 9 && n !== -4) || k ? als : als.concat([{ nom: 'Vin rouge', quantite: '1 verre', kcal: 0, alcool: 12 }]) }, t));
   });
 }
 const depuis = (() => { const l = lundi(jour(0)); const x = new Date(l + 'T12:00:00'); x.setDate(x.getDate() - 7); return iso(x); })();
