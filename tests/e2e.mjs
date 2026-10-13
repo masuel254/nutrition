@@ -478,6 +478,10 @@ await page.evaluate(() => { S.data.analyses_jours = []; rendre(); });
 ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')) && /non enregistrée n’apparaît pas/.test(await texte('.sia-p')), 'Journal : feuille Analyses vide → repli sur ia_jours');
 await page.evaluate(() => { delete S.data.analyses_jours; rendre(); });
 ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')), 'Journal : ancien workflow (sans analyses_jours) → comme avant');
+await page.evaluate(async () => { S.data.analyses_jours = []; await appel({ action: 'menu', photo: 'QUJD' }); rendre(); });
+ok(/Analysés par une IA · 14 repas/.test(await texte('.sia-c')) && /Depuis le/.test(await texte('.sia-p')), 'Journal : une analyse réussie apparaît tout de suite, sans rechargement');
+await page.evaluate(async () => { delete S.data.analyses_jours; await appel({ action: 'menu', photo: 'QUJD' }); rendre(); });
+ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')), 'Journal : ancien workflow, rien de compté localement');
 await page.click('#sia-t');
 
 console.log('Inscription par invitation');

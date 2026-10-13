@@ -936,7 +936,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/10/2026 21h42';
+const APP_VERSION='13/10/2026 21h57';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1162,6 +1162,7 @@ async function appel(corps){
       continue;
     }
     if(j.ok!==true)throw new Error(j.erreur||('Le serveur a répondu '+r.status+'.'));
+    if(IA&&typeof j.ia==='string'&&j.ia)compterAnalyse(j.ia);
     return j;
   }
   const err=derniere||new Error('Connexion au serveur impossible.');
@@ -2712,6 +2713,8 @@ const SIA_L={flash:'Gemini Flash',lite:'Gemini Flash-Lite',groq:'Groq',claude:'C
 const SIA_PRIX={claude:0.01,sonnet:0.05},SIA_HORS={manuel:1,'code-barres':1};
 const SIA_PER=[[7,'7 j'],[30,'30 j'],[90,'3 mois'],[0,'Tout']];
 function coutTxt(x){return x<1?Math.round(x*100)+' ct':(Math.round(x*100)/100).toLocaleString('fr-FR')+' $';}
+// analyse IA réussie : comptée tout de suite (le serveur l'a écrite dans la feuille Analyses), sans attendre le prochain chargement
+function compterAnalyse(ia){const d=S.data;if(!d||!Array.isArray(d.analyses_jours))return;const t=auj();let j=d.analyses_jours.find(x=>x.d===t);if(!j)d.analyses_jours.push(j={d:t,c:{}});j.c[ia]=(j.c[ia]||0)+1;}
 function statsIA(d){
   const p=S.jn.iaPer===undefined?30:S.jn.iaPer,lim=p?plusJours(auj(),-(p-1)):'0000';
   // analyses_jours (feuille Analyses) compte toutes les analyses IA, enregistrées ou non, depuis son premier jour ;

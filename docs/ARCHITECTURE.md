@@ -701,4 +701,12 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Appli `statsIA` : à partir du premier jour présent dans `analyses_jours`, les barres des IA viennent de `analyses_jours` ; `ia_jours` garde manuel, code-barres et les jours d'avant. `analyses_jours` absent ou vide : comportement d'avant. La note du bas indique la date à partir de laquelle les analyses non enregistrées sont comptées.
   Les comptes incluent le coach et Telegram : le libellé « repas » des barres est donc approximatif.
 - Tests : `n8n/tests/t_analyses.js` (graphe, une ligne par analyse réussie, aucune en échec, `analyses_jours`), 5 vérifications e2e dans la section Journal.
+- (appli v79) `compterAnalyse(ia)` : une analyse réussie (`repas`, `menu`, réponse avec `ia`) est ajoutée tout de suite à `analyses_jours` en mémoire, si le serveur en envoie (sinon rien).
+
+## 35. Accents des produits scannés (13/10, workflow v61)
+
+- Symptôme : « Carr茅 frais » au lieu de « Carré frais ». Open Food Facts renvoie bien de l'UTF-8 ; c'est n8n (depuis 1.51) qui devine l'encodage
+  des réponses HTTP et, sur une réponse courte avec un seul accent, lit les octets UTF-8 de « é » comme du chinois (GBK).
+- Correctif : `OFF Product` demande la réponse en fichier (`responseFormat: file`), `Parse OFF` la décode en UTF-8 (`getBinaryDataBuffer`), repli sur `$json` sinon. Test `n8n/tests/t_off.js`.
+- Les noms déjà abîmés (Journal, liste des produits récents de l'appli) restent à corriger à la main.
 
