@@ -114,6 +114,20 @@ ok(await page.locator('.seg .on[data-jo="repas"]').count() === 1, 'onglet Repas 
 await page.click('[data-jo="objectif"]');
 ok(/Objectif 90 kg/.test(await texte('.obj')), 'onglet Objectif : carte objectif');
 ok(/vers le/.test(await texte('.obj')), 'projection datée');
+ok(await page.locator('.proj #pj-svg').count() === 1 && await page.locator('#pj-date').count() === 1, 'Objectif : bloc « Où en serai-je ? » avec courbe et champ de date');
+{ const kg = async () => Number((await texte('.proj .pj-res .kg')).replace(',', '.').replace(/[^0-9.]/g, ''));
+  await page.click('.proj [data-pj]:has-text("+1 mois")');
+  const k1 = await kg();
+  ok(k1 > 98.2 && k1 < 98.7 && /−1,\d kg/.test(await texte('.proj .pj-res .dt')), 'Objectif : à +1 mois, poids prévu au rythme actuel (~98,4 kg)');
+  ok(await page.inputValue('#pj-date') === jour(30), 'Objectif : le champ de date suit le raccourci');
+  await page.fill('#pj-date', jour(60)); await page.dispatchEvent('#pj-date', 'change');
+  ok(await kg() < k1 && await page.inputValue('#pj-date') === jour(60), 'Objectif : une date plus lointaine donne un poids plus bas');
+  await page.click('.proj [data-pj]:has-text("Objectif")');
+  ok(await kg() === 90 && /objectif atteint/.test(await texte('.proj .pj-res .dt')), 'Objectif : à la date d\'atteinte, le poids prévu est l\'objectif (jamais en dessous)');
+  const sv = await page.locator('#pj-svg').boundingBox(); await page.mouse.click(sv.x + sv.width * 0.6, sv.y + sv.height * 0.5);
+  ok(await kg() > 90 && await kg() < 100, 'Objectif : toucher la courbe choisit une date');
+  const dx = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
+  ok(dx <= 0, 'Objectif : projection sans débordement horizontal'); }
 await page.click('[data-jo="purines"]');
 ok(await page.locator('.pur-tete').count() === 1, 'onglet Purines');
 await page.click('[data-jo="repas"]');

@@ -584,6 +584,15 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .obj-bornes{display:flex;justify-content:space-between;font-size:13px;color:var(--soft)}
 .obj-l{list-style:none;margin:10px 0 0;padding:0;font-size:13.5px;line-height:1.45}
 .obj-l li{padding:3px 0}
+/* Objectif : projection à une date choisie */
+.proj{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:14px;margin-top:14px}
+.proj h2{font-size:14px;font-weight:600;margin:0 0 2px}.proj .sub{font-size:13px;color:var(--soft);margin:0 0 10px}
+.proj svg{cursor:pointer;touch-action:manipulation}
+.pj-res{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:12px}
+.pj-res .dt{font-size:13.5px;color:var(--soft);min-width:0}.pj-res .dt b{display:block;font-size:15px;color:var(--ink);font-weight:600}
+.pj-res .kg{font-size:44px;font-weight:300;letter-spacing:-.03em;line-height:1;white-space:nowrap}.pj-res .kg small{font-size:17px;font-weight:600;letter-spacing:0;margin-left:3px;color:var(--soft)}
+.pj-champ{margin-top:6px}.pj-champ input{width:100%;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;background:var(--paper);color:var(--ink);font-family:inherit}
+.proj .periode{margin:12px 0 0;flex-wrap:wrap}
 /* Bilan de la semaine dernière (Journal) */
 .bilan-s{border:1px solid var(--rule);border-left:4px solid var(--under);border-radius:10px;background:var(--card);padding:12px 14px;margin-bottom:6px}
 .bilan-t{font-weight:700;font-size:15px;margin-bottom:6px}.bilan-t small{font-weight:400;color:var(--soft);font-size:13px;margin-left:4px}
@@ -936,13 +945,13 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='13/10/2026 21h57';
+const APP_VERSION='14/10/2026 14h22';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
   ajout:{repas:'midi',confirm:null,dateAutre:'',photo:null,apercu:null,taille:0,desc:'',etat:null,message:'',resultat:null,enregistre:null,ajoutEnCours:false,histo:[],
     scan:{ouvert:false,etat:null,message:'',produit:null,mode:'portion',qte:0,mult:1}},
-  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false,date:null,repOuv:{}},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
+  foods:[],recentsOuv:false,jour:{onglet:'repas',alerteOuv:false,date:null,repOuv:{},projDate:null},jn:{ouv:null,nbSem:4,charge:{},err:{},ev:{}},rac:{ouvR:false,ouvC:false,crR:null,crC:null,sel:{},q:'',msg:'',liste:[]},file:[],att:[],attFait:null,attEtat:null,attDernier:0,man:{ouvert:false,als:[],msg:'',cr:null},courbeVue:'poids',
   pesée:{etat:null,message:'',val:null},regl:{obj:null,ecart:null},regTab:'objectif',prof:{etat:null,message:'',sexe:null},
   adm:{etat:null,message:'',comptes:null,invitations:[],cree:null,prenom:''},cpt:{etat:null,message:''},ins:null,gt:{quand:'auj',date:'',art:null,int:null,rem:'',etat:null,message:''},para:{etat:null,message:''},coach:{fil:[],etat:null},
   corps:{onglet:'pesee',periodePas:14,selBar:{},pasEtat:null,pasMsg:'',mesEtat:null,mesMsg:'',photoMsg:'',cmpType:'face',cmpA:null,cmpB:null,courbe:'taille'},
@@ -1914,7 +1923,7 @@ function vueJour(d){
     h+=p?p.replace('<section><h2>Purines</h2>','<div>').replace(/<\/section>$/,'</div>'):'<p class="note">Pas encore de purines enregistrées : elles s’affichent dès qu’un repas analysé en contient.</p>';
   }else if(o==='objectif'){
     const b=blocObjectif(d);
-    h+=b?b.replace(/^<section( class="obj")?>/,'<div class="obj">').replace(/<\/section>$/,'</div>'):'<p class="note">Enregistre une pesée pour suivre ton objectif.</p>';
+    h+=b?b.replace(/^<section( class="obj")?>/,'<div class="obj">').replace(/<\/section>$/,'</div>')+blocProjection(d):'<p class="note">Enregistre une pesée pour suivre ton objectif.</p>';
   }else{
     const m=d.moyennes;
     const fleche=v=>(v===null||v===undefined||!c.kcal)?'':(' <span class="'+(bonJourApp(v,c.kcal)?'sous':'sur')+'">'+(v>c.kcal?'▲':'▼')+'</span>');
@@ -2900,6 +2909,67 @@ function penteKgJour(pes,jours){
 }
 function dateDans(jours){const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()+Math.round(jours));return x;}
 function libDateLongue(x){return x.getDate()+' '+MOIS[x.getMonth()]+' '+x.getFullYear();}
+
+/* Projection : à une date choisie entre aujourd'hui et la date d'atteinte de l'objectif, poids prévu au rythme actuel (pente des pesées). */
+function donneesProjection(d){
+  const pes=(d.poids||[]).filter(p=>p&&p.date&&typeof p.poids==='number').sort((a,b)=>a.date.localeCompare(b.date));
+  const ob=Number(d.reference&&d.reference.objectif_poids)||0;
+  if(!pes.length||!ob)return null;
+  const cur=pes[pes.length-1].poids,reste=cur-ob,sens=reste>0?-1:1;
+  if(Math.abs(reste)<0.3)return null;
+  let p=penteKgJour(pes,28);if(!p)p=penteKgJour(pes,56);
+  if(!p||Math.sign(p.pente)!==sens||Math.abs(p.pente)<=0.005)return null;
+  const jmax=Math.min(1095,Math.max(1,Math.round(Math.abs(reste/p.pente))));
+  return {pes,ob,cur,pente:p.pente,jmax,fin:pes[pes.length-1].date};
+}
+function poidsProjete(D,t){const w=D.cur+D.pente*t;return D.pente<0?Math.max(D.ob,w):Math.min(D.ob,w);}
+function joursProj(D){
+  const aujd=auj(),dj=x=>Math.round(new Date(x+'T12:00:00')/86400000);
+  let t=S.jour.projDate?dj(S.jour.projDate)-dj(aujd):NaN;
+  if(!(t>=1&&t<=D.jmax)){
+    const fin=new Date().getFullYear()+'-12-31',tf=dj(fin)-dj(aujd);
+    t=(tf>=1&&tf<=D.jmax)?tf:Math.max(1,Math.round(D.jmax/2));
+  }
+  return t;
+}
+function blocProjection(d){
+  const D=donneesProjection(d);if(!D)return '';
+  const aujd=auj(),dj=x=>Math.round(new Date(x+'T12:00:00')/86400000);
+  const t=joursProj(D),iso=plusJours(aujd,t),w=poidsProjete(D,t),dx=w-D.cur;
+  // courbe : pesées récentes à gauche (au plus la moitié de l'horizon), projection en pointillés à droite
+  const passe=Math.min(56,Math.max(14,Math.round(D.jmax*0.5))),recent=D.pes.filter(q=>dj(aujd)-dj(q.date)<=passe);
+  const pts=(recent.length>=2?recent:D.pes.slice(-2)).map(q=>({t:dj(q.date)-dj(aujd),w:q.poids}));
+  const tmin=Math.min(0,...pts.map(q=>q.t)),wmax=Math.max(D.cur,...pts.map(q=>q.w)),wmin=Math.min(D.ob,...pts.map(q=>q.w)),span=Math.max(0.5,wmax-wmin);
+  const X=tt=>10+(tt-tmin)/(D.jmax-tmin)*310,Y=ww=>20+(wmax-ww)/span*98;
+  const x0=X(0),x1=X(D.jmax),xt=X(t),yt=Y(w),yob=Y(D.ob);
+  const bx=Math.max(44,Math.min(286,xt));
+  let g='<svg id="pj-svg" data-x0="'+x0.toFixed(1)+'" data-x1="'+x1.toFixed(1)+'" data-jmax="'+D.jmax+'" viewBox="0 0 330 150" role="img" aria-label="Projection du poids jusqu’à l’objectif">'+
+    '<defs><linearGradient id="pj-g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--under)" stop-opacity=".28"/><stop offset="1" stop-color="var(--under)" stop-opacity="0"/></linearGradient></defs>'+
+    '<line x1="10" x2="320" y1="'+yob.toFixed(1)+'" y2="'+yob.toFixed(1)+'" stroke="var(--over)" stroke-width="1.2" stroke-dasharray="4 4"/>'+
+    '<text x="12" y="'+(yob-6).toFixed(1)+'" font-size="10" fill="var(--over)">objectif '+kgTxt(D.ob)+' kg</text>'+
+    '<path d="M'+x0.toFixed(1)+' '+Y(D.cur).toFixed(1)+' L'+x1.toFixed(1)+' '+yob.toFixed(1)+' L'+x1.toFixed(1)+' 140 L'+x0.toFixed(1)+' 140Z" fill="url(#pj-g)"/>'+
+    '<path d="'+pts.map((q,i)=>(i?'L':'M')+X(q.t).toFixed(1)+' '+Y(q.w).toFixed(1)).join(' ')+'" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="M'+x0.toFixed(1)+' '+Y(D.cur).toFixed(1)+' L'+x1.toFixed(1)+' '+yob.toFixed(1)+'" stroke="var(--under)" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>'+
+    '<line x1="'+xt.toFixed(1)+'" x2="'+xt.toFixed(1)+'" y1="16" y2="140" stroke="var(--ink)" stroke-width="1.2"/>'+
+    '<circle cx="'+x0.toFixed(1)+'" cy="'+Y(D.cur).toFixed(1)+'" r="4" fill="var(--ink)"/>'+
+    '<circle cx="'+xt.toFixed(1)+'" cy="'+yt.toFixed(1)+'" r="7" fill="var(--card)" stroke="var(--under)" stroke-width="3"/>'+
+    '<g transform="translate('+bx.toFixed(1)+',8)"><rect x="-44" y="-8" width="88" height="22" rx="7" fill="var(--ink)"/><text x="0" y="7" text-anchor="middle" font-size="12" font-weight="700" fill="var(--paper)">'+kgTxt(w)+' kg</text></g>'+
+    '<text x="10" y="148" font-size="10.5" fill="var(--soft)">aujourd’hui</text>'+
+    '<text x="320" y="148" text-anchor="end" font-size="10.5" fill="var(--soft)">'+jjmm(plusJours(aujd,D.jmax))+'</text></svg>';
+  const fmt=(n)=>(n<0?'−':'+')+kgTxt(Math.abs(n))+' kg';
+  const atteint=Math.abs(w-D.ob)<0.05;
+  const chips=[['+1 mois',30],['+3 mois',91]];
+  const fin=new Date().getFullYear()+'-12-31',tf=dj(fin)-dj(aujd);
+  if(tf>=1&&tf<=D.jmax&&tf!==30&&tf!==91)chips.push(['31 déc.',tf]);
+  chips.push(['Objectif',D.jmax]);
+  const ch=chips.filter(c=>c[1]<=D.jmax).map(c=>'<button data-pj="'+plusJours(aujd,c[1])+'"'+(c[1]===t?' class="on"':'')+'>'+c[0]+'</button>').join('');
+  const r7=D.pente*7;
+  return '<div class="proj"><h2>Où en serai-je ?</h2><p class="sub">Touche la courbe ou choisis une date, au rythme actuel de '+(r7<0?'−':'+')+kgTxt(Math.abs(r7))+' kg/sem</p>'+g+
+    '<div class="pj-champ"><input type="date" id="pj-date" value="'+iso+'" min="'+plusJours(aujd,1)+'" max="'+plusJours(aujd,D.jmax)+'" aria-label="Date de la projection"></div>'+
+    '<div class="pj-res"><div class="dt">Poids prévu<b>'+(atteint?'objectif atteint':fmt(dx)+' · reste '+kgTxt(Math.abs(w-D.ob))+' kg')+'</b></div><div class="kg">'+kgTxt(w)+'<small>kg</small></div></div>'+
+    '<div class="periode">'+ch+'</div>'+
+    '<p class="note">Estimation : le rythme réel varie. La projection s’arrête à ton objectif.</p></div>';
+}
 function blocObjectif(d){
   const pes=(d.poids||[]).filter(p=>p&&p.date&&typeof p.poids==='number').sort((a,b)=>a.date.localeCompare(b.date));
   if(!pes.length)return '';
@@ -5111,6 +5181,10 @@ function brancher(){
   on('#j-retour','click',()=>{S.jour.date=null;rendre();});
   document.querySelectorAll('[data-jo]').forEach(b=>b.addEventListener('click',()=>{
     S.jour.onglet=b.dataset.jo;try{localStorage.setItem('suivi.jour.onglet',S.jour.onglet);}catch(e){}rendre();}));
+  document.querySelectorAll('[data-pj]').forEach(b=>b.addEventListener('click',()=>{S.jour.projDate=b.dataset.pj;rendre();}));
+  on('#pj-date','change',e=>{if(e.target.value){S.jour.projDate=e.target.value;rendre();}});
+  on('#pj-svg','click',e=>{const sv=e.currentTarget,r=sv.getBoundingClientRect(),x0=Number(sv.dataset.x0),x1=Number(sv.dataset.x1),jm=Number(sv.dataset.jmax);
+    const t=Math.max(1,Math.min(jm,Math.round(((e.clientX-r.left)/r.width*330-x0)/(x1-x0)*jm)));S.jour.projDate=plusJours(auj(),t);rendre();});
   on('#a-cam','click',()=>{const f=$('#a-photo');if(f)f.click();});
   on('#a-gal','click',()=>{const f=$('#a-galerie');if(f)f.click();});
   document.querySelectorAll('[data-ouvre]').forEach(l=>{
