@@ -720,10 +720,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 ## 37. Repas préférés et Refaire sur 3 jours (21/10, appli v81 + workflow v62)
 
-- Ajouter commence par « ★ Mes repas préférés » (`blocPreferes`) : grille de cartes (kcal, P/L/G), créneau « Ajouter en » (`S.pref.cr`, par défaut selon l'heure).
+- Ajouter commence par deux tuiles, Refaire (préférés, 3 jours) et Photo / texte (`S.ajMode` ; Refaire par défaut dès qu'il existe un préféré, Photo pendant une analyse). Refaire montre « ★ Mes repas préférés » (`blocPreferes`) : grille de cartes (kcal, P/L/G), créneau « Ajouter en » (`S.pref.cr`, par défaut selon l'heure).
   Un toucher sur une carte = enregistré aujourd'hui au créneau choisi (`prendreRepas` + `enregistrer`, ia `manuel`). « Gérer » : renommer, retirer. « Créer un préféré » ouvre Composer ;
   sur l'écran de résultat (Composer, analyse IA, Refaire), « ☆ Garder comme repas préféré » demande un nom et l'ajoute.
-- Refaire montre les repas des 3 derniers jours (hier, avant-hier, J-3), groupés par jour ; ☆ en fait un préféré (nom tiré des aliments), + l'enregistre au créneau choisi, la ligne l'ouvre pour ajuster. L'ancien regroupement par créneau (`repasARefaire`, « Habituel ») est supprimé.
+- Puis « Ces 3 derniers jours » (`bloc3Jours`) : les repas (hier, avant-hier, J-3), groupés par jour ; ☆ en fait un préféré (nom tiré des aliments), + l'enregistre au créneau choisi, la ligne l'ouvre pour ajuster. L'ancien regroupement par créneau (`repasARefaire`, « Habituel ») est supprimé.
 - Stockage : un préféré = `{id, nom, cr, src, aliments[]}` (`src` = `cleCompo`, pour l'étoile). 20 au plus, 15 aliments chacun. Feuille Users, colonne **repas_favoris** (JSON),
   envoyée avec l'action `favoris` (`favEnvoyer` envoie `favoris` + `repas_favoris`). Attente locale `suivi.repasfav` tant que le serveur n'a pas renvoyé `repas_favoris` (un ancien workflow ne le renvoie pas : rien n'est perdu).
 - Workflow : `Auth API` lit `repas_favoris`, `Build Favoris API` le nettoie (champs connus, nombres, 45 000 caractères au plus) ou garde la valeur actuelle si l'appli ne l'envoie pas,
