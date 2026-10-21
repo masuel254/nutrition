@@ -279,9 +279,8 @@ ok(await page.locator('.jn-det .ligne').count() > 0, 'repas affichés après cha
 
 console.log('Ajouter');
 await page.click('nav button[data-vue="ajout"]');
-await page.click('#aj-m-refaire');
+await page.click('#rac-tr');
 await page.click('[data-rf-aj="0"]');
-await page.evaluate(() => { S.ajMode = 'photo'; });
 await page.waitForTimeout(2500);
 const enr = appels.filter(a => a.action === 'enregistrer');
 ok(enr.length === 2 && enr[0].id && enr[0].id === enr[1].id, 'réponse vide rejouée avec le même identifiant (pas de doublon)');
@@ -797,16 +796,20 @@ await page.click('#b-reglages');
 await page.click('nav button[data-vue="ajout"]');
 if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
 ok(await page.locator('.vue.on .aj-photo .ic').count() === 2 && !/📷|🖼/.test(await texte('.vue.on .aj-photo')), 'Ajouter : icônes appareil photo et galerie (plus d émojis)');
-ok(await page.locator('.aj-modes .ic').count() === 2 && await page.locator('.rac .aj-autres .ic').count() === 3 && await chargees('.aj-autres .ic'), 'Ajouter : une icône sur Refaire, Photo / texte, Composer, À la main et Code-barres');
+ok(await page.locator('.aj-autres .ic').count() === 4 && await chargees('.aj-autres .ic'), 'Ajouter : une icône sur Refaire, Composer, À la main et Code-barres');
 await page.click('nav button[data-vue="jour"]');
 
 console.log('Repas préférés');
 await page.click('nav button[data-vue="ajout"]');
 if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
-await page.evaluate(() => { S.prefLoc = null; localStorage.removeItem('suivi.repasfav'); S.data.repas_favoris = []; S.pref = { cr: 'midi', gerer: false }; S.ajMode = null; S.rac.ouvC = false; rendre(); });
-ok(await page.locator('#aj-m-photo.on').count() === 1 && await page.locator('.vue.on .aj-photo').count() === 1 && await page.locator('.pf-sec').count() === 0, 'Ajouter : sans préféré, s ouvre sur Photo / texte');
-await page.click('#aj-m-refaire');
-ok(await page.locator('#aj-m-refaire.on').count() === 1 && await page.locator('.pf-sec').count() === 1 && await page.locator('.vue.on .aj-photo').count() === 0 && await page.locator('[data-pf-aj]').count() === 0 && await page.locator('#pf-creer').count() === 1 && /Un toucher sur un préféré/.test(await texte('.pf-sec')), 'Refaire : Mes repas préférés (vide : Créer un préféré), sans le bloc photo');
+await page.evaluate(() => { S.prefLoc = null; localStorage.removeItem('suivi.repasfav'); S.data.repas_favoris = []; S.pref = { cr: 'midi', gerer: false }; S.rac.ouvR = false; S.rac.ouvC = false; rendre(); });
+ok(await page.locator('.vue.on .aj-photo').count() === 1 && await page.locator('.pf-sec').count() === 0 && await page.evaluate(() => { const p = document.querySelector('.vue.on .aj-photo'), t = document.getElementById('rac-tr'); return !!(p && t && t.closest('.rac') && (p.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'Ajouter : la photo en tête, Refaire dans Autres façons d ajouter');
+await page.click('#rac-tr');
+ok(await page.evaluate(() => { const t = document.querySelector('.aj-pan-t b'); return t.getBoundingClientRect().height < 26; }), 'Refaire : titre du panneau sur une ligne');
+ok(await page.locator('#rac-tr.on').count() === 1 && await page.locator('.aj-pan .pf-sec').count() === 1 && await page.locator('.aj-pan .rf-sec').count() === 1 && await page.locator('[data-pf-aj]').count() === 0 && await page.locator('#pf-creer').count() === 1 && /Un toucher sur un préféré/.test(await texte('.pf-sec')), 'Refaire : panneau avec Mes repas préférés (vide : Créer un préféré) et les 3 derniers jours');
+await page.click('#rac-tr');
+ok(await page.locator('.pf-sec').count() === 0 && await page.locator('#rac-tr.on').count() === 0, 'Refaire : un second toucher sur la tuile referme le panneau');
+await page.click('#rac-tr');
 const jRf = await page.locator('.rf-j').allTextContents();
 ok(jRf.length >= 1 && jRf.length <= 3 && !jRf.some(t => /Aujourd/i.test(t)) && await page.locator('.rf-l').count() > 0, 'Refaire : repas des 3 derniers jours, groupés par jour : ' + jRf.join(' / '));
 const nFav = appels.filter(a => a.action === 'favoris').length;
@@ -814,8 +817,7 @@ await page.locator('[data-rf-pf]').first().click(); await page.waitForTimeout(12
 const fvR = appels.filter(a => a.action === 'favoris').pop();
 ok(appels.filter(a => a.action === 'favoris').length === nFav + 1 && Array.isArray(fvR.repas_favoris) && fvR.repas_favoris.length === 1 && fvR.repas_favoris[0].aliments.length > 0 && Array.isArray(fvR.favoris), 'Refaire : ☆ garde le repas dans les préférés (envoyé avec les favoris d aliments)');
 ok(await page.locator('[data-pf-aj]').count() === 1 && await page.locator('[data-rf-pf].on').count() >= 1, 'préféré affiché en tête, étoile allumée dans Refaire');
-await page.evaluate(() => { S.ajMode = null; rendre(); });
-ok(await page.locator('#aj-m-refaire.on').count() === 1 && await page.locator('.pf-sec').count() === 1, 'Ajouter : avec des préférés, s ouvre sur Refaire');
+
 ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.repasfav'))).attente), 'préférés : plus en attente après l envoi');
 const pf0 = fvR.repas_favoris[0];
 await page.click('[data-pfc="soir"]');
@@ -833,7 +835,7 @@ await page.click('[data-pf-sup]'); await page.click('#modale-hote [data-mod="oui
 ok(await page.locator('.pf-sec .pf:not(.creer)').count() === 0 && appels.filter(a => a.action === 'favoris').pop().repas_favoris.length === 0, 'Gérer : retirer un préféré');
 // créer depuis un résultat (Composer > Continuer)
 await page.click('#pf-creer');
-ok(await page.locator('#rac-grille').count() === 1 && /Continuer, puis/.test(await texte('.pf-sec')), 'Créer un préféré : ouvre Composer avec la marche à suivre');
+ok(await page.locator('#rac-grille').count() === 1 && /Continuer, puis/.test(await texte('.aj-pan')), 'Créer un préféré : ouvre Composer avec la marche à suivre');
 await page.click('#rac-crc button[data-cr="tous"]'); await page.locator('.rac-l:not([hidden]):not(.hors):not(.loin) [data-cp]').first().click(); await page.click('#rac-valide');
 page.once('dialog', dg => dg.accept('Mon midi composé'));
 await page.click('#e-pref'); await page.waitForTimeout(1000);

@@ -720,7 +720,7 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 ## 37. Repas préférés et Refaire sur 3 jours (21/10, appli v81 + workflow v62)
 
-- Ajouter commence par deux tuiles, Refaire (préférés, 3 jours) et Photo / texte (`S.ajMode` ; Refaire par défaut dès qu'il existe un préféré, Photo pendant une analyse). Refaire montre « ★ Mes repas préférés » (`blocPreferes`) : grille de cartes (kcal, P/L/G), créneau « Ajouter en » (`S.pref.cr`, par défaut selon l'heure).
+- Refaire est une tuile d'« Autres façons d'ajouter » (sous la photo) ; un toucher ouvre son panneau, un second le referme (`S.rac.ouvR`). Le panneau montre « ★ Mes repas préférés » (`blocPreferes`) : grille de cartes (kcal, P/L/G), créneau « Ajouter en » (`S.pref.cr`, par défaut selon l'heure).
   Un toucher sur une carte = enregistré aujourd'hui au créneau choisi (`prendreRepas` + `enregistrer`, ia `manuel`). « Gérer » : renommer, retirer. « Créer un préféré » ouvre Composer ;
   sur l'écran de résultat (Composer, analyse IA, Refaire), « ☆ Garder comme repas préféré » demande un nom et l'ajoute.
 - Puis « Ces 3 derniers jours » (`bloc3Jours`) : les repas (hier, avant-hier, J-3), groupés par jour ; ☆ en fait un préféré (nom tiré des aliments), + l'enregistre au créneau choisi, la ligne l'ouvre pour ajuster. L'ancien regroupement par créneau (`repasARefaire`, « Habituel ») est supprimé.

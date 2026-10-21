@@ -797,9 +797,9 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .rf-k{font-size:13px;color:var(--soft);white-space:nowrap}
 .rf-st{font-size:19px;color:var(--soft);width:30px;height:36px}.rf-st.on{color:var(--jaune)}
 .rf-aj{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--under);color:var(--under);font-size:20px;flex:none;line-height:1}
-.e-pref{display:block;margin:10px auto 0}.e-pref.on{color:var(--jaune)}
+.e-pref{display:block;margin:10px auto 0}.pf-note{margin:10px 12px 0}.e-pref.on{color:var(--jaune)}
 .aj-pan-t{display:flex;justify-content:space-between;align-items:center;padding:12px 12px 0}
-.aj-pan-t b{font-size:15px}.aj-pan-t .lien{margin:0}
+.aj-pan-t b{font-size:15px}.aj-pan-t .lien{margin:0;width:auto;flex:none}
 .br-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .br-t h2{margin:0}.br-t .br-vide{background:none;border:0;color:var(--over);font-weight:700;font-size:13.5px;padding:4px 0}
 .br-l{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:10px 10px 10px 12px;display:flex;align-items:center;gap:8px;margin-top:8px}
@@ -985,7 +985,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='21/10/2026 22h21';
+const APP_VERSION='21/10/2026 22h39';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2276,7 +2276,6 @@ function blocPreferes(d){
   if(!P.gerer&&L.length<PREF_MAX)h+='<button class="pf creer" id="pf-creer"><span class="pf-cp">+</span>Créer un préféré<small>avec mes aliments</small></button>';
   h+='</div>';
   if(!L.length)h+='<p class="note">Un toucher sur un préféré l’enregistre tout de suite. Crée-le avec tes aliments, ou touche ☆ sur un repas de Refaire ou sur un résultat d’analyse.</p>';
-  if(P.msg)h+='<p class="bien">'+esc(P.msg)+'</p>';
   return h+'</section>';
 }
 // Refaire : les repas des 3 derniers jours, groupés par jour
@@ -2309,11 +2308,13 @@ function blocRaccourcis(d){
   const nbCat=((d&&d.catalogue)||[]).length;
   const tuile=tuileAj;
   let h='<section class="rac"><h2>Autres façons d\u2019ajouter</h2><div class="aj-autres">'+
+    tuile('rac-tr','actualiser','Refaire','préférés, 3 jours',R.ouvR)+
     tuile('rac-tc','assiette','Composer',nbCat?nbCat+' aliments':'mes aliments',R.ouvC)+
     tuile('rac-tm','main','À la main','sans IA',S.man.ouvert)+
     tuile('sc-ouvre','yaourt','Code-barres','produit emballé',false)+'</div>';
   const pan=(t,c)=>'<div class="rac-acc o aj-pan"><div class="aj-pan-t"><b>'+t+'</b><button class="lien" id="rac-ferme">Fermer</button></div>'+c+'</div>';
-  if(R.ouvC)h+=pan('Composer avec mes aliments',blocComposer(d,false));
+  if(R.ouvR)h+=pan('Refaire','<div class="rac-contenu">'+blocPreferes(d)+bloc3Jours(d)+'</div>');
+  else if(R.ouvC)h+=pan('Composer avec mes aliments',(S.pref&&S.pref.msg?'<p class="bien pf-note">'+esc(S.pref.msg)+'</p>':'')+blocComposer(d,false));
   else if(S.man.ouvert)h+=pan('Saisir à la main',blocManuel());
   return h+'</section>';
 }
@@ -2394,12 +2395,7 @@ function vueAjout(d){
       '<button class="lien" id="aj-annule">Annuler l\'ajout</button></section>';
     if(A.ajoutEnCours&&((d&&d.catalogue)||[]).length)h+='<section class="rac"><div class="rac-acc o"><div class="rac-tete"><span class="rac-ic">\u25a6</span>'+
       '<span class="rac-t"><b>Mes aliments</b><small>Touche + puis Ajouter à ce repas</small></span></div>'+blocComposer(d,true)+'</div></section>';
-    // en tête : Refaire (préférés, 3 derniers jours) ou Photo / texte ; Refaire d'abord dès qu'il y a des préférés
-    const mode=(A.ajoutEnCours||A.etat==='envoi'||A.etat==='ko'||A.etat==='att')?'photo':(S.ajMode||(prefListe().length?'refaire':'photo'));
-    if(!A.ajoutEnCours)h+='<section class="aj-modes"><div class="aj-autres">'+tuileAj('aj-m-refaire','actualiser','Refaire','préférés, 3 jours',mode==='refaire')+
-      tuileAj('aj-m-photo','photo','Photo / texte','analyse par l’IA',mode==='photo')+'</div></section>';
-    if(mode==='refaire')h+=blocPreferes(d)+bloc3Jours(d);
-    else{
+    // photo en premier
     h+='<section><h2>Photo du repas</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none">';
     if(A.apercu)h+='<div class="aj-apercu"><img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div><button class="lien" id="a-retire">Retirer la photo</button></div>';
     h+='<div class="aj-photo"><button class="cam" id="a-cam">'+ico('photo','ph')+(A.apercu?'Reprendre':'Appareil photo')+'</button><button class="gal" id="a-gal">'+ico('galerie','ph')+'Galerie</button></div></section>';
@@ -2412,7 +2408,6 @@ function vueAjout(d){
     if(A.etat==='ko')h+=A.ajoutEnCours?'<p class="alerte">'+esc(A.message)+'</p>':blocEchecIA(A);
     if(A.etat==='att')h+='<p class="bien">'+esc(A.message)+'</p>';
     h+='</section>';
-    }
     // code-barres : en mode ajout d'aliment toujours visible ; sinon seulement quand un scan est en cours
     if(A.ajoutEnCours||(A.scan&&A.scan.etat))h+=sectionScan(A);
     if(!A.ajoutEnCours)h+=blocRaccourcis(d);
@@ -5395,10 +5390,9 @@ function brancher(){
     });
   }
   // --- raccourcis : refaire un repas / composer avec mes aliments ---
-  on('#aj-m-refaire','click',()=>{S.ajMode='refaire';S.rac.msg='';rendre();});
-  on('#aj-m-photo','click',()=>{S.ajMode='photo';rendre();});
+  on('#rac-tr','click',()=>{if(S.pref)S.pref.msg='';S.rac.q='';const o=!S.rac.ouvR;S.rac.ouvC=false;S.man.ouvert=false;S.rac.ouvR=o;S.rac.msg='';rendre();if(o)versPan();});
   on('#rac-ferme','click',()=>{S.rac.q='';S.rac.ouvR=false;S.rac.ouvC=false;S.man.ouvert=false;rendre();});
-  on('#rac-tc','click',()=>{S.rac.q='';const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;S.rac.lim=0;rendre();versPan();});
+  on('#rac-tc','click',()=>{if(S.pref)S.pref.msg='';S.rac.q='';const o=!S.rac.ouvC;S.rac.ouvR=false;S.man.ouvert=false;S.rac.ouvC=o;S.rac.lim=0;rendre();versPan();});
   // --- sans IA : saisie à la main, repas en attente ---
   on('#rac-tm','click',()=>{S.rac.q='';const M=S.man;S.rac.ouvR=false;S.rac.ouvC=false;M.ouvert=!M.ouvert;M.msg='';if(M.ouvert&&!M.als.length)M.als=[manVide('')];if(!M.cr)M.cr=repasParHeure();rendre();versPan();});
   document.querySelectorAll('[data-mf]').forEach(el=>{
@@ -5499,7 +5493,7 @@ function brancher(){
   document.querySelectorAll('[data-pf-sup]').forEach(b=>b.addEventListener('click',async()=>{
     const p=prefListe().find(x=>x.id===b.dataset.pfSup);if(!p)return;
     if(!await modaleConfirm('Retirer « '+p.nom+' » de tes repas préférés ?',{ok:'Retirer',danger:true}))return;
-    prefEcrire(prefListe().filter(x=>x.id!==p.id));if(!prefListe().length)S.pref.gerer=false;S.ajMode='refaire';rendre();
+    prefEcrire(prefListe().filter(x=>x.id!==p.id));if(!prefListe().length)S.pref.gerer=false;rendre();
   }));
   document.querySelectorAll('[data-pf-ren]').forEach(b=>b.addEventListener('click',()=>{
     const p=prefListe().find(x=>x.id===b.dataset.pfRen);if(!p)return;
