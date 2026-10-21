@@ -754,3 +754,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - « Quelles IA ont estimé tes repas » passe du Journal à Réglages › Appli.
 - Gardés volontairement : l'anneau (kcal mangées) et la pastille (restantes) se complètent ; le Profil IA reste sur Ajouter car il se choisit repas par repas (Complexe pour un plat difficile).
 - Appli seule. Tests : section « Saisie en un toucher, écrans allégés » de `tests/e2e.mjs`.
+
+## 41. Fin des retouches de l'audit (21/10, appli v87)
+
+- Courbes › Poids : tuiles Rythme et Théorique vides expliquées (« pas assez de pesées », « pas assez de repas notés ») au lieu d'un tiret seul.
+- Jour › Par repas à 0 sur les captures d'audit : pas un bug, le jeu de test a `parRepas: {}` ; le serveur le remplit.
+- Workflow : nouveau test `n8n/tests/t_lib_calculs.js` (local, comme les autres tests n8n) : chaque fonction et constante de `lib_calculs_n8n.js` doit être identique dans les 15 nœuds qui embarquent le bloc de calcul ; il vérifie aussi qu'une copie modifiée est détectée. État au 21/10 : 23 déclarations, 15 nœuds, aucun écart.

@@ -992,7 +992,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='21/10/2026 23h38';
+const APP_VERSION='21/10/2026 23h50';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2642,8 +2642,8 @@ function ongletPoids(d,P){
     h+='<div class="tuiles">'+
       tuile('Balance',pr.reel===null?'—':kgSigne(pr.reel)+' kg',
         pr.reel===null?'pas assez de pesées':'en '+pr.nbJours+' jour'+(pr.nbJours>1?'s':'')+(pr.refEstime?', début estimé':''),pr.reel===null?'':coulKg(pr.reel),'balance')+
-      tuile('Rythme',pr.ryth===null?'—':kgSigne(pr.ryth)+' kg','par semaine',pr.ryth===null?'':coulKg(pr.ryth),'calendrier')+
-      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg','d’après ton écart',pr.theoKg===null?'':coulKg(pr.theoKg),'cible')+
+      tuile('Rythme',pr.ryth===null?'—':kgSigne(pr.ryth)+' kg',pr.ryth===null?'pas assez de pesées':'par semaine',pr.ryth===null?'':coulKg(pr.ryth),'calendrier')+
+      tuile('Théorique',pr.theoKg===null?'—':kgSigne(pr.theoKg)+' kg',pr.theoKg===null?'pas assez de repas notés':'d’après ton écart',pr.theoKg===null?'':coulKg(pr.theoKg),'cible')+
       '</div>';
     if(pr.reel!==null&&pr.theoKg!==null){
       const diff=pr.reel-pr.theoKg,e=kgTxt(Math.abs(diff));

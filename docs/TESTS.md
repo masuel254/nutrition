@@ -37,6 +37,7 @@ Ces tests lisent `n8n/Agent_Nutrition.json` (ou le chemin passé en argument). `
 | `t_plancher.js` | Cible plancher à 90 % du métabolisme |
 | `t_off.js` | Code-barres : réponse Open Food Facts décodée en UTF-8 (accents) |
 | `t_repas_favoris.js` | Repas préférés : colonne Users.repas_favoris (nettoyage, écho, payload) |
+| `t_lib_calculs.js` | Appli et Telegram iso : les 15 copies du bloc de calcul identiques à `lib_calculs_n8n.js`, fonction par fonction |
 | `t_analyses.js` | Feuille Analyses : une ligne par analyse IA réussie (appli, menu, coach, Telegram), aucune en échec, `analyses_jours` |
 
 `n8n/tests/sim.js` : mini-exécuteur qui suit les connexions, exécute les vrais nœuds Code / IF / Switch et simule
