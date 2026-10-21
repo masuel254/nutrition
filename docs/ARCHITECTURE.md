@@ -745,3 +745,12 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Réglages › Objectif : avertissement du plancher (`.plancher`) en jaune assombri, lisible sur fond clair.
 - En-tête : pas de lien Coach quand on est sur Coach.
 - Appli seule. Tests dans `tests/e2e.mjs` (Courbes, Réglages, Coach, Goutte B).
+
+## 40. Saisie en un toucher, écrans allégés (21/10, appli v86)
+
+- Jour : à l'heure d'un créneau encore vide (`repasParHeure()`), carte `.sug` (`suggestionJour(d)`) : le préféré de ce créneau, sinon le dernier repas pris à ce moment sur 7 jours. Le + (`#j-sug`) l'enregistre aujourd'hui (même circuit que les préférés : `prendreRepas` puis `enregistrer`), la confirmation s'affiche dans Ajouter. Le bouton « Ajouter un repas » (doublon de l'onglet) et la barre P/L/G en % (`barreMacros`) sont supprimés.
+- Ajouter : rangée horizontale des préférés en tête (`rangPreferes()`, `.pf-defil`), visible tant que Refaire est fermé : un toucher = enregistré. Le créneau est celui de l'heure, affiché « Ajouté en X · changer » (`quandPref`, `S.pref.chg`), aussi dans Refaire. L'aide de Refaire tient sur une ligne et disparaît dès le premier préféré.
+- Aides « Comment lire ? » : `aide(txt,titre,toujours)` ne rend rien quand le compte a des repas de plus de 14 jours (`aidesOn()`), sauf choix contraire dans Réglages › Appli (`#g-aides`, `localStorage suivi.aides` = oui/non). « Comment ça marche ? » reste toujours affiché.
+- « Quelles IA ont estimé tes repas » passe du Journal à Réglages › Appli.
+- Gardés volontairement : l'anneau (kcal mangées) et la pastille (restantes) se complètent ; le Profil IA reste sur Ajouter car il se choisit repas par repas (Complexe pour un plat difficile).
+- Appli seule. Tests : section « Saisie en un toucher, écrans allégés » de `tests/e2e.mjs`.

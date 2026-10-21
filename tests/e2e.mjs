@@ -471,6 +471,8 @@ await page.click('[data-jf="na"]');
 ok(/0 aliment/.test(await texte('#jn-res')), 'Journal : sodium élevé, rien au-dessus de 600 mg');
 await page.click('[data-jf="na"]');
 ok(await page.locator('#jn-semaines').isVisible(), 'Journal : filtre retiré, semaines de retour');
+ok(await page.locator('.vue.on #sia-t').count() === 0, 'Journal : plus de graphique des IA (passé dans Réglages › Appli)');
+await page.click('#b-reglages'); await page.click('[data-rg="appli"]');
 ok(/30 jours · 13 repas · 1 payant ≈ 1 ct/.test(await texte('#sia-t')) && await page.locator('.sia-b').count() === 0, 'Journal : graphique des IA replié, résumé 30 jours');
 await page.click('#sia-t');
 ok(await page.locator('.sia-b').count() === 3 && /Gemini Flash/.test(await texte('.sia-b')) && await page.locator('.sia-b.pay').count() === 1, 'Journal : une barre par IA, Claude Haiku en payant');
@@ -499,6 +501,7 @@ ok(/Analysés par une IA · 14 repas/.test(await texte('.sia-c')) && /Depuis le/
 await page.evaluate(async () => { delete S.data.analyses_jours; await appel({ action: 'menu', photo: 'QUJD' }); rendre(); });
 ok(/Analysés par une IA · 13 repas/.test(await texte('.sia-c')), 'Journal : ancien workflow, rien de compté localement');
 await page.click('#sia-t');
+await page.click('#b-reglages');
 
 console.log('Inscription par invitation');
 const pi = await (await navigateur.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } })).newPage();
@@ -675,6 +678,7 @@ await page.fill('#k-taille', '97.5'); await page.evaluate(() => document.activeE
 await page.evaluate(() => rendreSiLibre());
 ok(await page.inputValue('#k-taille') === '97.5', 'rendu réseau : un champ rempli (Corps › Mesures) garde sa valeur');
 await page.click('nav button[data-vue="courbes"]');
+await page.evaluate(() => { localStorage.setItem('suivi.aides', 'oui'); rendre(); });
 await page.locator('.vue.on details.aide summary').first().click();
 await page.evaluate(() => rendreSiLibre());
 ok(await page.locator('.vue.on details.aide[open]').count() === 1, 'rendu réseau : un menu d\'aide déplié (Courbes) reste déplié');
@@ -771,7 +775,7 @@ ok(await page.locator('.vue.on .rep-ligne').count() >= 2 && new RegExp(nb(repV))
 await page.click('nav button[data-vue="courbes"]'); await page.click('nav button[data-vue="jour"]');
 ok(await page.locator('.vue.on #j-retour').count() === 1, 'le jour choisi reste choisi en changeant d onglet');
 await page.click('.vue.on #j-retour');
-ok(await page.locator('.vue.on #j-ajout').count() === 1 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && await page.locator('.vue.on #j-retour').count() === 0, 'Revenir à aujourd hui : écran Jour normal');
+ok(await page.locator('.vue.on .seg-i button').count() === 4 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && await page.locator('.vue.on #j-retour').count() === 0, 'Revenir à aujourd hui : écran Jour normal');
 await page.click('nav button[data-vue="corps"]');
 ok(await page.locator('.vue.on .seg-i .ic').count() === 5 && await chargees('.vue.on .seg-i .ic'), 'Corps : une icône par onglet');
 await page.click('nav button[data-vue="courbes"]');
@@ -823,7 +827,7 @@ ok(await page.locator('[data-pf-aj]').count() === 1 && await page.locator('[data
 
 ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.repasfav'))).attente), 'préférés : plus en attente après l envoi');
 const pf0 = fvR.repas_favoris[0];
-await page.click('[data-pfc="soir"]');
+await page.click('[data-pf-chg]'); await page.click('[data-pfc="soir"]');
 const nEnrP = appels.filter(a => a.action === 'enregistrer').length;
 await page.click('[data-pf-aj]'); await page.waitForTimeout(800);
 const enrP = appels.filter(a => a.action === 'enregistrer').pop();
@@ -877,6 +881,43 @@ await page.evaluate(j => { S.data.jours = JSON.parse(j); }, joursSauv);
 await page.evaluate(() => { S.data.crises = []; rendre(); });
 ok(await page.locator('.gf').count() === 0, 'Goutte : pas de frise sans crise');
 await page.evaluate(d => { S.data.crises = [{ id: 'g1', date: d, articulation: 'gros orteil', intensite: 4, remarque: '' }]; rendre(); }, jour(-5));
+await page.click('nav button[data-vue="jour"]');
+
+console.log('Saisie en un toucher, écrans allégés');
+await page.click('nav button[data-vue="jour"]');
+const crH = await page.evaluate(() => { const cr = repasParHeure(); S.prefLoc = [{ id: 'pz', nom: 'Mon bol test', cr, src: '', aliments: [{ nom: 'Riz', quantite: '100 g', kcal: 130, prot: 3, lip: 0, gluc: 28 }, { nom: 'Oeuf', quantite: '1', kcal: 70, prot: 6, lip: 5, gluc: 0 }] }]; S.data.aujourdhui.parRepas[cr] = { kcal: 0, prot: 0, lip: 0, gluc: 0 }; rendre(); return cr; });
+ok(await page.locator('.vue.on .sug').count() === 1 && /Mon bol test/.test(await texte('.vue.on .sug')) && /200 kcal/.test(await texte('.vue.on .sug')) && /ton préféré/.test(await texte('.vue.on .sug')), 'Jour : créneau vide, le préféré du moment proposé (' + crH + ')');
+ok(await page.locator('.vue.on #j-ajout').count() === 0, 'Jour : plus de bouton Ajouter un repas (doublon de l onglet)');
+ok(await page.locator('.vue.on svg[aria-label="Répartition des calories par macronutriment"]').count() === 0, 'Jour : plus de barre P/L/G en %');
+const nSug = appels.filter(a => a.action === 'enregistrer').length;
+await page.click('#j-sug'); await page.waitForTimeout(800);
+const enrS = appels.filter(a => a.action === 'enregistrer').pop();
+ok(appels.filter(a => a.action === 'enregistrer').length === nSug + 1 && enrS.kcal === 200 && enrS.date === jour(0) && enrS.repas === await page.evaluate(c => libelleRepas(c), crH), 'Jour : un toucher sur + enregistre le repas proposé, au créneau du moment');
+ok(await page.locator('nav button[data-vue="ajout"].on, nav button[data-vue="ajout"][aria-current]').count() + await page.locator('.vue.on .resu').count() >= 1 && /enregistr/i.test(await texte('.vue.on .resu')), 'Jour : la confirmation s affiche dans Ajouter (annulable)');
+await page.click('#a-nouveau');
+ok(await page.locator('.pf-rang [data-pf-aj]').count() === 1 && await page.evaluate(() => { const a = document.querySelector('.pf-rang'), b = document.querySelector('.vue.on .aj-photo'); return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'Ajouter : préférés en tête, avant la photo, sans ouvrir Refaire');
+ok(new RegExp('Ajouté en ' + await page.evaluate(c => libelleRepas(c), crH)).test(await texte('.pf-rang')) && await page.locator('.pf-rang [data-pfc]').count() === 0, 'Ajouter : créneau du moment affiché, choix masqué');
+await page.click('.pf-rang [data-pf-chg]');
+ok(await page.locator('.pf-rang [data-pfc]').count() === 4, 'Ajouter : « changer » montre les 4 créneaux');
+await page.click('.pf-rang [data-pfc="matin"]');
+ok(/Ajouté en Matin/.test(await texte('.pf-rang')) && await page.locator('.pf-rang [data-pfc]').count() === 0, 'Ajouter : créneau choisi, la ligne se replie');
+const nRg = appels.filter(a => a.action === 'enregistrer').length;
+await page.click('.pf-rang [data-pf-aj]'); await page.waitForTimeout(800);
+ok(appels.filter(a => a.action === 'enregistrer').length === nRg + 1 && appels.filter(a => a.action === 'enregistrer').pop().repas === 'Matin', 'Ajouter : un toucher sur un préféré de la rangée l enregistre (Matin)');
+ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Ajouter : rangée des préférés sans débordement de la page');
+await page.click('#a-nouveau');
+await page.click('#rac-tr');
+ok(await page.locator('.pf-rang').count() === 0 && await page.locator('.pf-sec [data-pf-aj]').count() === 1 && !/ajuster avant/.test(await texte('.rf-sec')), 'Refaire ouvert : préférés une seule fois, aide de Refaire masquée quand il y a des préférés');
+await page.click('#rac-tr');
+await page.evaluate(() => { S.prefLoc = null; S.pref = null; localStorage.removeItem('suivi.aides'); rendre(); });
+await page.click('nav button[data-vue="courbes"]');
+ok(await page.locator('.vue.on details.aide').count() === 0, 'aides « Comment lire » masquées pour un compte de plus de 2 semaines');
+await page.click('#b-reglages'); await page.click('[data-rg="appli"]');
+ok(/Comment ça marche/.test(await texte('[data-rgp="appli"]')) && /Afficher les aides/.test(await texte('#g-aides')) && await page.locator('[data-rgp="appli"] #sia-t').count() === 1, 'Réglages › Appli : « Comment ça marche » toujours là, bouton des aides, graphique des IA');
+await page.click('#g-aides');
+await page.click('#b-reglages');
+ok(await page.locator('.vue.on details.aide').count() >= 1, 'aides réaffichées depuis les Réglages');
+await page.evaluate(() => { localStorage.removeItem('suivi.aides'); rendre(); });
 await page.click('nav button[data-vue="jour"]');
 
 console.log('Affichage');

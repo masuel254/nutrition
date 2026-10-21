@@ -776,7 +776,14 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .aj-tile i .ic{margin:0}.aj-tile i{font-style:normal;width:32px;height:32px;border-radius:8px;background:var(--creux);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
 .aj-tile span{min-width:0}.aj-tile b{display:block;font-size:14.5px}.aj-tile small{display:block;font-size:13px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aj-pan{margin-top:10px}
-.pf-sec h2{display:flex;align-items:center}.pf-etoile{color:var(--jaune);margin-right:6px}.pf-gerer{margin:0 0 0 auto;width:auto;font-size:14px;font-weight:400}
+.pf-sec h2{display:flex;align-items:center}
+.sug{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 10px 10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--card);min-width:0}
+.sug-t{flex:1;min-width:0}.sug-t small{display:block;font-size:12px;color:var(--soft)}.sug-t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-chg{margin:0 0 0 2px;width:auto;font-size:13px}
+.pf-defil{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}.pf-defil::-webkit-scrollbar{display:none}
+.pf-c{flex:none;display:flex;align-items:center;gap:8px;max-width:72%;padding:8px 8px 8px 10px;border:1px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);text-align:left}
+.pf-c span{min-width:0}.pf-c b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pf-c small{font-size:12px;color:var(--soft)}
+.pf-c i{flex:none;width:30px;height:30px;border-radius:50%;background:var(--under);color:var(--paper);font-style:normal;font-size:20px;font-weight:600;display:flex;align-items:center;justify-content:center}.pf-etoile{color:var(--jaune);margin-right:6px}.pf-gerer{margin:0 0 0 auto;width:auto;font-size:14px;font-weight:400}
 .pf-quand{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--soft);margin:-2px 0 10px;flex-wrap:wrap}
 .pf-quand button{padding:4px 11px;border:1px solid var(--rule);border-radius:999px;font-size:13px;color:var(--soft);background:var(--card)}
 .pf-quand button.on{border-color:var(--under);color:var(--under);font-weight:600;background:color-mix(in srgb,var(--under) 9%,var(--card))}
@@ -985,7 +992,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='21/10/2026 23h22';
+const APP_VERSION='21/10/2026 23h38';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1741,20 +1748,6 @@ function jauge(conso,cible){
   return o+'</svg>';
 }
 
-function barreMacros(a){
-  const tot=(a.prot*4)+(a.lip*9)+(a.gluc*4);
-  if(!tot)return '';
-  const w=320,h=32;
-  const seg=[['Protéines',a.prot*4,'var(--under)'],['Lipides',a.lip*9,'var(--over)'],['Glucides',a.gluc*4,'var(--ink)']];
-  let x=0,o='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Répartition des calories par macronutriment">';
-  seg.forEach(s=>{
-    const lg=(s[1]/tot)*w;
-    o+='<rect x="'+x.toFixed(1)+'" y="0" width="'+Math.max(0,lg-1.5).toFixed(1)+'" height="12" fill="'+s[2]+'" rx="1.5"/>';
-    if(lg>46)o+='<text x="'+(x+2).toFixed(1)+'" y="26" font-size="10.5" fill="var(--soft)" font-weight="300">'+s[0].slice(0,4)+' '+Math.round(s[1]/tot*100)+'%</text>';
-    x+=lg;
-  });
-  return o+'</svg>';
-}
 
 // Anneau de progression pour une macro. coul = couleur de base (sous cible).
 // coulDep = couleur a utiliser au-dessus de la cible (jaune/orange/rouge selon
@@ -1896,6 +1889,17 @@ function pastilleJourPasse(v,t){
   return {coul:couleurKcal(v,t),txt:nb(Math.round(Math.abs(v-t)))+' kcal '+(v>t?'au-delà':'en dessous')};
 }
 // Bande des 7 derniers jours (le plus ancien à gauche, aujourd'hui à droite) : toucher un jour affiche ses données.
+// Jour : à l'heure d'un créneau encore vide, le repas le plus probable (préféré de ce créneau, sinon le dernier
+// pris à ce moment sur 7 jours), ajouté en un toucher
+function suggestionJour(d){
+  const cr=repasParHeure(),a=d.aujourdhui||{};
+  if((((a.parRepas||{})[cr])||{}).kcal)return null;
+  const p=prefListe().find(x=>x.cr===cr);
+  if(p)return {cr:cr,nom:p.nom,kcal:prefTotal(p).kcal,src:'ton préféré',g:{l:{aliments:p.aliments,repas:''}},note:'Ton repas préféré « '+p.nom+' », sans nouvelle analyse.'};
+  const l=((d.journal)||[]).filter(x=>x&&x.kcal&&x.date<auj()&&x.date>=plusJours(auj(),-7)&&creneauDe(x.repas)===cr).sort((x,y)=>x.date<y.date?1:-1)[0];
+  if(!l)return null;
+  return {cr:cr,nom:Array.isArray(l.aliments)&&l.aliments.length?nomRepas(l.aliments):(l.detail||l.repas),kcal:l.kcal,src:'comme '+libDate(l.date).toLowerCase(),g:{l:l}};
+}
 function bandeSemaine(d){
   const sel=jourPasse()||auj(),c=d.cibles||{},a=d.aujourdhui||{};
   let h='<div class="sem" role="group" aria-label="7 derniers jours">';
@@ -1922,7 +1926,9 @@ function vueJour(d){
       barreMacro('prot','Prot.',a.prot||0,c.prot,'steak')+barreMacro('lip','Lip.',a.lip||0,c.lip,'huile')+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc,'pain')+
       '</div></div>';
     if(!pas){h+=blocPasJour(d,c.kcal);
-      h+='<button class="primaire" id="j-ajout">Ajouter un repas</button>';}
+      const sg=S.sugJ=suggestionJour(d);
+      if(sg)h+='<div class="sug">'+ico(IC_REPAS[sg.cr]||'assiette','m')+'<span class="sug-t"><small>'+libelleRepas(sg.cr)+' · '+sg.src+'</small><b>'+esc(sg.nom)+'</b></span>'+
+        '<span class="rf-k">'+nb(sg.kcal)+' kcal</span><button class="rf-aj" id="j-sug" aria-label="Ajouter '+esc(sg.nom)+' en '+libelleRepas(sg.cr)+'">+</button></div>';}
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour la fixer.</p>';
   h+='</section>';
 
@@ -1956,7 +1962,6 @@ function vueJour(d){
     });
     h+='</div>';
     h+=blocQualiteJour(d);
-    if(a.kcal)h+='<div style="margin-top:14px">'+barreMacros(a)+'</div>';
     h+=aide('<p class="note">Touche un repas pour voir le détail P/L/G et les fibres, sucres, sodium. « reste » : ce qu’il reste pour ce repas selon ta répartition ('+pc.matin+'/'+pc.midi+'/'+pc.encas+'/'+pc.soir+' %, modifiable dans les Réglages).</p>','Comment lire ce tableau ?');
   }else if(o==='purines'){
     const p=blocPurinesJour(d);
@@ -2263,11 +2268,25 @@ function barreCompo(d){
   const noms=((d&&d.catalogue)||[]).filter(it=>(S.rac.sel[it.k]||0)>0).map(it=>it.nom);
   return '<button class="rac-barre" id="rac-valide"><span>'+t.u+' unité'+(t.u>1?'s':'')+' · '+nb(t.kcal)+' kcal<small>'+esc(noms.join(', '))+'</small></span><span>'+(COMPO.modeAjout?'Ajouter à ce repas':'Continuer')+' ›</span></button>';
 }
+// créneau des préférés : celui de l'heure, affiché ; les 4 choix seulement sur « changer »
+function quandPref(cr){
+  return S.pref.chg?'<div class="pf-quand">Ajouter en '+['matin','midi','encas','soir'].map(c=>'<button data-pfc="'+c+'" class="'+(c===cr?'on':'')+'">'+libelleRepas(c)+'</button>').join('')+'</div>'
+    :'<div class="pf-quand">Ajouté en <b>'+libelleRepas(cr)+'</b><button class="lien pf-chg" data-pf-chg>changer</button></div>';
+}
+// Ajouter : les préférés en tête (Refaire fermé), un toucher = enregistré
+function rangPreferes(){
+  const L=prefListe();if(!L.length)return '';
+  const P=S.pref=S.pref||{cr:null,gerer:false},cr=P.cr||repasParHeure();
+  const tri=L.filter(p=>p.cr===cr).concat(L.filter(p=>p.cr!==cr));
+  return '<section class="pf-rang"><h2><span class="pf-etoile">★</span>Mes repas préférés</h2>'+quandPref(cr)+'<div class="pf-defil">'+
+    tri.map(p=>'<button class="pf-c" data-pf-aj="'+esc(p.id)+'" aria-label="Ajouter '+esc(p.nom)+' en '+libelleRepas(cr)+'">'+ico(IC_REPAS[p.cr]||'assiette','pf-i')+
+      '<span><b>'+esc(p.nom)+'</b><small>'+nb(prefTotal(p).kcal)+' kcal</small></span><i aria-hidden="true">+</i></button>').join('')+'</div></section>';
+}
 function blocPreferes(d){
   const P=S.pref=S.pref||{cr:null,gerer:false},cr=P.cr||repasParHeure(),L=prefListe();
   const tri=L.filter(p=>p.cr===cr).concat(L.filter(p=>p.cr!==cr));
   let h='<section class="pf-sec"><h2><span class="pf-etoile">★</span>Mes repas préférés'+(L.length?'<button class="lien pf-gerer" id="pf-gerer">'+(P.gerer?'Terminé':'Gérer')+'</button>':'')+'</h2>'+
-    '<div class="pf-quand">Ajouter en '+['matin','midi','encas','soir'].map(c=>'<button data-pfc="'+c+'" class="'+(c===cr?'on':'')+'">'+libelleRepas(c)+'</button>').join('')+'</div><div class="pf-grille">';
+    quandPref(cr)+'<div class="pf-grille">';
   tri.forEach(p=>{
     const t=prefTotal(p),tete='<span class="pf-t">'+ico(IC_REPAS[p.cr]||'assiette','pf-i')+'<b>'+esc(p.nom)+'</b></span><span class="pf-k">'+nb(t.kcal)+' <small>kcal</small></span><span class="pf-m">P '+nb(t.prot)+' · L '+nb(t.lip)+' · G '+nb(t.gluc)+'</span>';
     h+=P.gerer?'<div class="pf">'+tete+'<span class="pf-g"><button data-pf-ren="'+esc(p.id)+'">Renommer</button><button data-pf-sup="'+esc(p.id)+'">Retirer</button></span></div>'
@@ -2298,7 +2317,7 @@ function bloc3Jours(d){
     S.rac.liste=liste;
     if(!liste.length)c+='<p class="note">Aucun repas noté ces 3 derniers jours.</p>';
     if(S.rac.msg)c+='<p class="alerte">'+esc(S.rac.msg)+'</p>';
-    c+='<p class="note">+ l’enregistre tout de suite pour aujourd’hui, en '+esc(libelleRepas(crA))+' (créneau choisi dans Mes repas préférés). Touche la ligne pour ajuster les quantités avant. ☆ le garde dans tes repas préférés.</p>';
+    if(!prefListe().length)c+='<p class="note">+ ajoute tout de suite en '+esc(libelleRepas(crA))+' · la ligne : ajuster avant · ☆ : préféré.</p>';
     return '<section class="rf-sec"><h2>'+ico('calendrier','x')+'Ces 3 derniers jours</h2>'+c+'</section>';
 }
 // Tuile d'Ajouter (Refaire, Photo / texte, Composer, À la main, Code-barres)
@@ -2395,7 +2414,7 @@ function vueAjout(d){
       '<button class="lien" id="aj-annule">Annuler l\'ajout</button></section>';
     if(A.ajoutEnCours&&((d&&d.catalogue)||[]).length)h+='<section class="rac"><div class="rac-acc o"><div class="rac-tete"><span class="rac-ic">\u25a6</span>'+
       '<span class="rac-t"><b>Mes aliments</b><small>Touche + puis Ajouter à ce repas</small></span></div>'+blocComposer(d,true)+'</div></section>';
-    // photo en premier
+    if(!A.ajoutEnCours&&A.etat!=='envoi'&&!S.rac.ouvR)h+=rangPreferes();
     h+='<section><h2>Photo du repas</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none">';
     if(A.apercu)h+='<div class="aj-apercu"><img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div><button class="lien" id="a-retire">Retirer la photo</button></div>';
     h+='<div class="aj-photo"><button class="cam" id="a-cam">'+ico('photo','ph')+(A.apercu?'Reprendre':'Appareil photo')+'</button><button class="gal" id="a-gal">'+ico('galerie','ph')+'Galerie</button></div></section>';
@@ -2606,7 +2625,13 @@ const coulKg=v=>{const s=sensObj();if(!v||s===0)return '';return (v>0)===(s>0)?'
 function tuile(lib,val,sub,coul,ic){
   return '<div class="tu"><small>'+(ic?ico(ic,'x'):'')+lib+'</small><b'+(coul?' style="color:'+coul+'"':'')+'>'+val+'</b><span>'+sub+'</span></div>';
 }
-function aide(txt,titre){return '<details class="aide"><summary>'+(titre||'Comment lire ce graphique ?')+'</summary>'+txt+'</details>';}
+// « Comment lire ? » : affichées tant que le compte a moins de 2 semaines de repas, sinon masquées ; Réglages › Appli
+function aidesOn(){
+  let v=null;try{v=localStorage.getItem('suivi.aides');}catch(e){}
+  if(v==='oui'||v==='non')return v==='oui';
+  return !((S.data&&S.data.jours)||[]).some(x=>x.repas>0&&x.date<plusJours(auj(),-14));
+}
+function aide(txt,titre,toujours){if(!toujours&&!aidesOn())return '';return '<details class="aide"><summary>'+(titre||'Comment lire ce graphique ?')+'</summary>'+txt+'</details>';}
 
 function ongletPoids(d,P){
   const p=d.poids||[];
@@ -2920,7 +2945,7 @@ function vueJournal(d){
     if(dates[0]){S.jn.ouv['j:'+dates[0]]=1;const l=lundiJn(dates[0]);if(l!==cur)S.jn.ouv['s:'+l]=1;}
   }
   const sem={};dates.forEach(s=>{const l=lundiJn(s);(sem[l]=sem[l]||[]).push(s);});
-  let h='<section class="jn">'+blocRechJn(d)+'<div id="jn-semaines"'+(rechJnActive()?' hidden':'')+'>'+blocStatsIA(d)+bilanSemaine(d)+'<div class="jn-t">Cette semaine</div>';
+  let h='<section class="jn">'+blocRechJn(d)+'<div id="jn-semaines"'+(rechJnActive()?' hidden':'')+'>'+bilanSemaine(d)+'<div class="jn-t">Cette semaine</div>';
   if(sem[cur]){h+='<div class="jn-carte">';sem[cur].forEach(s=>{h+=ligneJourJn(d,s,J);});h+='</div>';}
   else h+='<p class="note">Rien de saisi cette semaine pour l’instant.</p>';
   const passees=Object.keys(sem).filter(l=>l!==cur).sort().reverse();
@@ -4003,8 +4028,9 @@ function vueRéglages(d){
     aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir (★ met un aliment en tête de Composer), « Saisir à la main » marche sans IA. '+
       '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories, purines et qualité (saturées, fibres, sodium, sucres ajoutés, alcool) sur la période choisie. <b>Corps</b> : pesée, pas, mensurations, photos et crises de goutte. '+
       '<b>Journal</b> : tout ce qui est noté, semaine par semaine. <b>Coach</b> : une question sur ton alimentation.</p>'+
-      '<p class="note">Les couleurs suivent ton objectif : vert quand tu vas dans son sens, orange quand tu t\'en écartes.</p>','Comment ça marche ?')+
-    '</section>';
+      '<p class="note">Les couleurs suivent ton objectif : vert quand tu vas dans son sens, orange quand tu t\'en écartes.</p>','Comment ça marche ?',true)+
+    '<button class="lien" id="g-aides">'+(aidesOn()?'Masquer':'Afficher')+' les aides « Comment lire ? »</button>'+
+    '</section><section>'+blocStatsIA(d)+'</section>';
 
   const C=S.cpt;
   h+='<section><details class="aide rg-cnx"'+(S.cnxOuv?' open':'')+'><summary>Connexion (avancé)</summary>'+
@@ -5348,7 +5374,7 @@ function brancher(){
     catch(err){S.gt.etat='ko';S.gt.message=err.message;}
     rendre();
   }));
-  on('#j-ajout','click',()=>{S.vue='ajout';rendre();hautPage();});
+  on('#j-sug','click',async()=>{const sg=S.sugJ;if(!sg)return;S.vue='ajout';prendreRepas(sg.g,sg.cr,sg.note);ecrireRepasCache();const e=enregistrer(auj());hautPage();await e;});
   on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});
   document.querySelectorAll('.sem button').forEach(b=>b.addEventListener('click',()=>{S.jour.date=b.dataset.jd===auj()?null:b.dataset.jd;rendre();}));
   on('#j-retour','click',()=>{S.jour.date=null;rendre();});
@@ -5433,6 +5459,7 @@ function brancher(){
   };
   on('#att-plus','click',mettreEnAttente);
   on('#a-plus-tard','click',mettreEnAttente);
+  on('#g-aides','click',()=>{try{localStorage.setItem('suivi.aides',aidesOn()?'non':'oui');}catch(e){}rendre();});
   on('#pia-t','click',()=>{S.piaOuv=!S.piaOuv;rendre();});
   on('#pas-t','click',()=>{S.pasOuv=!S.pasOuv;rendre();});
   document.querySelectorAll('[data-pia-s]').forEach(b=>b.addEventListener('click',()=>{const p=piaEtat(),k=b.dataset.piaS;if(!iaOk(k))return;p.actif[k]=p.actif[k]?0:1;rendre();}));
@@ -5484,7 +5511,8 @@ function brancher(){
     ecrireRepasCache();rendre();hautPage();
   }));
   // repas préférés : un toucher = enregistré aujourd'hui au créneau choisi
-  document.querySelectorAll('[data-pfc]').forEach(b=>b.addEventListener('click',()=>{S.pref.cr=b.dataset.pfc;S.pref.msg='';rendre();}));
+  document.querySelectorAll('[data-pfc]').forEach(b=>b.addEventListener('click',()=>{S.pref.cr=b.dataset.pfc;S.pref.chg=false;S.pref.msg='';rendre();}));
+  document.querySelectorAll('[data-pf-chg]').forEach(b=>b.addEventListener('click',()=>{S.pref.chg=true;rendre();}));
   on('#pf-gerer','click',()=>{S.pref.gerer=!S.pref.gerer;S.pref.msg='';rendre();});
   document.querySelectorAll('[data-pf-aj]').forEach(b=>b.addEventListener('click',async()=>{
     const p=prefListe().find(x=>x.id===b.dataset.pfAj);if(!p)return;
