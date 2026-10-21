@@ -64,7 +64,7 @@ const PRODUITS = {
 };
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
-const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false;
+const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false, ancienFav = false;
 await page.route('https://app.test/**', r => {
   const img = new URL(r.request().url()).pathname.match(/^\/(img\/(?:imc\/[fh]-\d+|ico\/[a-z]+)\.webp)$/); // vraies images du dépôt
   if (img) { try { return r.fulfill({ status: 200, contentType: 'image/webp', body: readFileSync(join(ICI, '..', img[1])) }); } catch { return r.fulfill({ status: 404, body: '' }); } }
@@ -95,7 +95,7 @@ await page.route('https://api.test/**', async r => {
     const rem = DATA.photos.some(x => x.type === q.type && x.date === q.nouvelle_date); DATA.photos = DATA.photos.filter(x => !(x.type === q.type && x.date === q.nouvelle_date)); p.date = q.nouvelle_date;
     DATA.photos.sort((a, b) => a.date.localeCompare(b.date)); return json({ ok: true, op: 'date', remplace: rem });
   }
-  if (q.action === 'favoris') return json({ ok: true, favoris: q.favoris });
+  if (q.action === 'favoris') return json(ancienFav ? { ok: true, favoris: q.favoris } : { ok: true, favoris: q.favoris, repas_favoris: q.repas_favoris || [] });
   if (q.action === 'invite') return q.profil ? json({ ok: true, token: 'TOKNEUF', prenom: q.profil.prenom }) : (q.invite === 'ABCD-EFGH' ? json({ ok: true, besoin_profil: true, prenom: 'Hugo' }) : json({ ok: false, erreur: 'Code inconnu.' }));
   if (q.action === 'admin') { if (q.op === 'ia') { const u = COMPTES.find(x => x.uid === q.uid); if (u) { u.niveau = q.niveau; u.ia = q.niveau !== 'non'; } }
     return json({ ok: true, comptes: COMPTES, invitations: [], cree: q.op === 'inviter' ? { code: 'ZR4T-8HNW', type: 'inscription', prenom: q.prenom, expire: jour(7) } : undefined }); }
@@ -280,7 +280,6 @@ ok(await page.locator('.jn-det .ligne').count() > 0, 'repas affichés après cha
 console.log('Ajouter');
 await page.click('nav button[data-vue="ajout"]');
 await page.click('#rac-tr');
-await page.click('#rac-crr button[data-cr="midi"]');
 await page.click('[data-rf-aj="0"]');
 await page.waitForTimeout(2500);
 const enr = appels.filter(a => a.action === 'enregistrer');
@@ -795,6 +794,66 @@ await page.click('nav button[data-vue="ajout"]');
 if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
 ok(await page.locator('.vue.on .aj-photo .ic').count() === 2 && !/📷|🖼/.test(await texte('.vue.on .aj-photo')), 'Ajouter : icônes appareil photo et galerie (plus d émojis)');
 ok(await page.locator('.aj-autres .ic').count() === 4 && await chargees('.aj-autres .ic'), 'Ajouter : une icône sur Refaire, Composer, À la main et Code-barres');
+await page.click('nav button[data-vue="jour"]');
+
+console.log('Repas préférés');
+await page.click('nav button[data-vue="ajout"]');
+if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+await page.evaluate(() => { S.prefLoc = null; localStorage.removeItem('suivi.repasfav'); S.data.repas_favoris = []; S.pref = { cr: 'midi', gerer: false }; S.rac.ouvR = false; S.rac.ouvC = false; rendre(); });
+ok(await page.locator('.pf-sec').count() === 1 && await page.locator('[data-pf-aj]').count() === 0 && await page.locator('#pf-creer').count() === 1 && /Un toucher sur un préféré/.test(await texte('.pf-sec')), 'Ajouter : section Mes repas préférés en tête (vide : Créer un préféré)');
+ok(await page.evaluate(() => { const a = document.querySelector('.pf-sec'), b = document.querySelector('.aj-photo'); return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'Ajouter : les préférés passent avant la photo');
+await page.click('#rac-tr');
+const jRf = await page.locator('.rf-j').allTextContents();
+ok(jRf.length >= 1 && jRf.length <= 3 && !jRf.some(t => /Aujourd/i.test(t)) && await page.locator('.rf-l').count() > 0, 'Refaire : repas des 3 derniers jours, groupés par jour : ' + jRf.join(' / '));
+const nFav = appels.filter(a => a.action === 'favoris').length;
+await page.locator('[data-rf-pf]').first().click(); await page.waitForTimeout(1200);
+const fvR = appels.filter(a => a.action === 'favoris').pop();
+ok(appels.filter(a => a.action === 'favoris').length === nFav + 1 && Array.isArray(fvR.repas_favoris) && fvR.repas_favoris.length === 1 && fvR.repas_favoris[0].aliments.length > 0 && Array.isArray(fvR.favoris), 'Refaire : ☆ garde le repas dans les préférés (envoyé avec les favoris d aliments)');
+ok(await page.locator('[data-pf-aj]').count() === 1 && await page.locator('[data-rf-pf].on').count() >= 1, 'préféré affiché en tête, étoile allumée dans Refaire');
+ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.repasfav'))).attente), 'préférés : plus en attente après l envoi');
+const pf0 = fvR.repas_favoris[0];
+await page.click('[data-pfc="soir"]');
+const nEnrP = appels.filter(a => a.action === 'enregistrer').length;
+await page.click('[data-pf-aj]'); await page.waitForTimeout(800);
+const enrP = appels.filter(a => a.action === 'enregistrer').pop();
+ok(appels.filter(a => a.action === 'enregistrer').length === nEnrP + 1 && enrP.repas === 'Soir' && enrP.date === jour(0) && enrP.kcal === pf0.aliments.reduce((t, a) => t + (a.kcal || 0), 0), 'un toucher sur le préféré : enregistré aujourd hui au créneau choisi (Soir)');
+ok(/enregistr/i.test(await texte('.resu')) && /Ton repas préféré/.test(await texte('.resu')), 'confirmation affichée');
+ok(/★ Dans mes repas préférés/.test(await texte('#e-pref')), 'résultat : déjà dans les préférés');
+await page.click('#a-nouveau');
+page.once('dialog', dg => dg.accept('Mon dîner'));
+await page.click('#pf-gerer'); await page.click('[data-pf-ren]'); await page.waitForTimeout(1000);
+ok(/Mon dîner/.test(await texte('.pf-sec')) && appels.filter(a => a.action === 'favoris').pop().repas_favoris[0].nom === 'Mon dîner', 'Gérer : renommer un préféré');
+await page.click('[data-pf-sup]'); await page.click('#modale-hote [data-mod="oui"]'); await page.waitForTimeout(1000);
+ok(await page.locator('.pf-sec .pf:not(.creer)').count() === 0 && appels.filter(a => a.action === 'favoris').pop().repas_favoris.length === 0, 'Gérer : retirer un préféré');
+// créer depuis un résultat (Composer > Continuer)
+await page.click('#pf-creer');
+ok(await page.locator('#rac-grille').count() === 1 && /Continuer, puis/.test(await texte('.pf-sec')), 'Créer un préféré : ouvre Composer avec la marche à suivre');
+await page.click('#rac-crc button[data-cr="tous"]'); await page.locator('.rac-l:not([hidden]):not(.hors):not(.loin) [data-cp]').first().click(); await page.click('#rac-valide');
+page.once('dialog', dg => dg.accept('Mon midi composé'));
+await page.click('#e-pref'); await page.waitForTimeout(1000);
+const fvC = appels.filter(a => a.action === 'favoris').pop();
+ok(fvC.repas_favoris.length === 1 && fvC.repas_favoris[0].nom === 'Mon midi composé' && fvC.repas_favoris[0].aliments.length === 1 && !('__base' in fvC.repas_favoris[0].aliments[0]), 'résultat : ☆ Garder comme repas préféré (nom choisi)');
+// ancien workflow : repas_favoris non renvoyé, les préférés restent en attente
+ancienFav = true;
+await page.click('#e-pref'); await page.waitForTimeout(1000);
+ok(await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.repasfav')).attente === true), 'ancien workflow : les préférés restent en attente (pas perdus)');
+ancienFav = false;
+await page.click('#a-abandon'); if (await page.locator('#modale-hote').count()) await page.click('#modale-hote [data-mod="oui"]');
+
+console.log('Goutte : frise des crises');
+await page.evaluate(d => { S.data.crises = [{ id: 'g1', date: d[0], articulation: 'gros orteil', intensite: 4, remarque: '' }, { id: 'g2', date: d[1], articulation: 'genou', intensite: 2, remarque: '' }, { id: 'g3', date: d[2], articulation: 'cheville', intensite: 3, remarque: '' }]; S.gtf = null; rendre(); }, [jour(-5), jour(-25), jour(-60)]);
+await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="goutte"]');
+ok(await page.locator('.gf-svg').count() === 1 && await page.locator('.gf-c').count() === 3 && await page.locator('[data-gfp="90"].on').count() === 1, 'Goutte : frise 90 jours, une marque par crise');
+ok(/il y a 5 j/.test(await texte('.gf .tuiles')) && /≈ 28 j/.test(await texte('.gf .tuiles')) && /^3/.test((await page.locator('.gf .tu b').first().textContent()).trim()), 'Goutte : tuiles (3 crises, dernière il y a 5 j, écart ≈ 28 j)');
+ok(await page.locator('.gf-svg rect[fill="var(--over)"][opacity=".13"]').count() === 3, 'Goutte : 3 jours avant chaque crise teintés');
+await page.click('[data-gfp="30"]');
+ok(await page.locator('.gf-c').count() === 2, 'Goutte : période 30 jours');
+await page.locator('.gf-c[data-gcr="g1"]').dispatchEvent('click');
+ok(await page.locator('.gf .crise').count() === 1 && /gros orteil/.test(await texte('.gf .crise')), 'Goutte : toucher une crise montre sa carte (3 jours avant)');
+ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth && document.querySelector('.gf-svg').getBoundingClientRect().right <= window.innerWidth), 'Goutte : frise sans débordement');
+await page.evaluate(() => { S.data.crises = []; rendre(); });
+ok(await page.locator('.gf').count() === 0, 'Goutte : pas de frise sans crise');
+await page.evaluate(d => { S.data.crises = [{ id: 'g1', date: d, articulation: 'gros orteil', intensite: 4, remarque: '' }]; rendre(); }, jour(-5));
 await page.click('nav button[data-vue="jour"]');
 
 console.log('Affichage');

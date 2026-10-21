@@ -17,12 +17,12 @@
 <style>
 :root{
   --paper:#F2F3F1; --card:#FFFFFF; --ink:#17262A; --soft:#5A6B6E; --nav:#7A8A8C;
-  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3; --ambre:#C79A2E; --jaune:#D6A400; --rouge:#C22E2E;
+  --rule:#D4D9D6; --under:#16715C; --over:#B85C15; --focus:#16715C; --creux:#E3E5E3; --ambre:#C79A2E; --jaune:#D6A400; --rouge:#C22E2E; --vin:#8A3B6E;
   --ia-g:#1E8A70; --ia-p:#B07F12;
 }
 @media (prefers-color-scheme: dark){
   :root{ --paper:#10181A; --card:#172224; --ink:#E8ECEA; --soft:#9BA8A3; --nav:#AEBDBF;
-         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; --jaune:#E5B93A; --rouge:#E05555; --ia-g:#3DA88C; --ia-p:#B8892A; }
+         --rule:#2A383A; --under:#3DA88C; --over:#D8853A; --focus:#3DA88C; --creux:#252A2B; --ambre:#D9B443; --jaune:#E5B93A; --rouge:#E05555; --vin:#C873A8; --ia-g:#3DA88C; --ia-p:#B8892A; }
 }
 *{box-sizing:border-box}
 /* Coquille d'application : le document ne défile JAMAIS. Seul #defile défile, la barre
@@ -705,6 +705,11 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .crise{border:1px solid var(--rule);border-left:4px solid var(--over);border-radius:10px;background:var(--card);padding:11px 13px 4px;margin-top:12px}
 .crise-t{display:flex;justify-content:space-between;font-size:14.5px}.crise-t b{font-weight:700}
 .crise-i{font-size:13px;color:var(--soft);margin:2px 0 6px}
+.gf-carte{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:12px 12px 10px}
+.gf-svg{display:block;width:100%;height:auto;overflow:visible}.gf-c{cursor:pointer}
+.gf-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--soft);margin-top:8px}
+.gf-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.gf .crise{margin-top:10px}
 .crise ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5}
 .crise .crise-sup{width:auto;margin:4px 0 6px auto;font-size:13px}
 .synth{border:1px solid var(--rule);border-left:4px solid var(--ambre);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.45;background:var(--card)}
@@ -758,6 +763,28 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .aj-tile i .ic{margin:0}.aj-tile i{font-style:normal;width:32px;height:32px;border-radius:8px;background:var(--creux);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
 .aj-tile span{min-width:0}.aj-tile b{display:block;font-size:14.5px}.aj-tile small{display:block;font-size:13px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aj-pan{margin-top:10px}
+.pf-sec h2{display:flex;align-items:center}.pf-etoile{color:var(--jaune);margin-right:6px}.pf-gerer{margin:0 0 0 auto;width:auto;font-size:14px;font-weight:400}
+.pf-quand{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--soft);margin:-2px 0 10px;flex-wrap:wrap}
+.pf-quand button{padding:4px 11px;border:1px solid var(--rule);border-radius:999px;font-size:13px;color:var(--soft);background:var(--card)}
+.pf-quand button.on{border-color:var(--under);color:var(--under);font-weight:600;background:color-mix(in srgb,var(--under) 9%,var(--card))}
+.pf-grille{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pf{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:10px 10px 9px;min-width:0;position:relative;text-align:left;color:var(--ink);display:block;width:100%}
+.pf-t{display:flex;align-items:center;gap:7px;min-width:0}.pf-t b{font-size:14px;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ic.pf-i{width:28px;height:28px}
+.pf-k{display:block;font-size:17px;font-weight:700;margin-top:6px}.pf-k small{font-size:12px;font-weight:400;color:var(--soft)}
+.pf-m{display:block;font-size:11.5px;color:var(--soft);padding-right:34px}
+.pf-plus{position:absolute;right:8px;bottom:8px;width:30px;height:30px;border-radius:50%;background:var(--under);color:var(--paper);font-size:20px;font-weight:600;display:flex;align-items:center;justify-content:center;line-height:1}
+.pf.creer{border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--under);font-weight:600;font-size:14px;text-align:center;gap:1px;min-height:96px}
+.pf.creer small{font-weight:400;color:var(--soft);font-size:11.5px}.pf-cp{font-size:24px;line-height:1}
+.pf-g{display:flex;gap:6px;margin-top:8px}.pf-g button{flex:1;padding:6px 2px;border:1px solid var(--rule);border-radius:8px;font-size:12.5px}
+.pf-g button:last-child{color:var(--over)}
+.rf-j{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin:10px 0 2px}
+.rf-l{display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--rule);min-width:0}
+.rf-d{flex:1;min-width:0;text-align:left;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:6px 0}.rf-d small{color:var(--soft);font-size:12px}
+.rf-k{font-size:13px;color:var(--soft);white-space:nowrap}
+.rf-st{font-size:19px;color:var(--soft);width:30px;height:36px}.rf-st.on{color:var(--jaune)}
+.rf-aj{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--under);color:var(--under);font-size:20px;flex:none;line-height:1}
+.e-pref{display:block;margin:10px auto 0}.e-pref.on{color:var(--jaune)}
 .aj-pan-t{display:flex;justify-content:space-between;align-items:center;padding:12px 12px 0}
 .aj-pan-t b{font-size:15px}.aj-pan-t .lien{margin:0}
 .br-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -945,7 +972,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='14/10/2026 14h22';
+const APP_VERSION='21/10/2026 21h36';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2108,24 +2135,6 @@ function cleCompo(l){
   const n=(Array.isArray(l.aliments)&&l.aliments.length)?l.aliments.map(a=>nomSeul(a.nom)):nomsDetail(l.detail);
   return n.filter(Boolean).sort().join('|');
 }
-// Derniers repas d'un créneau, regroupés quand la composition est identique.
-function repasARefaire(d,cr){
-  const grp={},ordre=[];
-  ((d&&d.journal)||[]).forEach(l=>{
-    if(!l||!l.kcal)return;
-    if(cr!=='tous'&&creneauDe(l.repas)!==cr)return;
-    const k=cleCompo(l);if(!k)return;
-    if(!grp[k]){grp[k]={l:l,n:0};ordre.push(k);}
-    // le représentant est le repas le plus récent qui a le détail par aliment
-    else if(!(Array.isArray(grp[k].l.aliments)&&grp[k].l.aliments.length)&&Array.isArray(l.aliments)&&l.aliments.length)grp[k].l=l;
-    grp[k].n++;
-  });
-  const liste=ordre.map(k=>grp[k]);
-  let hab=null;
-  liste.forEach(g=>{if(g.n>=3&&(!hab||g.n>hab.n))hab=g;});
-  const autres=liste.filter(g=>g!==hab).slice(0,hab?5:6);
-  return (hab?[Object.assign({hab:true},hab)]:[]).concat(autres);
-}
 function catalogueDe(d,cr){
   const cat=((d&&d.catalogue)||[]).filter(it=>it&&it.k&&it.nom);
   if(cr==='tous')return cat.slice();
@@ -2156,13 +2165,37 @@ function favBascule(k){
   S.favLoc=l;favEcrireLocal(l,true);
   clearTimeout(favMinuteur);favMinuteur=setTimeout(favEnvoyer,800);
 }
+/* Repas préférés : repas entiers (nom, créneau, aliments), gardés dans Users (colonne repas_favoris),
+   envoyés avec les favoris d'aliments ; même attente locale (suivi.repasfav) tant que l'envoi n'a pas réussi. */
+const PREF_LS='suivi.repasfav',PREF_MAX=20;
+const PREF_CH=['nom','quantite','kcal','prot','lip','gluc','fibres','sucres','sodium','satures','sucres_ajoutes','famille','grammes','purines','purines_risque','alcool','sucree'];
+function prefLireLocal(){try{const o=JSON.parse(localStorage.getItem(PREF_LS));return o&&Array.isArray(o.l)?o:null;}catch(e){return null;}}
+function prefEcrireLocal(l,att){try{localStorage.setItem(PREF_LS,JSON.stringify({l:l,attente:!!att}));}catch(e){}}
+function prefListe(){
+  if(S.prefLoc===undefined){const o=prefLireLocal();S.prefLoc=(o&&o.attente)?o.l:null;}
+  if(Array.isArray(S.prefLoc))return S.prefLoc;
+  const r=S.data&&S.data.repas_favoris;return Array.isArray(r)?r:[];
+}
+function prefEcrire(l){S.prefLoc=l;prefEcrireLocal(l,true);clearTimeout(favMinuteur);favMinuteur=setTimeout(favEnvoyer,800);}
+function prefDepuis(nom,cr,als,src){
+  return {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),nom:String(nom||'Repas').replace(/\s+/g,' ').trim().slice(0,60),cr:cr,src:src||'',
+    aliments:(als||[]).slice(0,15).map(a=>{const x={};PREF_CH.forEach(k=>{if(a[k]!==undefined&&a[k]!==null&&a[k]!=='')x[k]=a[k];});return x;})};
+}
+function prefAjoute(p){prefEcrire([p].concat(prefListe()).slice(0,PREF_MAX));}
+function prefTotal(p){const t={kcal:0,prot:0,lip:0,gluc:0};(p.aliments||[]).forEach(a=>{for(const k in t)t[k]+=Number(a[k])||0;});return t;}
+function nomRepas(als){const n=(als||[]).map(a=>String(a.nom||'').split(/[,(]/)[0].trim()).filter(Boolean);return n.slice(0,3).join(', ')||'Repas';}
 async function favEnvoyer(){
-  const o=favLireLocal();if(!o||!o.attente||!S.cfg)return;
+  const o=favLireLocal(),q=prefLireLocal();
+  if(((!o||!o.attente)&&(!q||!q.attente))||!S.cfg)return;
+  const fl=o&&o.attente?o.l:favListe(),pl=prefListe();
   try{
-    await appel({action:'favoris',favoris:o.l});
+    const rep=await appel({action:'favoris',favoris:fl,repas_favoris:pl});
     const cur=favLireLocal();
-    if(cur&&JSON.stringify(cur.l)===JSON.stringify(o.l))favEcrireLocal(o.l,false);
-    if(S.data){S.data.favoris=o.l;try{localStorage.setItem(S.cache,JSON.stringify(S.data));}catch(e){}}
+    if(cur&&JSON.stringify(cur.l)===JSON.stringify(fl))favEcrireLocal(fl,false);
+    // un ancien workflow ignore repas_favoris (pas d'écho) : les préférés restent en attente
+    const cq=prefLireLocal(),pris=Array.isArray(rep&&rep.repas_favoris);
+    if(pris&&cq&&JSON.stringify(cq.l)===JSON.stringify(pl))prefEcrireLocal(pl,false);
+    if(S.data){S.data.favoris=fl;if(pris)S.data.repas_favoris=pl;try{localStorage.setItem(S.cache,JSON.stringify(S.data));}catch(e){}}
   }catch(e){/* reste en attente : repart à la prochaine étoile ou au prochain lancement */}
 }
 function totalCompo(d){
@@ -2217,32 +2250,53 @@ function barreCompo(d){
   const noms=((d&&d.catalogue)||[]).filter(it=>(S.rac.sel[it.k]||0)>0).map(it=>it.nom);
   return '<button class="rac-barre" id="rac-valide"><span>'+t.u+' unité'+(t.u>1?'s':'')+' · '+nb(t.kcal)+' kcal<small>'+esc(noms.join(', '))+'</small></span><span>'+(COMPO.modeAjout?'Ajouter à ce repas':'Continuer')+' ›</span></button>';
 }
+function blocPreferes(d){
+  const P=S.pref=S.pref||{cr:null,gerer:false},cr=P.cr||repasParHeure(),L=prefListe();
+  const tri=L.filter(p=>p.cr===cr).concat(L.filter(p=>p.cr!==cr));
+  let h='<section class="pf-sec"><h2><span class="pf-etoile">★</span>Mes repas préférés'+(L.length?'<button class="lien pf-gerer" id="pf-gerer">'+(P.gerer?'Terminé':'Gérer')+'</button>':'')+'</h2>'+
+    '<div class="pf-quand">Ajouter en '+['matin','midi','encas','soir'].map(c=>'<button data-pfc="'+c+'" class="'+(c===cr?'on':'')+'">'+libelleRepas(c)+'</button>').join('')+'</div><div class="pf-grille">';
+  tri.forEach(p=>{
+    const t=prefTotal(p),tete='<span class="pf-t">'+ico(IC_REPAS[p.cr]||'assiette','pf-i')+'<b>'+esc(p.nom)+'</b></span><span class="pf-k">'+nb(t.kcal)+' <small>kcal</small></span><span class="pf-m">P '+nb(t.prot)+' · L '+nb(t.lip)+' · G '+nb(t.gluc)+'</span>';
+    h+=P.gerer?'<div class="pf">'+tete+'<span class="pf-g"><button data-pf-ren="'+esc(p.id)+'">Renommer</button><button data-pf-sup="'+esc(p.id)+'">Retirer</button></span></div>'
+      :'<button class="pf" data-pf-aj="'+esc(p.id)+'" aria-label="Ajouter '+esc(p.nom)+' en '+libelleRepas(cr)+'">'+tete+'<span class="pf-plus" aria-hidden="true">+</span></button>';
+  });
+  if(!P.gerer&&L.length<PREF_MAX)h+='<button class="pf creer" id="pf-creer"><span class="pf-cp">+</span>Créer un préféré<small>avec mes aliments</small></button>';
+  h+='</div>';
+  if(!L.length)h+='<p class="note">Un toucher sur un préféré l’enregistre tout de suite. Crée-le avec tes aliments, ou touche ☆ sur un repas de Refaire ou sur un résultat d’analyse.</p>';
+  if(P.msg)h+='<p class="bien">'+esc(P.msg)+'</p>';
+  return h+'</section>';
+}
 function blocRaccourcis(d){
   const R=S.rac;
-  const crR=R.crR||repasParHeure();
   const nbCat=((d&&d.catalogue)||[]).length;
-  const lib={matin:'du matin',midi:'du midi',encas:'en-cas',soir:'du soir',tous:''}[crR];
   const tuile=(id,ic,t,s,on)=>'<button class="aj-tile'+(on?' on':'')+'" id="'+id+'" aria-expanded="'+(on?'true':'false')+'"><i>'+ico(ic,'s')+'</i><span><b>'+t+'</b><small>'+s+'</small></span></button>';
   let h='<section class="rac"><h2>Autres façons d\u2019ajouter</h2><div class="aj-autres">'+
-    tuile('rac-tr','actualiser','Refaire','un repas déjà noté',R.ouvR)+
+    tuile('rac-tr','actualiser','Refaire','3 derniers jours',R.ouvR)+
     tuile('rac-tc','assiette','Composer',nbCat?nbCat+' aliments':'mes aliments',R.ouvC)+
     tuile('rac-tm','main','À la main','sans IA',S.man.ouvert)+
     tuile('sc-ouvre','yaourt','Code-barres','produit emballé',false)+'</div>';
   const pan=(t,c)=>'<div class="rac-acc o aj-pan"><div class="aj-pan-t"><b>'+t+'</b><button class="lien" id="rac-ferme">Fermer</button></div>'+c+'</div>';
   if(R.ouvR){
-    const liste=repasARefaire(d,crR);R.liste=liste;
-    let c='<div class="rac-contenu">'+ongletsCr('rac-crr',crR,false);
-    if(!liste.length)c+='<p class="note">Aucun repas enregistré à ce moment de la journée ces dernières semaines.</p>';
-    liste.forEach((g,i)=>{
-      const l=g.l,als=Array.isArray(l.aliments)&&l.aliments.length?l.aliments:null;
-      const desc=als?als.map(a=>a.nom+(a.quantite?' '+a.quantite:'')).join(', '):(l.detail||'');
-      c+='<div class="rac-repas"><div class="rac-rt"><b>'+(g.hab?'Habituel · '+g.n+' fois':esc(libDate(l.date)))+'</b><span>'+nb(l.kcal)+' kcal</span></div>'+
-        '<small>'+esc(desc)+'</small>'+(als?'':'<small class="rac-ancien">Ancien repas : ajoutable tel quel, sans détail par aliment.</small>')+
-        '<div class="rac-btns"><button class="p" data-rf-aj="'+i+'">+ Ajouter</button><button class="s" data-rf-mod="'+i+'">✎ Modifier</button></div></div>';
+    const ORD={matin:0,midi:1,encas:2,soir:3},liste=[],src={},crA=(S.pref&&S.pref.cr)||repasParHeure();
+    prefListe().forEach(p=>{if(p.src)src[p.src]=1;});
+    let c='<div class="rac-contenu">';
+    [1,2,3].map(n=>plusJours(auj(),-n)).forEach(j=>{
+      const ls=((d&&d.journal)||[]).filter(l=>l&&l.date===j&&l.kcal).sort((a,b)=>(ORD[creneauDe(a.repas)]??4)-(ORD[creneauDe(b.repas)]??4));
+      if(!ls.length)return;
+      c+='<p class="rf-j">'+esc(libDate(j))+'</p>';
+      ls.forEach(l=>{
+        const i=liste.push({l:l})-1,cr=creneauDe(l.repas),k=cleCompo(l),on=!!src[k];
+        const als=Array.isArray(l.aliments)&&l.aliments.length?l.aliments:null,desc=als?als.map(a=>a.nom).join(', '):(l.detail||l.repas||'');
+        c+='<div class="rf-l">'+ico(IC_REPAS[cr]||'assiette','s')+'<button class="rf-d" data-rf-mod="'+i+'"><small>'+esc(libelleRepas(cr)||l.repas)+'</small> '+esc(desc)+'</button>'+
+          '<span class="rf-k">'+nb(l.kcal)+'</span><button class="rf-st'+(on?' on':'')+'" data-rf-pf="'+i+'" aria-pressed="'+on+'" aria-label="'+(on?'Retirer des repas préférés':'Mettre dans mes repas préférés')+'">'+(on?'★':'☆')+'</button>'+
+          '<button class="rf-aj" data-rf-aj="'+i+'" aria-label="Ajouter en '+libelleRepas(crA)+'">+</button></div>';
+      });
     });
+    R.liste=liste;
+    if(!liste.length)c+='<p class="note">Aucun repas noté ces 3 derniers jours.</p>';
     if(R.msg)c+='<p class="alerte">'+esc(R.msg)+'</p>';
-    c+='<p class="note">+ Ajouter l’enregistre tout de suite pour aujourd’hui, en '+esc(libelleRepas(crR==='tous'?repasParHeure():crR))+'. Modifier l’ouvre pour ajuster les quantités avant.</p></div>';
-    h+=pan('Refaire un repas '+lib,c);
+    c+='<p class="note">+ l’enregistre tout de suite pour aujourd’hui, en '+esc(libelleRepas(crA))+' (créneau choisi dans Mes repas préférés). Touche la ligne pour ajuster les quantités avant. ☆ le garde dans tes repas préférés.</p></div>';
+    h+=pan('Refaire · 3 derniers jours',c);
   }else if(R.ouvC)h+=pan('Composer avec mes aliments',blocComposer(d,false));
   else if(S.man.ouvert)h+=pan('Saisir à la main',blocManuel());
   return h+'</section>';
@@ -2324,7 +2378,8 @@ function vueAjout(d){
       '<button class="lien" id="aj-annule">Annuler l\'ajout</button></section>';
     if(A.ajoutEnCours&&((d&&d.catalogue)||[]).length)h+='<section class="rac"><div class="rac-acc o"><div class="rac-tete"><span class="rac-ic">\u25a6</span>'+
       '<span class="rac-t"><b>Mes aliments</b><small>Touche + puis Ajouter à ce repas</small></span></div>'+blocComposer(d,true)+'</div></section>';
-    // photo en premier
+    if(!A.ajoutEnCours&&A.etat!=='envoi')h+=blocPreferes(d);
+    // photo ensuite
     h+='<section><h2>Photo du repas</h2><input id="a-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="a-galerie" type="file" accept="image/*" style="display:none">';
     if(A.apercu)h+='<div class="aj-apercu"><img src="'+A.apercu+'" alt="Aperçu du plat"><div class="taille">'+Math.round(A.taille/1024)+' Ko à envoyer</div><button class="lien" id="a-retire">Retirer la photo</button></div>';
     h+='<div class="aj-photo"><button class="cam" id="a-cam">'+ico('photo','ph')+(A.apercu?'Reprendre':'Appareil photo')+'</button><button class="gal" id="a-gal">'+ico('galerie','ph')+'Galerie</button></div></section>';
@@ -2392,6 +2447,7 @@ function vueAjout(d){
       h+='</div>';
       h+='<button class="secondaire" id="e-ajout-al">+ Ajouter un aliment</button>';
     }
+    {const pf=prefListe().some(x=>x.src===cleCompo({aliments:r.aliments}));h+='<button class="lien e-pref'+(pf?' on':'')+'" id="e-pref" aria-pressed="'+pf+'">'+(pf?'★ Dans mes repas préférés':'☆ Garder comme repas préféré')+'</button>';}
     if(A.confirm!=='fait'&&A.confirm!=='envoi')h+='<button class="lien" id="a-abandon">\u2715 Abandonner ce repas</button>';
     h+='</div>';h+='<button class="secondaire" id="a-nouveau">+ Nouveau repas</button></section>';
   }
@@ -3413,10 +3469,67 @@ function analyseCrise(d,c){
   const purMaxJ=Math.max.apply(null,jrs.map(j=>Number(j.purines_risque)||0));
   return {n:jrs.length,pur:pur,purDessus:purMaxJ>max,alc:alc,sa:sa,saDessus:sa!==null&&sa>Q.sucres_ajoutes.max,ec:ec,grosDef:ec!==null&&ec<-800,max:max,maxSa:Q.sucres_ajoutes.max};
 }
+// Frise des crises : purines à risque et alcool jour par jour, chaque crise posée dessus
+// avec les 3 jours qui la précèdent (teintés). Toucher une crise montre sa carte (3 jours avant).
+const GF_PER=[[30,'30 j'],[90,'90 j'],[365,'1 an']];
+function friseCrises(d){
+  const tout=(d.crises||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!tout.length)return '';
+  const F=S.gtf=S.gtf||{per:90,sel:null},n=F.per,a0=auj(),deb=plusJours(a0,-(n-1)),max=purMax(d);
+  const cr=tout.filter(c=>c.date>=deb&&c.date<=a0);
+  const par={};(d.jours||[]).forEach(j=>{if(j.date>=deb&&j.repas>0)par[j.date]=j;});
+  const W=334,H=200,top=34,bas=150,bw=W/n,jours=[];
+  for(let i=0;i<n;i++)jours.push(plusJours(deb,i));
+  const vals=jours.map(x=>par[x]?Math.round(Number(par[x].purines_risque)||0):0);
+  const mx=Math.min(max*3,Math.max(max*1.6,...vals)),y=v=>bas-Math.min(v,mx)/mx*(bas-top),idx=x=>Math.round((new Date(x+'T12:00:00')-new Date(deb+'T12:00:00'))/86400000);
+  // tuiles : nombre sur la période, dernière crise (toutes périodes), écart moyen entre deux crises de la période
+  const der=tout[tout.length-1],il=idx(a0)-idx(der.date),ecarts=cr.slice(1).map((c,i)=>idx(c.date)-idx(cr[i].date));
+  let h='<section class="gf"><h2>'+ico('courbes','x')+'Crises et alimentation</h2>'+
+    '<div class="periode">'+GF_PER.map(([v,t])=>'<button data-gfp="'+v+'"'+(n===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+
+    '<div class="tuiles">'+tuile('Crises',String(cr.length),'sur '+(n===365?'1 an':n+' jours'),null,'pied')+
+    tuile('Dernière',il<=0?'aujourd’hui':'il y a '+il+' j',esc(der.articulation)+' · '+der.intensite+'/5',null,'calendrier')+
+    tuile('Écart',ecarts.length?'≈ '+Math.round(ecarts.reduce((t,x)=>t+x,0)/ecarts.length)+' j':'—','entre 2 crises',null,'niveau')+'</div>';
+  let g='<svg class="gf-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Purines, alcool et crises sur '+n+' jours">';
+  cr.forEach(c=>{const i=idx(c.date),x0=Math.max(0,(i-3)*bw);g+='<rect x="'+x0.toFixed(1)+'" y="'+(top-6)+'" width="'+(i*bw-x0).toFixed(1)+'" height="'+(bas-top+6)+'" fill="var(--over)" opacity=".13"/>';});
+  vals.forEach((v,i)=>{if(v>0)g+='<rect x="'+(i*bw+bw*.1).toFixed(2)+'" y="'+y(v).toFixed(1)+'" width="'+Math.max(.6,bw*.8).toFixed(2)+'" height="'+(bas-y(v)).toFixed(1)+'" rx="'+(bw>3?1:0)+'" fill="'+coulPur(v,max)+'"/>';});
+  g+='<line x1="0" x2="'+W+'" y1="'+y(max).toFixed(1)+'" y2="'+y(max).toFixed(1)+'" stroke="var(--soft)" stroke-dasharray="3 3"/>'+
+    '<rect x="'+(W-82)+'" y="'+(y(max)-15).toFixed(1)+'" width="82" height="13" rx="3" fill="var(--card)" opacity=".9"/><text x="'+(W-2)+'" y="'+(y(max)-5).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="var(--soft)">plafond '+nb(max)+' mg</text>';
+  jours.forEach((x,i)=>{const a=par[x]?Number(par[x].alcool)||0:0;if(a>0)g+='<circle cx="'+(i*bw+bw/2).toFixed(1)+'" cy="'+(bas+9)+'" r="'+Math.min(5,1.6+a/18).toFixed(1)+'" fill="var(--vin)"/>';});
+  jours.forEach((x,i)=>{if(x.slice(8)==='01'&&(n<365||Number(x.slice(5,7))%2))g+='<line x1="'+(i*bw).toFixed(1)+'" x2="'+(i*bw).toFixed(1)+'" y1="'+bas+'" y2="'+(bas+4)+'" stroke="var(--soft)"/><text x="'+(i*bw+3).toFixed(1)+'" y="'+(H-2)+'" font-size="10" fill="var(--soft)">'+new Date(x+'T12:00:00').toLocaleDateString('fr-FR',{month:'short'})+'</text>';});
+  g+='<line x1="0" x2="'+W+'" y1="'+bas+'" y2="'+bas+'" stroke="var(--rule)"/>';
+  cr.forEach(c=>{const i=idx(c.date),xc=i*bw+bw/2,on=F.sel===c.id,art=(ARTICS.find(x=>x[0]===c.articulation)||[0,0,'articulation'])[2];
+    g+='<g class="gf-c" data-gcr="'+esc(c.id)+'" role="button" aria-label="Crise du '+jjmm(c.date)+', '+esc(c.articulation)+', '+c.intensite+' sur 5">'+
+      '<rect x="'+(xc-9).toFixed(1)+'" y="0" width="18" height="'+H+'" fill="transparent"/>'+
+      '<line x1="'+xc.toFixed(1)+'" x2="'+xc.toFixed(1)+'" y1="'+(top-4)+'" y2="'+bas+'" stroke="var(--rouge)" stroke-width="'+(on?3:2)+'"/>'+
+      '<circle cx="'+xc.toFixed(1)+'" cy="'+(top-14)+'" r="'+(on?12:10)+'" fill="var(--rouge)"'+(on?' stroke="var(--ink)" stroke-width="2"':'')+'/><text x="'+xc.toFixed(1)+'" y="'+(top-10)+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff">'+c.intensite+'</text>'+
+      '<image href="img/ico/'+art+'.webp" x="'+(xc-8).toFixed(1)+'" y="'+(bas+16)+'" width="16" height="16"/></g>';});
+  g+='</svg>';
+  h+='<div class="gf-carte">'+g+'<div class="gf-leg"><span><i style="background:var(--under)"></i>purines sous le plafond</span><span><i style="background:var(--over)"></i>au-dessus</span><span><i style="background:var(--rouge)"></i>&gt; '+nb(seuilRougePur(max))+' mg</span>'+
+    '<span><i style="background:var(--vin);border-radius:50%"></i>alcool</span><span><i style="background:var(--over);opacity:.3"></i>3 jours avant une crise</span></div></div>';
+  const sel=cr.find(c=>c.id===F.sel);
+  if(sel)h+=carteCrise(sel,analyseCrise(d,sel));
+  else h+='<p class="note">'+(cr.length?'Touche une crise pour voir ses 3 jours avant.':'Aucune crise sur cette période.')+'</p>';
+  return h+'</section>';
+}
+function carteCrise(c,a){
+  let h='<div class="crise"><div class="crise-t"><b>'+jjmm(c.date)+' · '+esc(c.articulation)+'</b><span>'+ico('niveau','x')+c.intensite+'/5</span></div>'+
+    (c.remarque?'<div class="crise-i">'+esc(c.remarque)+'</div>':'');
+  if(!a)h+='<p class="note" style="margin:4px 0 0">Pas de repas notés les trois jours avant.</p>';
+  else{
+    const o=v=>' style="color:var(--over)"';
+    h+='<div class="crise-i">Les 3 jours avant ('+a.n+' jour'+(a.n>1?'s':'')+' notés)</div><ul>'+
+      '<li>Purines à risque <b'+(a.purDessus?o():'')+'>'+nb(a.pur)+' mg/j</b> en moyenne (plafond '+nb(a.max)+')</li>'+
+      '<li>'+(a.alc>0?'Alcool <b'+o()+'>'+verresTxt(a.alc)+'</b>':'Pas d’alcool')+'</li>'+
+      (a.sa!==null?'<li>Sucres ajoutés <b'+(a.saDessus?o():'')+'>'+nb(a.sa)+' g/j</b> (repère '+nb(a.maxSa)+')</li>':'')+
+      (a.ec!==null?'<li>Écart aux besoins <b'+(a.grosDef?o():'')+'>'+sgn(a.ec)+' kcal/j</b></li>':'')+'</ul>';
+  }
+  h+='<button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div>';
+  return h;
+}
 function sectionGoutte(d){
   const G=S.gt,cr=d.crises||[];
   const hier=plusJours(auj(),-1);
-  let h='<section><h2>'+ico('pied','x')+'Noter une crise</h2>'+
+  let h=friseCrises(d)+'<section><h2>'+ico('pied','x')+'Noter une crise</h2>'+
     '<label>'+ico('calendrier','x')+'Quand</label><div class="chips" id="g-quand">'+
       [['auj','Aujourd’hui'],['hier','Hier'],['autre','Autre date']].map(x=>'<button data-gq="'+x[0]+'" class="'+(G.quand===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>';
   if(G.quand==='autre')h+='<input id="g-date" type="date" max="'+auj()+'" value="'+esc(G.date||hier)+'">';
@@ -3446,21 +3559,7 @@ function sectionGoutte(d){
     h+='<div class="synth"><b>Sur tes '+conn.length+' crises avec des repas notés</b> : '+l.join(', ')+'.'+
       (conn.length<3?' La synthèse devient parlante à partir de quelques crises.':'')+'</div>';
   }
-  an.forEach(x=>{
-    const c=x.c,a=x.a;
-    h+='<div class="crise"><div class="crise-t"><b>'+jjmm(c.date)+' · '+esc(c.articulation)+'</b><span>'+ico('niveau','x')+c.intensite+'/5</span></div>'+
-      (c.remarque?'<div class="crise-i">'+esc(c.remarque)+'</div>':'');
-    if(!a)h+='<p class="note" style="margin:4px 0 0">Pas de repas notés les trois jours avant.</p>';
-    else{
-      const o=v=>' style="color:var(--over)"';
-      h+='<div class="crise-i">Les 3 jours avant ('+a.n+' jour'+(a.n>1?'s':'')+' notés)</div><ul>'+
-        '<li>Purines à risque <b'+(a.purDessus?o():'')+'>'+nb(a.pur)+' mg/j</b> en moyenne (plafond '+nb(a.max)+')</li>'+
-        '<li>'+(a.alc>0?'Alcool <b'+o()+'>'+verresTxt(a.alc)+'</b>':'Pas d’alcool')+'</li>'+
-        (a.sa!==null?'<li>Sucres ajoutés <b'+(a.saDessus?o():'')+'>'+nb(a.sa)+' g/j</b> (repère '+nb(a.maxSa)+')</li>':'')+
-        (a.ec!==null?'<li>Écart aux besoins <b'+(a.grosDef?o():'')+'>'+sgn(a.ec)+' kcal/j</b></li>':'')+'</ul>';
-    }
-    h+='<button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div>';
-  });
+  an.forEach(x=>{h+=carteCrise(x.c,x.a);});
   return h+'<p class="note">Les crises apparaissent aussi en repères rouges sur le graphique des purines (Courbes). Une crise peut suivre un excès de purines, d’alcool ou de sucres, mais aussi une perte de poids trop rapide ou un changement de traitement : parles-en à ton médecin.</p></section>';
 }
 
@@ -5169,6 +5268,8 @@ function brancher(){
     }catch(err){G.etat='ko';G.message=err.message;}
     rendre();
   });
+  document.querySelectorAll('[data-gfp]').forEach(b=>b.addEventListener('click',()=>{S.gtf.per=Number(b.dataset.gfp);S.gtf.sel=null;rendre();}));
+  document.querySelectorAll('[data-gcr]').forEach(b=>b.addEventListener('click',()=>{S.gtf.sel=S.gtf.sel===b.dataset.gcr?null:b.dataset.gcr;rendre();}));
   document.querySelectorAll('[data-gdel]').forEach(b=>b.addEventListener('click',async()=>{
     if(!await modaleConfirm('Retirer cette crise de la liste ?',{ok:'Retirer',danger:true}))return;
     try{await appel({action:'crise',op:'supprimer',id:b.dataset.gdel});await rafraichir();S.gt.etat=null;}
@@ -5279,7 +5380,6 @@ function brancher(){
     S.vue='ajout';S.ajout.resultat=null;S.ajout.etat=null;rendre();versPan();
   }));
 
-  document.querySelectorAll('#rac-crr button').forEach(b=>b.addEventListener('click',()=>{S.rac.crR=b.dataset.cr;S.rac.msg='';rendre();}));
   document.querySelectorAll('#rac-crc button').forEach(b=>b.addEventListener('click',()=>{S.rac.crC=b.dataset.cr;S.rac.lim=0;rendre();}));
   document.querySelectorAll('[data-fav]').forEach(b=>b.addEventListener('click',()=>{favBascule(b.dataset.fav);rendre();}));
   document.querySelectorAll('[data-cx]').forEach(b=>b.addEventListener('click',()=>{delete S.rac.sel[b.dataset.cx];rendre();}));
@@ -5291,26 +5391,60 @@ function brancher(){
   on('#rac-q','input',e=>{S.rac.q=e.target.value;filtrerTuiles();});
   if(document.getElementById('rac-grille'))filtrerTuiles();
   // repas du journal -> résultat prêt à enregistrer (copie, le journal n'est pas touché)
-  function prendreRepas(g){
-    const l=g.l,cr=creneauDe(l.repas)||repasParHeure();
+  function prendreRepas(g,crV,note){
+    const l=g.l,cr=crV||creneauDe(l.repas)||repasParHeure();
     const A=S.ajout;
     const prec=paquetRepas();
     pousserHisto(prec);
     A.enregistre=null;A.ajoutEnCours=false;A.repas=cr;
-    A.resultat=resultatDepuis(alimentsLigne(l),cr,'Repris de ton journal, sans nouvelle analyse.');
+    A.resultat=resultatDepuis(alimentsLigne(l),cr,note||'Repris de ton journal, sans nouvelle analyse.');
     A.confirm=null;A.message='';A.dateAutre=auj();A.desc='';A.photo=null;A.apercu=null;A.taille=0;A.etat=null;
   }
   document.querySelectorAll('[data-rf-aj]').forEach(b=>b.addEventListener('click',async()=>{
     const g=(S.rac.liste||[])[Number(b.dataset.rfAj)];if(!g)return;
-    prendreRepas(g);S.rac.msg='';
+    prendreRepas(g,(S.pref&&S.pref.cr)||repasParHeure());S.rac.msg='';
     ecrireRepasCache();hautPage();
     await enregistrer(auj());
   }));
   document.querySelectorAll('[data-rf-mod]').forEach(b=>b.addEventListener('click',()=>{
     const g=(S.rac.liste||[])[Number(b.dataset.rfMod)];if(!g)return;
-    prendreRepas(g);
+    prendreRepas(g,(S.pref&&S.pref.cr)||repasParHeure());
     ecrireRepasCache();rendre();hautPage();
   }));
+  // repas préférés : un toucher = enregistré aujourd'hui au créneau choisi
+  document.querySelectorAll('[data-pfc]').forEach(b=>b.addEventListener('click',()=>{S.pref.cr=b.dataset.pfc;S.pref.msg='';rendre();}));
+  on('#pf-gerer','click',()=>{S.pref.gerer=!S.pref.gerer;S.pref.msg='';rendre();});
+  document.querySelectorAll('[data-pf-aj]').forEach(b=>b.addEventListener('click',async()=>{
+    const p=prefListe().find(x=>x.id===b.dataset.pfAj);if(!p)return;
+    S.pref.msg='';prendreRepas({l:{aliments:p.aliments,repas:''}},S.pref.cr||repasParHeure(),'Ton repas préféré « '+p.nom+' », sans nouvelle analyse.');
+    ecrireRepasCache();hautPage();
+    await enregistrer(auj());
+  }));
+  document.querySelectorAll('[data-pf-sup]').forEach(b=>b.addEventListener('click',async()=>{
+    const p=prefListe().find(x=>x.id===b.dataset.pfSup);if(!p)return;
+    if(!await modaleConfirm('Retirer « '+p.nom+' » de tes repas préférés ?',{ok:'Retirer',danger:true}))return;
+    prefEcrire(prefListe().filter(x=>x.id!==p.id));if(!prefListe().length)S.pref.gerer=false;rendre();
+  }));
+  document.querySelectorAll('[data-pf-ren]').forEach(b=>b.addEventListener('click',()=>{
+    const p=prefListe().find(x=>x.id===b.dataset.pfRen);if(!p)return;
+    const n=prompt('Nom du repas préféré',p.nom);if(n===null||!n.trim())return;
+    prefEcrire(prefListe().map(x=>x.id===p.id?Object.assign({},x,{nom:n.replace(/\s+/g,' ').trim().slice(0,60)}):x));rendre();
+  }));
+  on('#pf-creer','click',()=>{const R=S.rac;R.ouvC=true;R.ouvR=false;S.man.ouvert=false;S.pref.msg='Choisis tes aliments, Continuer, puis « ☆ Garder comme repas préféré ».';rendre();versPan();});
+  document.querySelectorAll('[data-rf-pf]').forEach(b=>b.addEventListener('click',()=>{
+    const g=(S.rac.liste||[])[Number(b.dataset.rfPf)];if(!g)return;
+    const k=cleCompo(g.l),L=prefListe();
+    if(L.some(x=>x.src===k))prefEcrire(L.filter(x=>x.src!==k));
+    else{const als=alimentsLigne(g.l);prefAjoute(prefDepuis(nomRepas(als),creneauDe(g.l.repas)||repasParHeure(),als,k));}
+    rendre();
+  }));
+  on('#e-pref','click',()=>{
+    const r=S.ajout.resultat;if(!r)return;
+    const cle=cleCompo({aliments:r.aliments}),L=prefListe();
+    if(L.some(x=>x.src===cle)){prefEcrire(L.filter(x=>x.src!==cle));rendre();return;}
+    const n=prompt('Nom du repas préféré',nomRepas(r.aliments));if(n===null||!n.trim())return;
+    prefAjoute(prefDepuis(n,creneauDe(r.repas)||repasParHeure(),alimentsAEnvoyer(r),cle));S.pref=S.pref||{};S.pref.msg='';rendre();
+  });
   on('#rac-valide','click',()=>{
     const R=S.rac,A=S.ajout;
     const als=[];

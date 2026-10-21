@@ -103,10 +103,10 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
   Claude `JoqQ4ay5xIRB9G2C`, Google Sheets `ut38KIHX9AdxsvQy`.
 - Nouvelle colonne Sheets : le dire explicitement à Samuel (feuille, nom exact, format Texte brut si date ou clé).
 
-## État au 13/10/2026
+## État au 21/10/2026
 
-- Appli v79 (`APP_VERSION` 13/10/2026 21h57), dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 34 et 35.
-- Workflow v61 (449 nœuds, feuille Analyses), tests n8n au vert.
+- Appli v81 (`APP_VERSION` 21/10/2026 21h36), dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 et 37.
+- Workflow v62 (449 nœuds, colonne Users.repas_favoris), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
 ## Hors sujet

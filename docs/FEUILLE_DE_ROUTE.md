@@ -214,3 +214,4 @@ existent déjà dans l'appli. Restent :
 
 - Appli v76 : icônes sur Ajouter (4 tuiles), Réglages, Corps (Mesures, Goutte, pesée) ; alcool affiché dans le détail d'un repas (Jour), recomposé depuis le Journal.
 - Appli v78 + workflow v61 : feuille Analyses, toutes les analyses IA comptées dans le Journal (même non enregistrées).
+- Appli v81 + workflow v62 : frise des crises de goutte (Corps › Goutte), repas préférés en tête d'Ajouter, Refaire sur les 3 derniers jours.
