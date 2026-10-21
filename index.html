@@ -710,6 +710,19 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .gf-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--soft);margin-top:8px}
 .gf-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .gf .crise{margin-top:10px}
+.gb .synth{margin-top:12px}.gb-h2{margin-top:16px}
+.gb-leg{display:flex;gap:12px;font-size:11.5px;color:var(--soft);margin-bottom:9px;flex-wrap:wrap}
+.gb-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}.gb-leg i.gb-au,.gb-o i{background:var(--soft);opacity:.45}
+.gb-l{display:grid;grid-template-columns:96px minmax(0,1fr) 40px;gap:3px 8px;align-items:center;font-size:12.5px}
+.gb-f{grid-row:span 2;font-weight:600;font-size:13px;line-height:1.25;display:flex;align-items:center;gap:6px}
+.gb-tr{height:15px;border-radius:4px;background:var(--creux);position:relative;overflow:hidden}
+.gb-tr i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.gb-tr em{position:absolute;left:6px;top:0;font-style:normal;font-size:11px;font-weight:600;line-height:15px;color:#fff;white-space:nowrap}.gb-o em{color:var(--ink)}
+.gb-x{font-weight:700;font-size:13px;text-align:right;color:var(--soft);line-height:1.1}.gb-x small{font-size:10px;font-weight:600;display:block}
+.gb-sep{height:1px;background:var(--rule);margin:9px 0}
+.gb-mois{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;text-align:center;font-size:10px;color:var(--soft)}
+.gb-c{height:46px;border-radius:6px;background:var(--creux);display:flex;flex-direction:column-reverse;align-items:center;padding:4px 0;gap:3px;margin-bottom:2px}
+.gb-c span{border-radius:50%;background:var(--rouge);flex:none}
 .crise ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5}
 .crise .crise-sup{width:auto;margin:4px 0 6px auto;font-size:13px}
 .synth{border:1px solid var(--rule);border-left:4px solid var(--ambre);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.45;background:var(--card)}
@@ -855,7 +868,7 @@ nav button .ico-b{position:relative;display:inline-block;line-height:0}
 /* attente de l'IA */
 #a-etape{min-height:18px}
 /* coach : questions toutes prêtes */
-.coach-sug{display:flex;flex-direction:column;gap:8px;margin:4px 0 14px}
+.coach-sug{display:flex;flex-direction:column;gap:8px;margin:12px 0 14px}
 .coach-sug button{text-align:left;border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:10px 12px;font-size:14.5px;color:var(--ink)}
 /* coach : analyse d'un menu */
 .bulle.mn-b{max-width:100%;white-space:normal}
@@ -972,7 +985,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='21/10/2026 22h08';
+const APP_VERSION='21/10/2026 22h21';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3519,6 +3532,54 @@ function friseCrises(d){
   else h+='<p class="note">'+(cr.length?'Touche une crise pour voir ses 3 jours avant.':'Aucune crise sur cette période.')+'</p>';
   return h+'</section>';
 }
+// Ce qui précède les crises : moyenne des 3 jours avant une crise face aux autres jours notés (tout l'historique),
+// puis les crises des 12 derniers mois. Les jours de crise eux-mêmes ne comptent dans aucun des deux groupes.
+function precedeCrises(d){
+  const cr=(d.crises||[]).filter(c=>c&&c.date);
+  if(!cr.length)return '';
+  const avant={},jc={};
+  cr.forEach(c=>{jc[c.date]=1;[1,2,3].forEach(n=>{avant[plusJours(c.date,-n)]=1;});});
+  const js=(d.jours||[]).filter(j=>j.repas>0&&!jc[j.date]),A=js.filter(j=>avant[j.date]),O=js.filter(j=>!avant[j.date]);
+  const moy=(l,f)=>{const v=l.map(f).filter(x=>x!==null&&!isNaN(x));return v.length?v.reduce((t,x)=>t+x,0)/v.length:null;};
+  const champ=k=>j=>(j[k]===null||j[k]===undefined||j[k]==='')?null:Number(j[k]);
+  const F=[['pied','Purines à risque','mg/j',champ('purines_risque'),x=>nb(x),'de purines','des purines à risque'],
+    ['vin','Alcool','verres/j',j=>Number(j.alcool)||0,x=>String(Math.round(x/10*10)/10).replace('.',','),'d’alcool','de l’alcool'],
+    ['sucre','Sucres ajoutés','g/j',champ('sucres_ajoutes'),x=>nb(x),'de sucres ajoutés','des sucres ajoutés'],
+    ['flamme','Déficit','kcal/j',j=>{const e=champ('ecart')(j);return e===null?null:Math.max(0,-e);},x=>nb(x),'de déficit','un déficit']];
+  let h='<section class="gb"><h2>'+ico('courbes','x')+'Ce qui précède tes crises</h2>';
+  if(!A.length||O.length<7){
+    h+='<p class="note">Il faut des repas notés les 3 jours avant au moins une crise, et une semaine d’autres jours, pour comparer.</p>';
+  }else{
+    const fort=[],seul=[];
+    let c='<div class="gb-leg"><span><i style="background:var(--over)"></i>3 jours avant une crise</span><span><i class="gb-au"></i>autres jours</span></div>';
+    F.forEach(([ic,lib,u,f,fmt,mot,mot2],i)=>{
+      const av=moy(A,f),au=moy(O,f);if(av===null||au===null)return;
+      // rien les autres jours : « jamais sinon », le signal le plus net
+      const ra=au>0?av/au:(av>0?Infinity:null),m=Math.max(av,au)||1,haut=ra!==null&&ra>=1.5&&av>0;
+      if(ra===Infinity)seul.push(mot2);else if(haut)fort.push([String(Math.round(ra*10)/10).replace('.',','),mot]);
+      c+=(i?'<div class="gb-sep"></div>':'')+'<div class="gb-l"><div class="gb-f">'+ico(ic,'s')+lib+'</div>'+
+        '<div class="gb-tr"><i style="width:'+(av/m*100).toFixed(1)+'%;background:'+(haut?'var(--over)':'color-mix(in srgb,var(--over) 55%,var(--creux))')+'"></i><em>'+fmt(av)+' '+u+'</em></div>'+
+        '<div class="gb-x"'+(haut?' style="color:var(--over)"':'')+'>'+(ra===null?'—':ra===Infinity?'<small>jamais sinon</small>':'×'+String(Math.round(ra*10)/10).replace('.',','))+'</div>'+
+        '<div class="gb-tr gb-o"><i style="width:'+(au/m*100).toFixed(1)+'%"></i><em>'+fmt(au)+' '+u+'</em></div><div></div></div>';
+    });
+    h+='<div class="gf-carte">'+c+'</div>';
+    const nC=cr.filter(x=>[1,2,3].some(n=>A.some(j=>j.date===plusJours(x.date,-n)))).length;
+    const et=l=>l.join(', ').replace(/, ([^,]*)$/,' et $1');
+    h+='<div class="synth">'+(fort.length?'<b>Avant tes crises</b>, tu as en moyenne '+et(fort.map(x=>'<b>'+x[0]+' fois plus '+x[1]+'</b>'))+' que les autres jours.'
+      :(seul.length?'':'<b>Avant tes crises</b>, rien ne ressort nettement par rapport aux autres jours.'))+
+      (seul.length?(fort.length?' ':'')+'<b>'+et(seul).replace(/^./,x=>x.toUpperCase())+'</b> seulement les jours qui précèdent une crise.':'')+
+      (nC<3?' À confirmer : '+nC+' crise'+(nC>1?'s':'')+' avec des repas notés avant, c’est encore peu.':'')+'</div>';
+  }
+  // crises des 12 derniers mois : un point par crise, d'autant plus gros que l'intensité est forte
+  const a0=auj(),mois=[];
+  for(let i=11;i>=0;i--){const x=new Date(a0.slice(0,7)+'-15T12:00:00');x.setMonth(x.getMonth()-i);mois.push(isoLocal(x).slice(0,7));}
+  h+='<h2 class="gb-h2">'+ico('calendrier','x')+'Crises sur 12 mois</h2><div class="gf-carte"><div class="gb-mois">'+mois.map(m=>{
+    const l=cr.filter(c=>c.date.slice(0,7)===m);
+    return '<div><div class="gb-c">'+l.map(c=>{const n=Math.max(1,Math.min(5,Number(c.intensite)||1));return '<span style="width:'+(6+n*2)+'px;height:'+(6+n*2)+'px;opacity:'+(.45+n*.11).toFixed(2)+'" title="'+jjmm(c.date)+' · '+esc(c.articulation)+' · '+n+'/5"></span>';}).join('')+'</div>'+
+      new Date(m+'-15T12:00:00').toLocaleDateString('fr-FR',{month:'short'})+'</div>';}).join('')+'</div>'+
+    '<div class="gf-leg"><span><i style="background:var(--rouge);border-radius:50%;opacity:.6"></i>taille et couleur = intensité</span></div></div>';
+  return h+'</section>';
+}
 function carteCrise(c,a){
   let h='<div class="crise"><div class="crise-t"><b>'+jjmm(c.date)+' · '+esc(c.articulation)+'</b><span>'+ico('niveau','x')+c.intensite+'/5</span></div>'+
     (c.remarque?'<div class="crise-i">'+esc(c.remarque)+'</div>':'');
@@ -3537,7 +3598,7 @@ function carteCrise(c,a){
 function sectionGoutte(d){
   const G=S.gt,cr=d.crises||[];
   const hier=plusJours(auj(),-1);
-  let h=friseCrises(d)+'<section><h2>'+ico('pied','x')+'Noter une crise</h2>'+
+  let h=friseCrises(d)+precedeCrises(d)+'<section><h2>'+ico('pied','x')+'Noter une crise</h2>'+
     '<label>'+ico('calendrier','x')+'Quand</label><div class="chips" id="g-quand">'+
       [['auj','Aujourd’hui'],['hier','Hier'],['autre','Autre date']].map(x=>'<button data-gq="'+x[0]+'" class="'+(G.quand===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>';
   if(G.quand==='autre')h+='<input id="g-date" type="date" max="'+auj()+'" value="'+esc(G.date||hier)+'">';
@@ -3803,11 +3864,15 @@ function bulleMenu(m,i){
 function vueCoach(){
   let h='<section>';
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
-  S.coach.fil.forEach((m,i)=>{h+=m.menu?bulleMenu(m,i):'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>';});
-  if(S.coach.etat==='envoi')h+='<div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
-  if(S.coach.etat!=='envoi'){const sg=suggestionsAffichees(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(x=>'<button data-csug="'+esc(x.q)+'" data-csi="'+x.i+'">'+esc(x.q)+'</button>').join('')+'</div>';}
+  // #c-der : repère du dernier message (ou de l'attente), pour y caler la page après une réponse
+  const env=S.coach.etat==='envoi',n=S.coach.fil.length,F=S.coach.fil,der=(n>1&&F[n-2].role==='moi'&&F[n-1].role!=='moi')?n-2:n-1;
+  S.coach.fil.forEach((m,i)=>{h+=(!env&&i===der?'<span id="c-der"></span>':'')+(m.menu?bulleMenu(m,i):'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>');});
+  if(env)h+='<span id="c-der"></span><div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
-     '<button class="primaire" id="c-envoi"'+(S.coach.etat==='envoi'?' disabled':'')+'>Envoyer</button>'+
+     '<button class="primaire" id="c-envoi"'+(env?' disabled':'')+'>Envoyer</button>';
+  // questions toutes prêtes sous la saisie : elles ne poussent plus la réponse hors de l'écran
+  if(!env){const sg=suggestionsAffichees(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(x=>'<button data-csug="'+esc(x.q)+'" data-csi="'+x.i+'">'+esc(x.q)+'</button>').join('')+'</div>';}
+  h+=
      '<h2>Photo d’un menu</h2><p class="vide">Le coach lit les plats et estime calories et macros de chacun.</p>'+
      '<input id="c-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="c-galerie" type="file" accept="image/*" style="display:none">'+
      '<div class="aj-photo"><button class="cam" id="c-cam"'+(S.coach.etat==='envoi'?' disabled':'')+'>'+ico('photo','ph')+'Appareil photo</button><button class="gal" id="c-gal"'+(S.coach.etat==='envoi'?' disabled':'')+'>'+ico('galerie','ph')+'Galerie</button></div>';
@@ -5111,6 +5176,8 @@ function modaleAlert(message){
 function versPan(){const p=document.querySelector('.aj-pan');if(p)p.scrollIntoView({block:'start'});}
 function hautPage(){const d=$('#defile');if(d)d.scrollTop=0;recaler();}
 function basPage(){const d=$('#defile');if(d)d.scrollTop=d.scrollHeight;recaler();}
+// Coach : cale le haut du dernier message (ou de l'attente) en haut de l'écran
+function versDernier(){const d=$('#defile'),a=$('#c-der');if(!d||!a)return basPage();d.scrollTop+=a.getBoundingClientRect().top-d.getBoundingClientRect().top-8;recaler();}
 function saisieActive(){const a=document.activeElement;return !!(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable));}
 function recaler(){
   if(saisieActive())return;
@@ -6032,7 +6099,7 @@ function brancher(){
     if(!q)return;
     S.coach.fil.push({role:'moi',texte:q});
     S.coach.brouillon='';$('#c-q').value='';
-    S.coach.etat='envoi';S.coach.t0=Date.now();rendre();
+    S.coach.etat='envoi';S.coach.t0=Date.now();rendre();versDernier();
     try{
       const r=await appel({action:'conseil',question:q,
         historique:S.coach.fil.slice(-6).map(m=>({role:m.role,texte:m.texte}))});
@@ -6041,7 +6108,7 @@ function brancher(){
     S.coach.etat=null;
     localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));
     rendre();
-    basPage();
+    versDernier();
   });
   ['#c-photo','#c-galerie'].forEach(sel=>on(sel,'change',async e=>{
     const f=e.target.files&&e.target.files[0];
@@ -6049,7 +6116,7 @@ function brancher(){
     const iaOrdre=piaListe();
     if(!iaOrdre.length){S.piaOuv=true;rendre();return;}
     S.coach.fil.push({role:'moi',texte:'Photo d’un menu à analyser'});
-    S.coach.etat='envoi';S.coach.t0=Date.now();rendre();basPage();
+    S.coach.etat='envoi';S.coach.t0=Date.now();rendre();versDernier();
     try{
       const ph=await redim(f,{max:1400,plafond:650000,min:1100});
       const r=await appel({action:'menu',photo:ph.b64,mime:'image/jpeg',ia_ordre:iaOrdre});
@@ -6059,7 +6126,7 @@ function brancher(){
     }catch(err){S.coach.fil.push({role:'coach',texte:err.message});}
     S.coach.etat=null;
     try{localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));}catch(x){}
-    rendre();basPage();
+    rendre();versDernier();
   }));
   on('#c-cam','click',()=>{const e=$('#c-photo');if(e){e.value='';e.click();}});
   on('#c-gal','click',()=>{const e=$('#c-galerie');if(e){e.value='';e.click();}});

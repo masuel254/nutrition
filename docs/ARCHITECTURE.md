@@ -729,3 +729,11 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Workflow : `Auth API` lit `repas_favoris`, `Build Favoris API` le nettoie (champs connus, nombres, 45 000 caractères au plus) ou garde la valeur actuelle si l'appli ne l'envoie pas,
   `Users Favoris API` écrit la colonne, `Build API Payload` renvoie `repas_favoris`. Tests : `n8n/tests/t_repas_favoris.js`, section « Repas préférés » de `tests/e2e.mjs`.
 
+## 38. Goutte : ce qui précède les crises ; Coach sans remonter (21/10, appli v83)
+
+- Corps › Goutte, sous la frise : `precedeCrises(d)` (maquette B). Sur tout l'historique, moyenne des jours notés dans les 3 jours avant une crise face aux autres jours notés
+  (jours de crise exclus des deux) : purines à risque, alcool (verres), sucres ajoutés, déficit. Rapport ×N, orange à partir de ×1,5 ; « jamais sinon » quand l'autre groupe est à 0.
+  Phrase de synthèse, avertissement sous 3 crises avec des repas notés avant. Puis les crises des 12 derniers mois (un point par crise, taille selon l'intensité).
+- Coach : les questions toutes prêtes passent sous la saisie ; après l'envoi et après la réponse, `versDernier()` cale la page sur la dernière question (repère `#c-der`) au lieu du bas de page.
+- Appli seule. Tests : section « Goutte : frise des crises » (B) et Coach dans `tests/e2e.mjs`.
+

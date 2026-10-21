@@ -648,6 +648,9 @@ await page.click('#b-coach');
 await page.fill('#c-q', 'Je prends quoi ?'); await page.click('#c-envoi');
 await page.waitForFunction(() => /prends la salade/.test(document.body.innerText));
 const hist = appels.filter(a => a.action === 'conseil').pop().historique;
+await page.waitForTimeout(200);
+ok(await page.evaluate(() => { const d = document.getElementById('defile').getBoundingClientRect(), b = [...document.querySelectorAll('.vue.on .bulle.coach')].pop().getBoundingClientRect(); return b.top >= d.top - 1 && b.top < d.bottom - 40; }), 'Coach : après la réponse, la page se cale sur la réponse (pas besoin de remonter)');
+ok(await page.evaluate(() => { const q = document.getElementById('c-q'), sg = document.querySelector('.vue.on .coach-sug'); return !!(q && sg && (q.compareDocumentPosition(sg) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'Coach : questions toutes prêtes sous la saisie, plus sous la réponse');
 ok(hist.some(m => /Menu analysé : 3 plats lus/.test(m.texte)) && hist.every(m => m.menu === undefined && Object.keys(m).length === 2), 'Coach : envoi d\'une question, historique en texte seul');
 menuKO = true;
 await page.setInputFiles('#c-photo', { name: 'menu2.jpg', mimeType: 'image/jpeg', buffer: imgPh });
@@ -854,6 +857,17 @@ ok(await page.locator('.gf-c').count() === 2, 'Goutte : période 30 jours');
 await page.locator('.gf-c[data-gcr="g1"]').dispatchEvent('click');
 ok(await page.locator('.gf .crise').count() === 1 && /gros orteil/.test(await texte('.gf .crise')), 'Goutte : toucher une crise montre sa carte (3 jours avant)');
 ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth && document.querySelector('.gf-svg').getBoundingClientRect().right <= window.innerWidth), 'Goutte : frise sans débordement');
+// graphique B : 3 jours avant une crise face aux autres jours (jours synthétiques)
+const joursSauv = await page.evaluate(() => JSON.stringify(S.data.jours));
+await page.evaluate(d => { const av = new Set(); d.cr.forEach(c => [1, 2, 3].forEach(n => av.add(c[n]))); S.data.jours = d.j.map(x => av.has(x) ? { date: x, repas: 3, kcal: 2500, purines_risque: 600, alcool: 30, sucres_ajoutes: 22, ecart: -900 } : { date: x, repas: 3, kcal: 2000, purines_risque: 200, alcool: 0, sucres_ajoutes: 20, ecart: -300 });
+  S.data.crises = d.cr.map((c, i) => ({ id: 'b' + i, date: c[0], articulation: 'genou', intensite: 2 + i, remarque: '' })); rendre(); },
+  { j: Array.from({ length: 40 }, (_, i) => jour(-i - 1)), cr: [[jour(-10), jour(-11), jour(-12), jour(-13)], [jour(-25), jour(-26), jour(-27), jour(-28)]] });
+const gb = await texte('.gb');
+ok(await page.locator('.gb .gb-l').count() === 4 && /×3/.test(gb) && /jamais sinon/.test(gb) && /600 mg\/j/.test(gb) && /200 mg\/j/.test(gb), 'Goutte (B) : purines ×3 avant une crise, alcool jamais sinon');
+ok(/3 fois plus de purines/.test(gb) && /3 fois plus de déficit/.test(gb) && !/sucres ajoutés<\/b>/.test(await page.locator('.gb .synth').innerHTML()) && /De l’alcool<\/b> seulement les jours qui précèdent une crise/.test(await page.locator('.gb .synth').innerHTML()) && /À confirmer : 2 crises/.test(gb), 'Goutte (B) : synthèse (purines, déficit, alcool seulement avant ; peu de crises signalé)');
+ok(await page.locator('.gb-mois > div').count() === 12 && await page.locator('.gb-c span').count() === 2, 'Goutte (B) : 12 mois, un point par crise');
+ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Goutte (B) : sans débordement');
+await page.evaluate(j => { S.data.jours = JSON.parse(j); }, joursSauv);
 await page.evaluate(() => { S.data.crises = []; rendre(); });
 ok(await page.locator('.gf').count() === 0, 'Goutte : pas de frise sans crise');
 await page.evaluate(d => { S.data.crises = [{ id: 'g1', date: d, articulation: 'gros orteil', intensite: 4, remarque: '' }]; rendre(); }, jour(-5));
