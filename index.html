@@ -636,7 +636,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .maj-bandeau{position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:120;display:flex;align-items:center;gap:10px;
   background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:14px}
 .maj-bandeau span{flex:1}.maj-bandeau button{flex:none;background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px}
-.plancher{color:var(--jaune)}.plancher b{color:var(--ink)}
+.plancher{color:color-mix(in srgb,var(--jaune) 62%,var(--ink))}.plancher b{color:var(--ink)}
 .plancher-j{font-size:12.5px;color:var(--jaune);margin-top:6px;line-height:1.35}
 .ins-code{font-size:30px;font-weight:700;letter-spacing:.08em;text-align:center;padding:14px 10px;margin:6px 0 4px;border:1px dashed var(--rule);border-radius:12px;background:var(--card);font-variant-numeric:tabular-nums;user-select:all;-webkit-user-select:all}
 .etapes{margin:16px 0 8px;padding-left:20px;font-size:14px;line-height:1.5}
@@ -717,7 +717,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .gb-f{grid-row:span 2;font-weight:600;font-size:13px;line-height:1.25;display:flex;align-items:center;gap:6px}
 .gb-tr{height:15px;border-radius:4px;background:var(--creux);position:relative;overflow:hidden}
 .gb-tr i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
-.gb-tr em{position:absolute;left:6px;top:0;font-style:normal;font-size:11px;font-weight:600;line-height:15px;color:#fff;white-space:nowrap}.gb-o em{color:var(--ink)}
+.gb-tr em{position:absolute;left:6px;top:0;font-style:normal;font-size:11px;font-weight:600;line-height:15px;color:#fff;white-space:nowrap}.gb-o em,.gb-cl em{color:var(--ink)}
 .gb-x{font-weight:700;font-size:13px;text-align:right;color:var(--soft);line-height:1.1}.gb-x small{font-size:10px;font-weight:600;display:block}
 .gb-sep{height:1px;background:var(--rule);margin:9px 0}
 .gb-mois{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;text-align:center;font-size:10px;color:var(--soft)}
@@ -985,7 +985,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='21/10/2026 22h39';
+const APP_VERSION='21/10/2026 23h22';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2660,7 +2660,7 @@ function ongletCalories(d,P){
   const sous=js.filter(j=>coulEcart(j.ecart)==='var(--under)').length;
   let h='<div class="tuiles">'+
     tuile('Moyenne',nb(moy),'kcal/j',null,'flamme')+
-    tuile('Écart cumulé',(som<0?'−':som>0?'+':'')+nb(Math.abs(Math.round(som))),'kcal ≈ '+kgSigne(som/7000)+' kg',coulKg(som),'courbes')+
+    tuile('Écart',(som<0?'−':som>0?'+':'')+nb(Math.abs(Math.round(som))),'kcal ≈ '+kgSigne(som/7000)+' kg',coulKg(som),'courbes')+
     tuile(['Sous besoins','Équilibre','Au-dessus'][sensObj()+1],sous+' / '+js.length,'jour'+(js.length>1?'s':''))+
     '</div>';
   h+=barresLigne(js.map(j=>({date:j.date,v:j.ecart})),150)+detailJour(d,S.insp?S.insp.date:null);
@@ -3552,10 +3552,12 @@ function precedeCrises(d){
       // rien les autres jours : « jamais sinon », le signal le plus net
       const ra=au>0?av/au:(av>0?Infinity:null),m=Math.max(av,au)||1,haut=ra!==null&&ra>=1.5&&av>0;
       if(ra===Infinity)seul.push(mot2);else if(haut)fort.push([String(Math.round(ra*10)/10).replace('.',','),mot]);
+      // barre courte : texte sombre, le blanc ne se lit que sur une barre assez longue
+      const cl=v=>v/m<.45?' gb-cl':'';
       c+=(i?'<div class="gb-sep"></div>':'')+'<div class="gb-l"><div class="gb-f">'+ico(ic,'s')+lib+'</div>'+
-        '<div class="gb-tr"><i style="width:'+(av/m*100).toFixed(1)+'%;background:'+(haut?'var(--over)':'color-mix(in srgb,var(--over) 55%,var(--creux))')+'"></i><em>'+fmt(av)+' '+u+'</em></div>'+
-        '<div class="gb-x"'+(haut?' style="color:var(--over)"':'')+'>'+(ra===null?'—':ra===Infinity?'<small>jamais sinon</small>':'×'+String(Math.round(ra*10)/10).replace('.',','))+'</div>'+
-        '<div class="gb-tr gb-o"><i style="width:'+(au/m*100).toFixed(1)+'%"></i><em>'+fmt(au)+' '+u+'</em></div><div></div></div>';
+        '<div class="gb-tr'+cl(av)+'"><i style="width:'+(av/m*100).toFixed(1)+'%;background:'+(haut?'var(--over)':'color-mix(in srgb,var(--over) 55%,var(--creux))')+'"></i><em>'+fmt(av)+' '+u+'</em></div>'+
+        '<div class="gb-x"'+(haut?' style="color:var(--over)"':'')+'>'+(ra===null?'=':ra===Infinity?'<small>jamais sinon</small>':ra>=1.2?'×'+String(Math.round(ra*10)/10).replace('.',','):ra<=.8?'moins':'=')+'</div>'+
+        '<div class="gb-tr gb-o'+cl(au)+'"><i style="width:'+(au/m*100).toFixed(1)+'%"></i><em>'+fmt(au)+' '+u+'</em></div><div></div></div>';
     });
     h+='<div class="gf-carte">'+c+'</div>';
     const nC=cr.filter(x=>[1,2,3].some(n=>A.some(j=>j.date===plusJours(x.date,-n)))).length;
@@ -5110,7 +5112,7 @@ function bandeau(d){
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
   if(perime)m+='<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+
     '. Touche Actualiser pour passer à aujourd\'hui.</div>';
-  const btns='<div class="btns"><button class="roue" id="b-coach">'+ico('coach','x')+'Coach</button><button class="roue" id="b-maj">'+ico('actualiser','x')+'Actualiser</button>'+
+  const btns='<div class="btns">'+(S.vue==='coach'&&!S.reglages?'':'<button class="roue" id="b-coach">'+ico('coach','x')+'Coach</button>')+'<button class="roue" id="b-maj">'+ico('actualiser','x')+'Actualiser</button>'+
     '<button class="roue" id="b-reglages">'+(S.reglages?'Fermer':ico('reglages','x')+'Réglages')+'</button></div>';
   // hors de l'écran Jour : une seule ligne (titre de l'écran), les chiffres restent sur Jour
   if(S.reglages||S.vue!=='jour'){

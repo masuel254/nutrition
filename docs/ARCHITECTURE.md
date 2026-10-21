@@ -737,3 +737,11 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Coach : les questions toutes prêtes passent sous la saisie ; après l'envoi et après la réponse, `versDernier()` cale la page sur la dernière question (repère `#c-der`) au lieu du bas de page.
 - Appli seule. Tests : section « Goutte : frise des crises » (B) et Coach dans `tests/e2e.mjs`.
 
+
+## 39. Retouches d'après l'audit UX (21/10, appli v85)
+
+- Courbes › Calories : la tuile « Écart cumulé » devient « Écart » (titre coupé sur iPhone).
+- Goutte, « Ce qui précède » : texte sombre sur les barres courtes (classe `gb-cl`, sous 45 % de largeur) ; rapport affiché « ×N » à partir de ×1,2, « = » entre 0,8 et 1,2, « moins » en dessous (plus de « ×0 » ni « ×1 »).
+- Réglages › Objectif : avertissement du plancher (`.plancher`) en jaune assombri, lisible sur fond clair.
+- En-tête : pas de lien Coach quand on est sur Coach.
+- Appli seule. Tests dans `tests/e2e.mjs` (Courbes, Réglages, Coach, Goutte B).

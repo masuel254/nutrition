@@ -156,6 +156,7 @@ ok(await page.locator('.vue.on .tu').count() === 3, 'Courbes : trois tuiles de s
 ok(await page.locator('.vue.on #p-envoi').count() === 0, 'Courbes : plus de saisie de pesée');
 await page.click('[data-cong="calories"]'); await page.click('[data-cper="7"]');
 ok(/Sous besoins/i.test(await texte('.vue.on .tuiles')) && await page.locator('[data-cper="7"].on').count() === 1, 'Courbes : onglet Calories sur 7 jours');
+ok(await page.evaluate(() => [...document.querySelectorAll('.vue.on .tu small')].every(e => e.scrollWidth <= e.clientWidth + 1)) && /Écart/i.test(await texte('.vue.on .tuiles')), 'Courbes : titres des tuiles entiers (Écart, plus coupé)');
 await page.click('[data-cper="3"]');
 ok(await page.locator('[data-cper="3"].on').count() === 1 && /\/ 3/.test(await texte('.vue.on .tuiles')), 'Courbes : période 3 jours sur les calories');
 await page.click('[data-cper="7"]');
@@ -203,6 +204,7 @@ await page.click('[data-ko="pesee"]');
 console.log('Réglages');
 await page.click('#b-reglages'); await page.waitForTimeout(300);
 ok((await page.inputValue('#g-ecart')) === '-600' && /Besoins 2.280 kcal . 600 = 1.680, plus de 10 % sous ton métabolisme \(1.900\)/.test(await texte('#g-apercu')) && /cible 1.710 kcal/.test(await texte('#g-apercu')) && /écart réel de -570/.test(await texte('#g-apercu')) && /Attention, ta cible est sous ton métabolisme/.test(await texte('#g-apercu')), 'objectif sèche : plancher à 90 % du métabolisme expliqué, avertissement');
+ok(await page.evaluate(() => { const c = getComputedStyle(document.querySelector('#g-apercu .plancher')).color, j = getComputedStyle(document.documentElement).getPropertyValue('--jaune').trim(); const t = document.createElement('i'); t.style.color = j; document.body.appendChild(t); const cj = getComputedStyle(t).color; t.remove(); return c !== cj; }), 'avertissement du plancher : jaune assombri (lisible)');
 await page.click('[data-ob="prise"]');
 ok((await page.inputValue('#g-ecart')) === '+300', 'prise de masse : écart proposé +300');
 await page.click('#g-envoi'); await page.waitForTimeout(400);
@@ -398,6 +400,7 @@ ok(await page.locator('nav button').count() === 5 && await page.locator('nav but
 ok(await page.locator('.bandeau.compact').count() === 1 && !/métabolisme/.test(await texte('.bandeau')), 'en-tête compact hors écran Jour');
 await page.click('#b-coach');
 ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restantes|dépassé ma cible/.test(await texte('.vue.on .coach-sug')), 'Coach : ouvert depuis l\'en-tête, 4 questions toutes prêtes');
+ok(await page.locator('#b-coach').count() === 0 && await page.locator('#b-maj').count() === 1, 'Coach : pas de lien Coach dans son propre en-tête');
 { const qs = async () => (await page.locator('.vue.on .coach-sug button').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
   const avant = await qs();
   ok(avant.length === 4 && new Set(avant).size === 4 && /kcal restantes|dépassé ma cible/.test(avant[0]), 'Coach : 4 questions toutes prêtes, toutes différentes');
@@ -866,6 +869,7 @@ await page.evaluate(d => { const av = new Set(); d.cr.forEach(c => [1, 2, 3].for
   { j: Array.from({ length: 40 }, (_, i) => jour(-i - 1)), cr: [[jour(-10), jour(-11), jour(-12), jour(-13)], [jour(-25), jour(-26), jour(-27), jour(-28)]] });
 const gb = await texte('.gb');
 ok(await page.locator('.gb .gb-l').count() === 4 && /×3/.test(gb) && /jamais sinon/.test(gb) && /600 mg\/j/.test(gb) && /200 mg\/j/.test(gb), 'Goutte (B) : purines ×3 avant une crise, alcool jamais sinon');
+ok(!(await page.locator('.gb-x').allInnerTexts()).some(t => /^×(0|1)$/.test(t.trim())) && await page.evaluate(() => [...document.querySelectorAll('.gb-tr')].every(t => { const w = parseFloat(t.querySelector('i').style.width); return w >= 45 || t.classList.contains('gb-cl') || t.classList.contains('gb-o'); })), 'Goutte (B) : ni ×0 ni ×1, texte sombre sur les barres courtes');
 ok(/3 fois plus de purines/.test(gb) && /3 fois plus de déficit/.test(gb) && !/sucres ajoutés<\/b>/.test(await page.locator('.gb .synth').innerHTML()) && /De l’alcool<\/b> seulement les jours qui précèdent une crise/.test(await page.locator('.gb .synth').innerHTML()) && /À confirmer : 2 crises/.test(gb), 'Goutte (B) : synthèse (purines, déficit, alcool seulement avant ; peu de crises signalé)');
 ok(await page.locator('.gb-mois > div').count() === 12 && await page.locator('.gb-c span').count() === 2, 'Goutte (B) : 12 mois, un point par crise');
 ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Goutte (B) : sans débordement');
