@@ -777,6 +777,10 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .aj-tile span{min-width:0}.aj-tile b{display:block;font-size:14.5px}.aj-tile small{display:block;font-size:13px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aj-pan{margin-top:10px}
 .pf-sec h2{display:flex;align-items:center}
+.gb-peu,.incert{display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:10px;border-left:4px solid var(--ambre);background:color-mix(in srgb,var(--ambre) 14%,var(--card));font-size:13.5px;line-height:1.4}
+.gb-peu .ic,.incert .ic{flex:none;margin-top:1px}.incert{margin:10px 0 4px}
+.port{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--card);font-size:13.5px}
+.port-l{display:flex;align-items:center;gap:8px;margin-top:8px}.port-l span{flex:1;min-width:0}.port-l .secondaire{width:auto;margin:0;padding:6px 12px;font-size:13.5px;flex:none}
 .jr-l{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
 .jr{display:flex;align-items:center;gap:6px;min-width:0;padding:8px;border:1px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);text-align:left}
 .jr.on{border-color:var(--under);box-shadow:0 0 0 1px var(--under) inset}.jr .ic{width:24px;height:24px;flex:none}
@@ -997,7 +1001,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='22/10/2026 11h03';
+const APP_VERSION='22/10/2026 12h05';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2381,6 +2385,27 @@ function qtePas(q){
   if(n===null)return 1;
   return n>=20?10:(n>=5?1:1);
 }
+// Portions habituelles : une quantité corrigée (− / +) sur un aliment estimé par l'IA est retenue par nom d'aliment
+// à l'enregistrement, puis proposée à la prochaine analyse qui estime autre chose (même unité). Local à l'appareil.
+const PORT_LS='suivi.portions',PORT_MAX=40;
+function portLire(){try{const o=JSON.parse(localStorage.getItem(PORT_LS));return o&&typeof o==='object'?o:{};}catch(e){return {};}}
+function portUnite(q){return String(q||'').replace(/\d+(?:[.,]\d+)?/,'#').replace(/\s+/g,' ').trim().toLowerCase();}
+function parIA(r){return !!(r&&r.ia&&!/^(manuel|code-barres)$/.test(r.ia));}
+function portRetenir(r){
+  if(!parIA(r))return;
+  const P=portLire();let n=0;
+  (r.aliments||[]).forEach(a=>{const b=a.__base,v=qteNombre(a.quantite);if(!b||b.quantite===a.quantite||v===null)return;
+    P[normNom(a.nom)]={q:a.quantite,n:v,u:portUnite(a.quantite),t:Date.now()};n++;});
+  if(!n)return;
+  const o={};Object.keys(P).sort((x,y)=>P[y].t-P[x].t).slice(0,PORT_MAX).forEach(k=>{o[k]=P[k];});
+  try{localStorage.setItem(PORT_LS,JSON.stringify(o));}catch(e){}
+}
+function portSuggestions(r){
+  if(!parIA(r))return [];
+  const P=portLire();
+  return (r.aliments||[]).map((a,i)=>{const p=P[normNom(a.nom)],v=qteNombre(a.quantite);
+    return p&&v!==null&&p.n!==v&&p.u===portUnite(a.quantite)?{i:i,nom:a.nom,de:a.quantite,a:p.q,n:p.n}:null;}).filter(Boolean);
+}
 // Ajuste un aliment à une nouvelle quantité, au prorata de l'ancienne.
 function ajusteAliment(al,nouvelleQte){
   const base=al.__base||al;
@@ -2458,6 +2483,11 @@ function vueAjout(d){
       });
       h+='</div>';
     }
+    // l'IA juge son estimation incertaine (plat composé, photo ambiguë) : on le dit avant la liste
+    if(!fige&&r.incertitude==='elevee'&&r.ia&&!/^(manuel|code-barres)$/.test(r.ia))h+='<div class="incert">'+ico('niveau','x')+'<span><b>Estimation incertaine</b> : plat composé ou photo ambiguë. Vérifie les quantités avec − / +, ou précise-les dans la description et relance.</span></div>';
+    // portions habituelles : l'IA estime autre chose que ce que tu as déjà corrigé pour cet aliment
+    const ps=fige?[]:portSuggestions(r);
+    if(ps.length)h+='<div class="port"><b>Tes portions habituelles</b>'+ps.map(p=>'<div class="port-l"><span>'+esc(p.nom)+' : estimé '+esc(p.de)+', d’habitude <b>'+esc(p.a)+'</b></span><button class="secondaire" data-port="'+p.i+'">Appliquer</button></div>').join('')+'</div>';
     // liste des aliments, avec stepper -/+ quand la quantite est numerique
     h+='<ul class="resu-al">';
     r.aliments.forEach((al,i)=>{
@@ -2477,7 +2507,7 @@ function vueAjout(d){
       h+='</li>';
     });
     h+='<li class="al-plg" id="e-plg">'+[['Protéines',r.total.prot],['Lipides',r.total.lip],['Glucides',r.total.gluc]].map(x=>'<div class="t"><small>'+x[0]+'</small><b>'+nb(x[1])+'<span>g</span></b></div>').join('')+'</li></ul>'+blocEval(r)+
-       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+(tagIA(r)?'<span class="ia-w ia-l">'+(/^(manuel|code-barres)$/.test(r.ia)?'':'Estimé par ')+tagIA(r)+'</span> ':'')+esc(r.note||'')+' Incertitude '+esc(r.incertitude)+'.</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant',sonnet:'Claude Sonnet, payant'}[r.secours]||r.secours)+'), les IA précédentes n\u2019ayant pas répondu : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
+       '<div id="e-micro">'+ligneMicro(r.total)+lignePurines(r.total,purMax(d))+'</div><p class="note">'+(tagIA(r)?'<span class="ia-w ia-l">'+(/^(manuel|code-barres)$/.test(r.ia)?'':'Estimé par ')+tagIA(r)+'</span> ':'')+esc(r.note||'')+(r.incertitude&&!(r.incertitude==='elevee'&&!fige&&parIA(r))?' Incertitude '+esc({faible:'faible',moyenne:'moyenne',elevee:'élevée'}[r.incertitude]||r.incertitude)+'.':'')+'</p>'+(r.secours?'<p class="note" style="color:var(--jaune)">Estimé par un modèle de secours ('+({groq:'Groq',gemma:'Gemma',claude:'Claude Haiku, payant',sonnet:'Claude Sonnet, payant'}[r.secours]||r.secours)+'), les IA précédentes n\u2019ayant pas répondu : vérifie les quantités avant d\u2019enregistrer.'+(r.echecs?'<br><small style="color:var(--soft)">Pourquoi : '+esc(r.echecs)+'</small>':'')+'</p>':'');
     if(A.confirm==='fait'){
       h+='<p class="bien">'+esc(A.message)+'</p>';
       h+='<button class="secondaire" id="e-modif">Modifier ce repas</button>';
@@ -3577,6 +3607,10 @@ function precedeCrises(d){
     ['sucre','Sucres ajoutés','g/j',champ('sucres_ajoutes'),x=>nb(x),'de sucres ajoutés','des sucres ajoutés'],
     ['flamme','Déficit','kcal/j',j=>{const e=champ('ecart')(j);return e===null?null:Math.max(0,-e);},x=>nb(x),'de déficit','un déficit']];
   let h='<section class="gb"><h2>'+ico('courbes','x')+'Ce qui précède tes crises</h2>';
+  // crises avec des repas notés les 3 jours avant : sous 3, rien n'est concluant, on le dit d'abord
+  const nC=cr.filter(x=>[1,2,3].some(n=>A.some(j=>j.date===plusJours(x.date,-n)))).length;
+  if(nC<3)h+='<div class="gb-peu">'+ico('niveau','x')+'<span><b>Trop peu pour conclure</b> : '+(nC?nC+' crise'+(nC>1?'s':'')+' avec des repas notés avant':'aucune crise avec des repas notés avant')+
+    '. Il en faut au moins 3 ; d’ici là, les écarts ci-dessous sont des pistes, pas des causes.</span></div>';
   if(!A.length||O.length<7){
     h+='<p class="note">Il faut des repas notés les 3 jours avant au moins une crise, et une semaine d’autres jours, pour comparer.</p>';
   }else{
@@ -3595,12 +3629,11 @@ function precedeCrises(d){
         '<div class="gb-tr gb-o'+cl(au)+'"><i style="width:'+(au/m*100).toFixed(1)+'%"></i><em>'+fmt(au)+' '+u+'</em></div><div></div></div>';
     });
     h+='<div class="gf-carte">'+c+'</div>';
-    const nC=cr.filter(x=>[1,2,3].some(n=>A.some(j=>j.date===plusJours(x.date,-n)))).length;
     const et=l=>l.join(', ').replace(/, ([^,]*)$/,' et $1');
     h+='<div class="synth">'+(fort.length?'<b>Avant tes crises</b>, tu as en moyenne '+et(fort.map(x=>'<b>'+x[0]+' fois plus '+x[1]+'</b>'))+' que les autres jours.'
       :(seul.length?'':'<b>Avant tes crises</b>, rien ne ressort nettement par rapport aux autres jours.'))+
       (seul.length?(fort.length?' ':'')+'<b>'+et(seul).replace(/^./,x=>x.toUpperCase())+'</b> seulement les jours qui précèdent une crise.':'')+
-      (nC<3?' À confirmer : '+nC+' crise'+(nC>1?'s':'')+' avec des repas notés avant, c’est encore peu.':'')+'</div>';
+'</div>';
   }
   // crises des 12 derniers mois : un point par crise, d'autant plus gros que l'intensité est forte
   const a0=auj(),mois=[];
@@ -5727,6 +5760,7 @@ function brancher(){
   async function enregistrer(date){
     const A=S.ajout,l=A.resultat&&A.resultat.ligne;
     if(!l)return;
+    portRetenir(A.resultat);
     A.confirm='envoi';rendre();
     // si ce repas provient d'une Modification (ancienne ligne connue), on retire
     // d'abord l'ancienne pour la remplacer, sans créer de doublon.
@@ -5801,6 +5835,10 @@ function brancher(){
       ecrireRepasCache();rendre();
     });
   });
+  document.querySelectorAll('[data-port]').forEach(b=>b.addEventListener('click',()=>{
+    const r=S.ajout.resultat,i=Number(b.dataset.port),p=portSuggestions(r).find(x=>x.i===i);if(!p)return;
+    r.aliments[i]=ajusteAliment(r.aliments[i],p.n);recalculeTotal(r);ecrireRepasCache();rendre();
+  }));
   // suppression d'un aliment de la liste du résultat
   document.querySelectorAll('[data-alsup]').forEach(b=>{
     b.addEventListener('click',()=>{

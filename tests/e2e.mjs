@@ -64,7 +64,7 @@ const PRODUITS = {
 };
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
-const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false, ancienFav = false;
+const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false, ancienFav = false, iaRep = null;
 await page.route('https://app.test/**', r => {
   const img = new URL(r.request().url()).pathname.match(/^\/(img\/(?:imc\/[fh]-\d+|ico\/[a-z]+)\.webp)$/); // vraies images du dépôt
   if (img) { try { return r.fulfill({ status: 200, contentType: 'image/webp', body: readFileSync(join(ICI, '..', img[1])) }); } catch { return r.fulfill({ status: 404, body: '' }); } }
@@ -75,6 +75,7 @@ await page.route('https://api.test/**', async r => {
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
   if (q.action === 'journal') return json({ ok: true, journal: LIGNES.filter(l => l.date >= q.debut && l.date <= q.fin) });
   if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
+  if (q.action === 'repas' && iaRep) return json(iaRep);
   if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'claude', ia: 'claude', echecs: 'Flash : 429 quota', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'menu') return menuKO ? json({ ok: false, ia: true, erreur: 'Menu trop flou pour être lu.' }, 503)
@@ -900,7 +901,8 @@ await page.evaluate(d => { const av = new Set(); d.cr.forEach(c => [1, 2, 3].for
 const gb = await texte('.gb');
 ok(await page.locator('.gb .gb-l').count() === 4 && /×3/.test(gb) && /jamais sinon/.test(gb) && /600 mg\/j/.test(gb) && /200 mg\/j/.test(gb), 'Goutte (B) : purines ×3 avant une crise, alcool jamais sinon');
 ok(!(await page.locator('.gb-x').allInnerTexts()).some(t => /^×(0|1)$/.test(t.trim())) && await page.evaluate(() => [...document.querySelectorAll('.gb-tr')].every(t => { const w = parseFloat(t.querySelector('i').style.width); return w >= 45 || t.classList.contains('gb-cl') || t.classList.contains('gb-o'); })), 'Goutte (B) : ni ×0 ni ×1, texte sombre sur les barres courtes');
-ok(/3 fois plus de purines/.test(gb) && /3 fois plus de déficit/.test(gb) && !/sucres ajoutés<\/b>/.test(await page.locator('.gb .synth').innerHTML()) && /De l’alcool<\/b> seulement les jours qui précèdent une crise/.test(await page.locator('.gb .synth').innerHTML()) && /À confirmer : 2 crises/.test(gb), 'Goutte (B) : synthèse (purines, déficit, alcool seulement avant ; peu de crises signalé)');
+ok(await page.locator('.gb .gb-peu').count() === 1 && /Trop peu pour conclure/.test(await texte('.gb .gb-peu')) && /2 crises avec des repas notés avant/.test(await texte('.gb .gb-peu')) && !/À confirmer/.test(gb), 'Goutte (B) : moins de 3 crises exploitables, avertissement en tête');
+ok(/3 fois plus de purines/.test(gb) && /3 fois plus de déficit/.test(gb) && !/sucres ajoutés<\/b>/.test(await page.locator('.gb .synth').innerHTML()) && /De l’alcool<\/b> seulement les jours qui précèdent une crise/.test(await page.locator('.gb .synth').innerHTML()) && /pistes, pas des causes/.test(gb), 'Goutte (B) : synthèse (purines, déficit, alcool seulement avant ; peu de crises signalé)');
 ok(await page.locator('.gb-mois > div').count() === 12 && await page.locator('.gb-c span').count() === 2, 'Goutte (B) : 12 mois, un point par crise');
 ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Goutte (B) : sans débordement');
 await page.evaluate(j => { S.data.jours = JSON.parse(j); }, joursSauv);
@@ -945,6 +947,32 @@ await page.click('#b-reglages');
 ok(await page.locator('.vue.on details.aide').count() >= 1, 'aides réaffichées depuis les Réglages');
 await page.evaluate(() => { localStorage.removeItem('suivi.aides'); rendre(); });
 await page.click('nav button[data-vue="jour"]');
+
+console.log('IA : estimation incertaine, portions habituelles');
+{ const rep = (inc, g) => ({ ok: true, enregistre: false, repas: 'Midi', date: jour(0), ia: 'flash', incertitude: inc, note: '', aliments: [{ nom: 'Riz basmati cuit', quantite: g + ' g', kcal: g * 1.3, prot: 4, lip: 0, gluc: 40 }, { nom: 'Poulet', quantite: '100 g', kcal: 165, prot: 31, lip: 4, gluc: 0 }], total: { kcal: g * 1.3 + 165, prot: 35, lip: 4, gluc: 40 }, ligne: { repas: 'Midi', detail: 'Riz, poulet', kcal: g * 1.3 + 165, prot: 35, lip: 4, gluc: 40 } });
+  const analyse = async (inc, g) => { iaRep = rep(inc, g); await page.click('nav button[data-vue="ajout"]'); if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau'); await page.fill('#a-desc', 'riz poulet'); await page.click('#a-envoi'); await page.waitForSelector('.resu'); };
+  await page.evaluate(() => localStorage.removeItem('suivi.portions'));
+  await analyse('elevee', 150);
+  ok(await page.locator('.resu .incert').count() === 1 && /Estimation incertaine/.test(await texte('.resu .incert')), 'analyse incertaine : avertissement visible avant la liste');
+  ok(await page.locator('.resu .port').count() === 0, 'portions : rien à proposer la première fois');
+  ok(!/Incertitude elev/.test(await texte('.resu')), 'analyse incertaine : plus de mention « Incertitude elevee » en double');
+  for (let n = 0; n < 4; n++) await page.locator('.resu [data-ai="0"][data-d="1"]').click();
+  ok(/190 g/.test(await texte('.resu .resu-al li:first-child')), 'portions : riz corrigé à 190 g avec +');
+  await page.click('#e-auj'); await page.waitForTimeout(500);
+  ok(await page.locator('.resu .incert').count() === 0, 'analyse incertaine : avertissement retiré une fois enregistré');
+  ok(await page.evaluate(() => { const o = JSON.parse(localStorage.getItem('suivi.portions')); const k = Object.keys(o); return k.length === 1 && /riz basmati/.test(k[0]) && o[k[0]].n === 190; }), 'portions : la correction est retenue (riz basmati cuit, 190 g), pas le poulet inchangé');
+  await analyse('faible', 150);
+  ok(await page.locator('.resu .incert').count() === 0, 'analyse sûre : pas d avertissement');
+  ok(await page.locator('.resu .port-l').count() === 1 && /Riz basmati cuit : estimé 150 g, d’habitude 190 g/.test(await texte('.resu .port')), 'portions : à l analyse suivante, la portion habituelle est proposée');
+  const k0 = await texte('#e-total');
+  await page.click('[data-port="0"]');
+  ok(/190 g/.test(await texte('.resu .resu-al li:first-child')) && await texte('#e-total') !== k0 && await page.locator('.resu .port').count() === 0, 'portions : Appliquer ajuste la quantité et le total, la proposition disparaît');
+  await page.click('#a-abandon'); if (await page.locator('#modale-hote [data-mod="oui"]').count()) await page.click('#modale-hote [data-mod="oui"]');
+  await analyse('faible', 190);
+  ok(await page.locator('.resu .port').count() === 0, 'portions : rien à proposer quand l IA estime déjà ta portion');
+  await page.click('#a-abandon'); if (await page.locator('#modale-hote [data-mod="oui"]').count()) await page.click('#modale-hote [data-mod="oui"]');
+  iaRep = null; await page.evaluate(() => localStorage.removeItem('suivi.portions'));
+  await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Affichage');
 const deborde = () => page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });

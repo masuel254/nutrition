@@ -774,3 +774,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Progrès : onglets Poids (courbe + `histPesees`), Calories, Goutte (libellé « Purines » sans crise notée ; courbe des purines + `sectionGoutte` : frise, ce qui précède, formulaire, historique, modifier), Qualité, Corps (sous-onglets Mesures, Photos, Pas via `data-ko`, `CORPS_ONGLETS`). Pas de choix de période sur Corps.
 - Tous les écrans sont rendus ensemble par `rendre()` : chaque formulaire à identifiants (`#p-val`, `#k-pas`, `#g-form`) n'est rendu que dans l'écran affiché (`S.vue`), jamais en double.
 - Tests : `tests/e2e.mjs` passe par `vaJourRac`, `vaProgres`, `vaCoach` ; contrôle des débordements sur les 5 onglets de Progrès et les 3 saisies de Jour.
+
+## 44. Goutte : avertissement ; IA : incertitude et portions habituelles (22/10, appli v90)
+
+- Goutte, « Ce qui précède tes crises » : sous 3 crises avec des repas notés les 3 jours avant, encadré `.gb-peu` « Trop peu pour conclure » en tête de la section (la mention « À confirmer » de la synthèse est retirée).
+- Analyse d'un repas : le champ `incertitude` déjà renvoyé par l'IA (faible, moyenne, elevee) s'affiche en encadré `.incert` quand il vaut `elevee` (résultat IA non enregistré) ; la note du bas met les accents et ne le répète pas.
+- Portions habituelles (`suivi.portions` en localStorage, 40 aliments au plus, local à l'appareil) : à l'enregistrement d'un résultat IA, chaque aliment dont la quantité a été corrigée avec − / + est retenu par nom normalisé (`portRetenir`). À l'analyse suivante, si l'IA estime une autre quantité dans la même unité, le bloc `.port` propose « Appliquer » (`portSuggestions`, `data-port`, recalcul par `ajusteAliment`). Rien n'est envoyé à l'IA ni au serveur.
+- Appli seule. Tests : section « IA : estimation incertaine, portions habituelles » et Goutte (B) de `tests/e2e.mjs`.
