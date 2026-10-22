@@ -105,8 +105,8 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## État au 21/10/2026
 
-- Appli v87, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 41.
-- Workflow v62 (449 nœuds, colonne Users.repas_favoris), tests n8n au vert.
+- Appli v88, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 42.
+- Workflow v63 (449 nœuds, crises modifiables avec contrôle du compte), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
 ## Hors sujet

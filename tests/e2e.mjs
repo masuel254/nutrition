@@ -202,6 +202,16 @@ ok(await page.locator('.crise').count() === 1 && /gros orteil/.test(await texte(
 await page.click('[data-gq="hier"]'); await page.click('[data-ga="cheville"]'); await page.click('[data-gi="3"]'); await page.click('#g-noter'); await page.waitForTimeout(300);
 const cr = appels.filter(a => a.action === 'crise').pop();
 ok(cr && cr.op === 'ajouter' && cr.date === jour(-1) && cr.articulation === 'cheville' && cr.intensite === 3, 'Corps : crise notée (hier, cheville, 3)');
+ok(!('id' in cr), 'Corps : nouvelle crise envoyée sans id');
+await page.locator('.crise [data-gmod="g1"]').last().click();
+ok(/Modifier la crise/.test(await texte('#g-form')) && await page.locator('[data-ga="gros orteil"].on').count() === 1 && await page.locator('[data-gi="4"].on').count() === 1 && await page.locator('[data-gq="autre"].on').count() === 1 && (await page.inputValue('#g-date')) === jour(-5), 'Goutte : Modifier préremplit le formulaire (date, articulation, intensité)');
+ok(/Enregistrer la modification/.test(await texte('#g-noter')) && await page.locator('#g-annule').count() === 1, 'Goutte : bouton Enregistrer la modification et Annuler');
+await page.click('[data-gi="2"]'); await page.fill('#g-rem', 'côté gauche'); await page.click('#g-noter'); await page.waitForTimeout(300);
+const crM = appels.filter(a => a.action === 'crise').pop();
+ok(crM.op === 'ajouter' && crM.id === 'g1' && crM.date === jour(-5) && crM.articulation === 'gros orteil' && crM.intensite === 2 && crM.remarque === 'côté gauche', 'Goutte : modification envoyée avec l id de la crise');
+ok(/modifiée/.test(await texte('#g-form')) && /Noter une crise/.test(await texte('#g-form')) && await page.locator('#g-annule').count() === 0, 'Goutte : confirmation, le formulaire repasse en Noter une crise');
+await page.locator('.crise [data-gmod="g1"]').last().click(); await page.click('#g-annule');
+ok(/Noter une crise/.test(await texte('#g-form')) && await page.locator('[data-gi].on').count() === 0, 'Goutte : Annuler la modification vide le formulaire');
 await page.click('[data-ko="pesee"]');
 
 console.log('Réglages');
@@ -888,7 +898,7 @@ await page.click('nav button[data-vue="jour"]');
 
 console.log('Saisie en un toucher, écrans allégés');
 await page.click('nav button[data-vue="jour"]');
-const crH = await page.evaluate(() => { const cr = repasParHeure(); S.prefLoc = [{ id: 'pz', nom: 'Mon bol test', cr, src: '', aliments: [{ nom: 'Riz', quantite: '100 g', kcal: 130, prot: 3, lip: 0, gluc: 28 }, { nom: 'Oeuf', quantite: '1', kcal: 70, prot: 6, lip: 5, gluc: 0 }] }]; S.data.aujourdhui.parRepas[cr] = { kcal: 0, prot: 0, lip: 0, gluc: 0 }; rendre(); return cr; });
+const crH = await page.evaluate(() => { const cr = repasParHeure(); S.pref = null; S.prefLoc = [{ id: 'pz', nom: 'Mon bol test', cr, src: '', aliments: [{ nom: 'Riz', quantite: '100 g', kcal: 130, prot: 3, lip: 0, gluc: 28 }, { nom: 'Oeuf', quantite: '1', kcal: 70, prot: 6, lip: 5, gluc: 0 }] }]; S.data.aujourdhui.parRepas[cr] = { kcal: 0, prot: 0, lip: 0, gluc: 0 }; rendre(); return cr; });
 ok(await page.locator('.vue.on .sug').count() === 1 && /Mon bol test/.test(await texte('.vue.on .sug')) && /200 kcal/.test(await texte('.vue.on .sug')) && /ton préféré/.test(await texte('.vue.on .sug')), 'Jour : créneau vide, le préféré du moment proposé (' + crH + ')');
 ok(await page.locator('.vue.on #j-ajout').count() === 0, 'Jour : plus de bouton Ajouter un repas (doublon de l onglet)');
 ok(await page.locator('.vue.on svg[aria-label="Répartition des calories par macronutriment"]').count() === 0, 'Jour : plus de barre P/L/G en %');

@@ -724,7 +724,7 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .gb-c{height:46px;border-radius:6px;background:var(--creux);display:flex;flex-direction:column-reverse;align-items:center;padding:4px 0;gap:3px;margin-bottom:2px}
 .gb-c span{border-radius:50%;background:var(--rouge);flex:none}
 .crise ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5}
-.crise .crise-sup{width:auto;margin:4px 0 6px auto;font-size:13px}
+.crise-act{display:flex;justify-content:flex-end;gap:18px;margin:4px 0 6px}.crise-act .lien{width:auto;margin:0;font-size:13px}
 .synth{border:1px solid var(--rule);border-left:4px solid var(--ambre);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.45;background:var(--card)}
 .tu-large{grid-column:1/-1}
 .rg-tete{padding-bottom:4px}
@@ -992,7 +992,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='21/10/2026 23h50';
+const APP_VERSION='22/10/2026 08h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3614,20 +3614,22 @@ function carteCrise(c,a){
       (a.sa!==null?'<li>Sucres ajoutés <b'+(a.saDessus?o():'')+'>'+nb(a.sa)+' g/j</b> (repère '+nb(a.maxSa)+')</li>':'')+
       (a.ec!==null?'<li>Écart aux besoins <b'+(a.grosDef?o():'')+'>'+sgn(a.ec)+' kcal/j</b></li>':'')+'</ul>';
   }
-  h+='<button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div>';
+  h+='<div class="crise-act"><button class="lien" data-gmod="'+esc(c.id)+'">Modifier</button><button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div></div>';
   return h;
 }
 function sectionGoutte(d){
   const G=S.gt,cr=d.crises||[];
   const hier=plusJours(auj(),-1);
-  let h=friseCrises(d)+precedeCrises(d)+'<section><h2>'+ico('pied','x')+'Noter une crise</h2>'+
+  // G.mod : id de la crise en cours de modification (même formulaire, prérempli)
+  let h=friseCrises(d)+precedeCrises(d)+'<section id="g-form"><h2>'+ico('pied','x')+(G.mod?'Modifier la crise':'Noter une crise')+'</h2>'+
     '<label>'+ico('calendrier','x')+'Quand</label><div class="chips" id="g-quand">'+
       [['auj','Aujourd’hui'],['hier','Hier'],['autre','Autre date']].map(x=>'<button data-gq="'+x[0]+'" class="'+(G.quand===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>';
   if(G.quand==='autre')h+='<input id="g-date" type="date" max="'+auj()+'" value="'+esc(G.date||hier)+'">';
   h+='<label>Où</label><div class="chips">'+ARTICS.map(x=>'<button data-ga="'+x[0]+'" class="'+(G.art===x[0]?'on':'')+'">'+ico(x[2],'x')+x[1]+'</button>').join('')+'</div>'+
     '<label>'+ico('niveau','x')+'Intensité (1 = gêne, 5 = impossible de poser le pied)</label><div class="chips">'+[1,2,3,4,5].map(i=>'<button data-gi="'+i+'" class="'+(G.int===i?'on':'')+'">'+i+'</button>').join('')+'</div>'+
     '<label for="g-rem">Remarque (facultatif)</label><input id="g-rem" type="text" maxlength="120" placeholder="Ex : côté droit, traitement pris" value="'+esc(G.rem||'')+'">'+
-    '<button class="primaire" id="g-noter"'+(G.etat==='envoi'?' disabled':'')+'>'+(G.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Noter la crise')+'</button>';
+    '<button class="primaire" id="g-noter"'+(G.etat==='envoi'?' disabled':'')+'>'+(G.etat==='envoi'?'<span class="attente"></span>Enregistrement':(G.mod?'Enregistrer la modification':'Noter la crise'))+'</button>'+
+    (G.mod?'<button class="lien" id="g-annule">Annuler la modification</button>':'');
   if(G.etat==='ko')h+='<p class="alerte">'+esc(G.message)+'</p>';
   if(G.etat==='ok')h+='<p class="bien">'+esc(G.message)+'</p>';
   h+='</section>';
@@ -5360,14 +5362,21 @@ function brancher(){
     if(!G.int){G.etat='ko';G.message='Indique l’intensité, de 1 à 5.';rendre();return;}
     G.etat='envoi';rendre();
     try{
-      await appel({action:'crise',op:'ajouter',date:date,articulation:G.art,intensite:G.int,remarque:G.rem||''});
+      await appel(Object.assign({action:'crise',op:'ajouter',date:date,articulation:G.art,intensite:G.int,remarque:G.rem||''},G.mod?{id:G.mod}:{}));
       await rafraichir();
-      S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:'ok',message:'Crise du '+jjmm(date)+' notée.'};
+      S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:'ok',message:'Crise du '+jjmm(date)+(G.mod?' modifiée.':' notée.')};
     }catch(err){G.etat='ko';G.message=err.message;}
     rendre();
   });
   document.querySelectorAll('[data-gfp]').forEach(b=>b.addEventListener('click',()=>{S.gtf.per=Number(b.dataset.gfp);S.gtf.sel=null;rendre();}));
   document.querySelectorAll('[data-gcr]').forEach(b=>b.addEventListener('click',()=>{S.gtf.sel=S.gtf.sel===b.dataset.gcr?null:b.dataset.gcr;rendre();}));
+  document.querySelectorAll('[data-gmod]').forEach(b=>b.addEventListener('click',()=>{
+    const c=((S.data&&S.data.crises)||[]).find(x=>String(x.id)===b.dataset.gmod);if(!c)return;
+    const q=c.date===auj()?'auj':(c.date===plusJours(auj(),-1)?'hier':'autre');
+    S.gt={quand:q,date:c.date,art:String(c.articulation||'').toLowerCase(),int:Number(c.intensite)||null,rem:c.remarque||'',mod:c.id,etat:null};
+    rendre();const f=$('#g-form');if(f)f.scrollIntoView({block:'start'});
+  }));
+  on('#g-annule','click',()=>{S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:null};rendre();});
   document.querySelectorAll('[data-gdel]').forEach(b=>b.addEventListener('click',async()=>{
     if(!await modaleConfirm('Retirer cette crise de la liste ?',{ok:'Retirer',danger:true}))return;
     try{await appel({action:'crise',op:'supprimer',id:b.dataset.gdel});await rafraichir();S.gt.etat=null;}

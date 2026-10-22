@@ -760,3 +760,8 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Courbes › Poids : tuiles Rythme et Théorique vides expliquées (« pas assez de pesées », « pas assez de repas notés ») au lieu d'un tiret seul.
 - Jour › Par repas à 0 sur les captures d'audit : pas un bug, le jeu de test a `parRepas: {}` ; le serveur le remplit.
 - Workflow : nouveau test `n8n/tests/t_lib_calculs.js` (local, comme les autres tests n8n) : chaque fonction et constante de `lib_calculs_n8n.js` doit être identique dans les 15 nœuds qui embarquent le bloc de calcul ; il vérifie aussi qu'une copie modifiée est détectée. État au 21/10 : 23 déclarations, 15 nœuds, aucun écart.
+
+## 42. Goutte : modifier une crise (22/10, appli v88, workflow v63)
+
+- Appli : bouton « Modifier » à côté de « Retirer » sur chaque carte de crise (`data-gmod`, liste et frise). Il préremplit le formulaire « Noter une crise » (date, articulation, intensité, remarque ; `S.gt.mod` = id), qui devient « Modifier la crise » avec « Enregistrer la modification » et « Annuler la modification » (`#g-annule`). Envoi : `{action:'crise',op:'ajouter',id,...}`, la feuille Crises est écrite sur `id` (ligne remplacée).
+- Workflow : `Build Crise API` n'accepte un `id` que s'il désigne une crise active du même compte (avant, un id quelconque était repris tel quel et pouvait écraser la ligne d'un autre compte). Test : `n8n/tests/t_crise_modifier.js`.
