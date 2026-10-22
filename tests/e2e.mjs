@@ -106,6 +106,10 @@ await page.addInitScript(() => localStorage.setItem('suivi.config', JSON.stringi
 await page.goto('https://app.test/index.html');
 await page.waitForSelector('nav button');
 const texte = async s => (await page.locator(s).first().innerText()).replace(/\s+/g, ' ');
+// navigation : Progrès (ex-Courbes et Corps), Coach en onglet, saisies Pesée / Pas / Crise sur Jour
+const vaJourRac = async k => { await page.click('nav button[data-vue="jour"]'); if (!(await page.locator('.vue.on [data-jr="' + k + '"].on').count())) await page.click('.vue.on [data-jr="' + k + '"]'); };
+const vaProgres = async (o, ko) => { await page.click('nav button[data-vue="courbes"]'); await page.click('.vue.on [data-cong="' + o + '"]'); if (ko) await page.click('.vue.on [data-ko="' + ko + '"]'); };
+const vaCoach = () => page.click('nav button[data-vue="coach"]');
 
 console.log('Jour');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
@@ -166,14 +170,23 @@ await page.click('[data-cper="7"]');
 await page.click('[data-cong="purines"]');
 ok(/Plafond/i.test(await texte('.vue.on .tuiles')), 'Courbes : onglet Purines');
 await page.click('[data-cong="poids"]'); await page.click('[data-cper="30"]');
-await page.click('nav button[data-vue="corps"]');
-ok(await page.locator('.vue.on [data-ko="pesee"].on').count() === 1 && /Pesée du jour/.test(await texte('.vue.on section:nth-of-type(2)')), 'Corps : onglet Pesée ouvert par défaut');
+ok(/Toutes mes pesées/.test(await texte('.vue.on')) && await page.locator('.vue.on #p-envoi').count() === 0, 'Progrès › Poids : historique des pesées, sans saisie');
+await vaProgres('corps');
+ok(await page.locator('.vue.on [data-ko="mesures"].on').count() === 1 && await page.locator('.vue.on .cg-per').count() === 0, 'Progrès › Corps : Mesures par défaut, pas de choix de période');
 await page.click('.vue.on [data-ko="pas"]'); await page.waitForTimeout(150);
 { const t = (await page.locator('.vue.on .prog.trois .col').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
   ok(t.length === 3 && /131/.test(t[0]) && /9.245/.test(t[1]) && /↑ \+55 % vs 7 j/.test(t[1]) && /5.962/.test(t[2]), 'Pas : aujourd hui, moyenne 3 j avec tendance, moyenne 7 j'); }
-await page.click('.vue.on [data-ko="pesee"]');
+await vaJourRac('pesee');
+ok(await page.locator('.vue.on .jr-p #p-val').count() === 1 && await page.locator('#p-val').count() === 1, 'Jour › Pesée : saisie sur place, un seul exemplaire');
 await page.click('#p-envoi'); await page.waitForTimeout(300);
-ok(appels.some(a => a.action === 'poids' && a.poids === 100) && /100 kg enregistrés/.test(await texte('.vue.on .bien')), 'Corps : pesée envoyée');
+ok(appels.some(a => a.action === 'poids' && a.poids === 100) && /100 kg enregistrés/.test(await texte('.vue.on .bien')), 'Jour › Pesée : pesée envoyée');
+await page.click('.vue.on [data-jr="pesee"]');
+ok(await page.locator('.vue.on .jr-p').count() === 0, 'Jour › Pesée : un second toucher referme');
+await vaJourRac('pas');
+ok(await page.locator('.vue.on .jr-p #k-pas').count() === 1 && await page.locator('#k-pas').count() === 1, 'Jour › Pas : saisie sur place, un seul exemplaire');
+await page.fill('#k-pas', '8500'); await page.click('#k-pas-ok'); await page.waitForTimeout(300);
+ok(appels.some(a => a.action === 'activite' && a.pas === 8500 && a.date === jour(0)), 'Jour › Pas : pas du jour envoyés');
+await page.click('.vue.on [data-jr="pas"]');
 
 console.log('Qualité et goutte');
 await page.click('nav button[data-vue="jour"]');
@@ -196,13 +209,15 @@ await page.locator('.vue.on [data-bar="pur|' + jour(-20) + '"]').click(); await 
 ok(appels.filter(a => a.action === 'journal').length === nJ + 1 && /Blanc de poulet/.test(await texte('.vue.on .jd')), 'Purines : jour ancien, semaine chargée à la demande');
 await page.click('.vue.on [data-bar-off="pur"]');
 ok(await page.locator('.vue.on .jd').count() === 0 && await page.locator('.vue.on .pur-top').count() === 1, 'Purines : retour aux repas les plus chargés');
-await page.click('[data-cong="poids"]');
-await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="goutte"]');
-ok(await page.locator('.crise').count() === 1 && /gros orteil/.test(await texte('.crise')), 'Corps : onglet Goutte, crise listée avec son analyse');
+ok(/Goutte/.test(await texte('.vue.on [data-cong="purines"]')), 'Progrès : l onglet des purines s appelle Goutte quand des crises sont notées');
+await vaJourRac('crise');
+ok(await page.locator('.vue.on .jr-p #g-form').count() === 1 && await page.locator('#g-form').count() === 1, 'Jour › Crise : formulaire sur place, un seul exemplaire');
 await page.click('[data-gq="hier"]'); await page.click('[data-ga="cheville"]'); await page.click('[data-gi="3"]'); await page.click('#g-noter'); await page.waitForTimeout(300);
 const cr = appels.filter(a => a.action === 'crise').pop();
-ok(cr && cr.op === 'ajouter' && cr.date === jour(-1) && cr.articulation === 'cheville' && cr.intensite === 3, 'Corps : crise notée (hier, cheville, 3)');
-ok(!('id' in cr), 'Corps : nouvelle crise envoyée sans id');
+ok(cr && cr.op === 'ajouter' && cr.date === jour(-1) && cr.articulation === 'cheville' && cr.intensite === 3, 'Jour › Crise : crise notée (hier, cheville, 3)');
+ok(!('id' in cr), 'Jour › Crise : nouvelle crise envoyée sans id');
+await vaProgres('purines');
+ok(await page.locator('.crise').count() === 1 && /gros orteil/.test(await texte('.crise')) && await page.locator('#g-form').count() === 1, 'Progrès › Goutte : courbe, crise listée avec son analyse, formulaire');
 await page.locator('.crise [data-gmod="g1"]').last().click();
 ok(/Modifier la crise/.test(await texte('#g-form')) && await page.locator('[data-ga="gros orteil"].on').count() === 1 && await page.locator('[data-gi="4"].on').count() === 1 && await page.locator('[data-gq="autre"].on').count() === 1 && (await page.inputValue('#g-date')) === jour(-5), 'Goutte : Modifier préremplit le formulaire (date, articulation, intensité)');
 ok(/Enregistrer la modification/.test(await texte('#g-noter')) && await page.locator('#g-annule').count() === 1, 'Goutte : bouton Enregistrer la modification et Annuler');
@@ -212,7 +227,7 @@ ok(crM.op === 'ajouter' && crM.id === 'g1' && crM.date === jour(-5) && crM.artic
 ok(/modifiée/.test(await texte('#g-form')) && /Noter une crise/.test(await texte('#g-form')) && await page.locator('#g-annule').count() === 0, 'Goutte : confirmation, le formulaire repasse en Noter une crise');
 await page.locator('.crise [data-gmod="g1"]').last().click(); await page.click('#g-annule');
 ok(/Noter une crise/.test(await texte('#g-form')) && await page.locator('[data-gi].on').count() === 0, 'Goutte : Annuler la modification vide le formulaire');
-await page.click('[data-ko="pesee"]');
+await page.click('.vue.on [data-cong="poids"]');
 
 console.log('Réglages');
 await page.click('#b-reglages'); await page.waitForTimeout(300);
@@ -401,7 +416,7 @@ ok(/Profil IA : Défaut/.test(await texte('#pia-t')), 'profil IA : revient à D�
 secoursTest = false;
 
 console.log('Pesées');
-await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="pesee"]');
+await vaProgres('poids');
 await page.click('#pes-hist summary');
 ok(/Toutes mes pesées \(5\)/.test(await texte('#pes-hist')) && (await page.locator('#pes-hist .pes-l .k').count()) === 5 && /100,0 kg/.test(await texte('#pes-hist .pes-l')), 'Corps : historique dépliable de toutes les pesées, la plus récente en haut');
 await page.click('nav button[data-vue="courbes"]'); await page.click('[data-cong="poids"]');
@@ -409,11 +424,12 @@ ok(await page.locator('.vue.on .courbe-tabs').count() === 0 && /Variation par se
 ok(await page.locator('.vue.on svg[aria-label="Variation hebdomadaire du poids"] rect[stroke-dasharray]').count() <= 1, 'Régulier ? : au plus une semaine « en cours »');
 
 console.log('Ergonomie');
-ok(await page.locator('nav button').count() === 5 && await page.locator('nav button[data-vue="coach"]').count() === 0, 'menu du bas à 5 onglets');
+ok(JSON.stringify(await page.locator('nav button').evaluateAll(l => l.map(b => b.dataset.vue))) === JSON.stringify(['jour', 'ajout', 'courbes', 'journal', 'coach']) && /Progrès/.test(await texte('nav button[data-vue="courbes"]')), 'menu du bas : Jour, Ajouter, Progrès, Journal, Coach');
+ok(await page.locator('#b-coach').count() === 0 && await page.locator('#b-maj').count() === 0 && await page.locator('#b-reglages').count() === 1, 'en-tête : Réglages seulement (plus de Coach ni d Actualiser)');
 ok(await page.locator('.bandeau.compact').count() === 1 && !/métabolisme/.test(await texte('.bandeau')), 'en-tête compact hors écran Jour');
-await page.click('#b-coach');
-ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restantes|dépassé ma cible/.test(await texte('.vue.on .coach-sug')), 'Coach : ouvert depuis l\'en-tête, 4 questions toutes prêtes');
-ok(await page.locator('#b-coach').count() === 0 && await page.locator('#b-maj').count() === 1, 'Coach : pas de lien Coach dans son propre en-tête');
+await vaCoach();
+ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restantes|dépassé ma cible/.test(await texte('.vue.on .coach-sug')), 'Coach : onglet du menu, 4 questions toutes prêtes');
+ok(/Coach/.test(await texte('.bandeau h1')) && await page.locator('nav button[data-vue="coach"].on').count() === 1, 'Coach : titre Coach, onglet allumé');
 { const qs = async () => (await page.locator('.vue.on .coach-sug button').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
   const avant = await qs();
   ok(avant.length === 4 && new Set(avant).size === 4 && /kcal restantes|dépassé ma cible/.test(avant[0]), 'Coach : 4 questions toutes prêtes, toutes différentes');
@@ -428,7 +444,7 @@ ok(await page.locator('#b-coach').count() === 0 && await page.locator('#b-maj').
   ok(JSON.stringify(await qs()) === JSON.stringify(avant), 'Coach : « Vider » remet les questions de départ'); }
 { await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button');
   ok(await page.locator('.vue.on .bulle.moi').count() === 1 && /suivi\.chat/.test(await page.evaluate(() => Object.keys(localStorage).join(' '))), 'Coach : une question posée, conversation visible et mémorisée');
-  await page.click('nav button[data-vue="journal"]'); await page.click('#b-coach');
+  await page.click('nav button[data-vue="journal"]'); await vaCoach();
   ok(await page.locator('.vue.on .bulle').count() === 0 && await page.evaluate(() => !Object.keys(localStorage).some(k => /chat/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== '[]')), 'Coach : quitter par la barre du bas efface la conversation (écran et mémoire)');
   await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button');
   await page.click('#b-reglages'); await page.click('#b-reglages');
@@ -577,7 +593,7 @@ ok(JSON.parse(await pi2.evaluate(() => localStorage.getItem('suivi.config'))).to
 await pi2.close();
 
 console.log('Photos');
-await page.click('nav button[data-vue="corps"]'); await page.locator('[data-ko]').filter({ hasText: 'Photos' }).first().click();
+await vaProgres('corps', 'photos');
 ok(await page.locator('#k-ph-import').count() === 1, 'Photos : bouton « depuis la photothèque »');
 await page.setInputFiles('#k-ph-fichier', { name: 'p.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCOiiivmj7A/9k=', 'base64') });
 await page.waitForSelector('.cam-imp', { timeout: 5000 });
@@ -634,11 +650,11 @@ await page.click('#evo-fermer'); ok(await page.locator('#evo-hote').count() === 
 await page.click(`#k-pdt [data-pdt="${jour(-6)}"]`); await page.waitForTimeout(150);
 ok(await page.locator('#k-une').count() === 1 && await page.locator('#k-cmp').count() === 0, 'Photos : une date → une seule photo entière');
 await page.click('#k-pdt [data-pdt=""]'); await page.waitForTimeout(150); ok(await page.locator('#k-cmp').count() === 1, 'Photos : retour avant / après');
-await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="corps"]'); await page.waitForTimeout(150);
+await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="courbes"]'); await page.waitForTimeout(150);
 ok(await page.locator('#k-une').count() === 1 && /Profil/.test(await texte('#k-cmp-type .on')), 'Photos : au retour sur la page, dernière photo seule (de face, sinon de profil s il n y a pas de face)');
 
 console.log('Coach : photo d\'un menu');
-await page.click('#b-coach');
+await vaCoach();
 ok(await page.locator('#c-cam').count() === 1 && await page.locator('#c-gal').count() === 1, 'Coach : boutons appareil photo et galerie');
 await page.setInputFiles('#c-galerie', { name: 'menu.jpg', mimeType: 'image/jpeg', buffer: imgPh });
 await page.waitForSelector('table.mn');
@@ -654,7 +670,7 @@ ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - doc
 ok((await page.evaluate(() => localStorage.getItem('suivi.chat'))).includes('Burger du chef'), 'menu : gardé dans la conversation');
 await page.click('[data-mplat$=":1"]');
 ok(await page.locator('.vue.on #e-auj').count() === 1 && /Salade chèvre chaud/.test(await texte('.vue.on .resu')) && /640/.test(await texte('#e-total')), 'menu : « + » ouvre Ajouter avec le plat choisi');
-await page.click('#b-coach');
+await vaCoach();
 await page.click('[data-mplat$=":2"]');
 ok(/Tarte aux pommes/.test(await texte('.vue.on .resu')) && /1\D?060/.test(await texte('#e-total')), 'menu : un second plat s\'ajoute au même repas');
 const avant = appels.filter(a => a.action === 'enregistrer').length;
@@ -662,7 +678,7 @@ await page.click('#e-auj');
 await page.waitForTimeout(300);
 const enrMenu = appels.filter(a => a.action === 'enregistrer').slice(avant).pop();
 ok(enrMenu && enrMenu.kcal === 1060 && /Salade chèvre chaud/.test(enrMenu.detail) && /Tarte aux pommes/.test(enrMenu.detail) && enrMenu.ia === 'flash', 'menu : enregistrement habituel (kcal cumulées, IA)');
-await page.click('#b-coach');
+await vaCoach();
 await page.fill('#c-q', 'Je prends quoi ?'); await page.click('#c-envoi');
 await page.waitForFunction(() => /prends la salade/.test(document.body.innerText));
 const hist = appels.filter(a => a.action === 'conseil').pop().historique;
@@ -683,25 +699,25 @@ await page.evaluate(() => rendre());
 ok(await page.locator('.rep-ligne.ouvert').count() === 1 && await page.locator('.rep-ligne.ouvert').first().getAttribute('aria-expanded') === 'true', 'Jour : un repas déplié le reste après un rendu (arrivée des données)');
 await page.locator('.rep-ligne').last().click(); await page.evaluate(() => rendre());
 ok(await page.locator('.rep-ligne.ouvert').count() === 0, 'Jour : un repas replié le reste après un rendu');
-await page.click('#b-coach');
+await vaCoach();
 
 console.log('Rendus réseau : état de l\'écran préservé');
-await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="mesures"]');
+await vaProgres('corps', 'mesures');
 await page.fill('#k-taille', '97.5'); await page.evaluate(() => document.activeElement.blur());
 await page.evaluate(() => rendreSiLibre());
 ok(await page.inputValue('#k-taille') === '97.5', 'rendu réseau : un champ rempli (Corps › Mesures) garde sa valeur');
-await page.click('nav button[data-vue="courbes"]');
+await vaProgres('poids');
 await page.evaluate(() => { localStorage.setItem('suivi.aides', 'oui'); rendre(); });
 await page.locator('.vue.on details.aide summary').first().click();
 await page.evaluate(() => rendreSiLibre());
 ok(await page.locator('.vue.on details.aide[open]').count() === 1, 'rendu réseau : un menu d\'aide déplié (Courbes) reste déplié');
-await page.click('nav button[data-vue="corps"]'); await page.fill('#k-taille', '97.5');
+await vaProgres('corps', 'mesures'); await page.fill('#k-taille', '97.5');
 await page.click('#k-taille'); await page.evaluate(() => { window.__r = 0; const o = rendre; rendre = function () { window.__r++; return o.apply(this, arguments); }; rendreSiLibre(); });
 ok(await page.evaluate(() => window.__r) === 0, 'rendu réseau : différé tant qu\'un champ a le focus');
 await page.evaluate(() => document.activeElement.blur()); await page.waitForTimeout(600);
 ok(await page.evaluate(() => window.__r) === 1 && await page.inputValue('#k-taille') === '97.5', 'rendu réseau : rejoué dès que le champ perd le focus, valeur intacte');
 await page.fill('#k-taille', ''); await page.click('nav button[data-vue="jour"]');
-await page.click('#b-coach');
+await vaCoach();
 
 console.log('Coach : saisie préservée');
 await page.click('#c-q'); await page.keyboard.type('Question en cours de frappe');
@@ -747,7 +763,7 @@ console.log('Scan de plusieurs produits d\'affilée');
 
 console.log('Corps : IMC');
 { // 180 cm, pesées de 102 à 100 kg, objectif 90 kg : IMC 31,5 → 30,9 → 27,8
-  const vaMesures = async () => { await page.click('nav button[data-vue="corps"]'); await page.click('.vue.on [data-ko="mesures"]'); await page.waitForTimeout(150); };
+  const vaMesures = async () => { await vaProgres('corps', 'mesures'); await page.waitForTimeout(150); };
   const srcs = () => page.locator('.vue.on .imc-c img').evaluateAll(l => l.map(i => i.getAttribute('src')));
   await vaMesures();
   ok(await page.locator('.vue.on .imc').count() === 1 && (await texte('.vue.on .imc-v')) === '30,9' && /Obésité modérée/.test(await texte('.vue.on .imc-z')), 'IMC : valeur actuelle 30,9 et zone « Obésité modérée »');
@@ -765,7 +781,7 @@ console.log('Corps : IMC');
   DATA.profil.taille = 180; await page.reload(); await page.waitForSelector('nav button'); await vaMesures();
   const dx = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
   ok(dx <= 0, 'IMC : pas de débordement horizontal');
-  await page.click('.vue.on [data-ko="pesee"]'); await page.click('nav button[data-vue="jour"]'); }
+  await page.click('.vue.on [data-cong="poids"]'); await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Icônes et calendrier des 7 jours');
 await page.click('nav button[data-vue="jour"]');
@@ -775,7 +791,7 @@ ok(await page.locator('nav button').evaluateAll(l => l.every(b => b.textContent.
 ok(await page.locator('.vue.on .rep-nom .ic').count() >= 2 && await page.locator('.vue.on .cr-dot').count() === 0 && await chargees('.vue.on .rep-nom .ic'), 'Jour : une icône par repas (plus de pastille de couleur)');
 ok(await page.locator('.vue.on .hero .hm .ic').count() === 3 && await page.locator('.vue.on .cal-pastille .ic').count() === 1 && await page.locator('.vue.on .seg-i .ic').count() === 4, 'Jour : icônes des macros, de la pastille et des onglets');
 ok(await page.locator('.vue.on .qj .hm .ic').count() >= 4 && await chargees('.vue.on .qj .hm .ic'), 'Qualité du jour : une icône par ligne (saturées, fibres, sodium, sucres)');
-ok(await page.locator('#b-coach .ic, #b-maj .ic, #b-reglages .ic').count() === 3, 'en-tête : icônes Coach, Actualiser, Réglages');
+ok(await page.locator('#b-reglages .ic').count() === 1 && await page.locator('.vue.on .jr .ic').count() === 3 && await chargees('.vue.on .jr .ic'), 'en-tête : icône Réglages ; Jour : icônes des raccourcis Pesée, Pas, Crise');
 ok(await page.locator('.vue.on .sem button').count() === 7 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && /auj/i.test(await page.locator('.vue.on .sem button').last().innerText()), 'calendrier : 7 jours, aujourd hui à droite et sélectionné');
 const nb = n => String(Math.round(n)).replace(/(\d)(?=\d{3}$)/, '$1\\s?'); // 2350 -> /2\s?350/ (espace fine de l'appli)
 const veille = jour(-1), jv = DATA.jours.find(j => j.date === veille), nVeille = Number(veille.slice(8));
@@ -789,10 +805,8 @@ await page.click('nav button[data-vue="courbes"]'); await page.click('nav button
 ok(await page.locator('.vue.on #j-retour').count() === 1, 'le jour choisi reste choisi en changeant d onglet');
 await page.click('.vue.on #j-retour');
 ok(await page.locator('.vue.on .seg-i button').count() === 4 && await page.locator('.vue.on .sem button.auj.on').count() === 1 && await page.locator('.vue.on #j-retour').count() === 0, 'Revenir à aujourd hui : écran Jour normal');
-await page.click('nav button[data-vue="corps"]');
-ok(await page.locator('.vue.on .seg-i .ic').count() === 5 && await chargees('.vue.on .seg-i .ic'), 'Corps : une icône par onglet');
 await page.click('nav button[data-vue="courbes"]');
-ok(await page.locator('.vue.on .seg-i .ic').count() === 4 && await chargees('.vue.on .seg-i .ic') && await page.locator('.vue.on .tu small .ic').count() >= 3, 'Courbes : icônes sur les onglets et les tuiles du Poids');
+ok(await page.locator('.vue.on .seg-i .ic').count() === 5 && await chargees('.vue.on .seg-i .ic') && await page.locator('.vue.on .tu small .ic').count() >= 3, 'Progrès : 5 onglets avec icône, icônes sur les tuiles du Poids');
 for (const [o, n] of [['calories', 2], ['purines', 3], ['qualite', 5]]) {
   await page.click('.vue.on [data-cong="' + o + '"]');
   ok(await page.locator('.vue.on .tu small .ic').count() >= n && await chargees('.vue.on .tu small .ic'), 'Courbes > ' + o + ' : icônes sur les tuiles');
@@ -804,9 +818,8 @@ await page.click('nav button[data-vue="jour"]');
 await page.locator('.vue.on .rep-ligne').nth(1).click();
 ok(/alcool 20 g \(2 verres\)/.test(await texte('.vue.on .rep-ligne:nth-child(2) .rep-micro')) && !/alcool/.test(await texte('.vue.on .rep-ligne:nth-child(1) .rep-micro')), 'Jour : le détail d un repas montre l alcool bu (20 g = 2 verres), pas les repas sans alcool');
 ok(/purines à risque 180 mg/.test(await texte('.vue.on .rep-ligne:nth-child(2) .rep-micro')) && !/purines/.test(await texte('.vue.on .rep-ligne:nth-child(1) .rep-micro')), 'Jour : le détail d un repas indique les purines à risque');
-await page.click('nav button[data-vue="corps"]');
-for (const [o, n, h2] of [['mesures', 1, '.vue.on section h2 .ic'], ['goutte', 6, '.vue.on .chips .ic'], ['pesee', 1, '.vue.on section h2 .ic']]) {
-  await page.click('.vue.on [data-ko="' + o + '"]');
+for (const [o, n, h2] of [['mesures', 1, '.vue.on section h2 .ic'], ['goutte', 6, '.vue.on .chips .ic']]) {
+  if (o === 'goutte') await vaProgres('purines'); else await vaProgres('corps', o);
   if (o === 'goutte') ok(await page.locator('.vue.on label .ic').count() >= 2 && await chargees('.vue.on label .ic'), 'Corps > goutte : icônes calendrier sur Quand et niveau sur Intensité');
   ok(await page.locator(h2).count() >= n && await chargees(h2), 'Corps > ' + o + ' : icônes (' + (o === 'goutte' ? 'une par articulation' : 'titres de section') + ')');
 }
@@ -870,7 +883,7 @@ await page.click('#a-abandon'); if (await page.locator('#modale-hote').count()) 
 
 console.log('Goutte : frise des crises');
 await page.evaluate(d => { S.data.crises = [{ id: 'g1', date: d[0], articulation: 'gros orteil', intensite: 4, remarque: '' }, { id: 'g2', date: d[1], articulation: 'genou', intensite: 2, remarque: '' }, { id: 'g3', date: d[2], articulation: 'cheville', intensite: 3, remarque: '' }]; S.gtf = null; rendre(); }, [jour(-5), jour(-25), jour(-60)]);
-await page.click('nav button[data-vue="corps"]'); await page.click('[data-ko="goutte"]');
+await vaProgres('purines');
 ok(await page.locator('.gf-svg').count() === 1 && await page.locator('.gf-c').count() === 3 && await page.locator('[data-gfp="90"].on').count() === 1, 'Goutte : frise 90 jours, une marque par crise');
 ok(/il y a 5 j/.test(await texte('.gf .tuiles')) && /≈ 28 j/.test(await texte('.gf .tuiles')) && /^3/.test((await page.locator('.gf .tu b').first().textContent()).trim()), 'Goutte : tuiles (3 crises, dernière il y a 5 j, écart ≈ 28 j)');
 ok(await page.locator('.gf-svg rect[fill="var(--over)"][opacity=".13"]').count() === 3, 'Goutte : 3 jours avant chaque crise teintés');
@@ -934,11 +947,14 @@ await page.evaluate(() => { localStorage.removeItem('suivi.aides'); rendre(); })
 await page.click('nav button[data-vue="jour"]');
 
 console.log('Affichage');
-for (const vue of ['jour', 'ajout', 'courbes', 'corps', 'journal']) {
+const deborde = () => page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
+for (const vue of ['jour', 'ajout', 'courbes', 'journal', 'coach']) {
   await page.click(`nav button[data-vue="${vue}"]`);
-  const d = await page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
-  ok(d <= 0, 'pas de débordement horizontal : ' + vue);
+  ok(await deborde() <= 0, 'pas de débordement horizontal : ' + vue);
 }
+for (const o of ['poids', 'calories', 'purines', 'qualite', 'corps']) { await vaProgres(o); ok(await deborde() <= 0, 'pas de débordement horizontal : Progrès › ' + o); }
+for (const k of ['pesee', 'pas', 'crise']) { await vaJourRac(k); ok(await deborde() <= 0 && await page.locator('.vue.on .jr-p').count() === 1, 'pas de débordement horizontal : Jour › ' + k + ' ouvert'); }
+await page.click('.vue.on [data-jr="crise"]');
 const petits = await page.evaluate(() => [...document.querySelectorAll('input,textarea,select')].filter(e => parseFloat(getComputedStyle(e).fontSize) < 16).length);
 ok(petits === 0, 'champs en 16 px minimum (pas de zoom iOS)');
 ok(erreurs.length === 0, 'aucune erreur JavaScript' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));

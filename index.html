@@ -777,6 +777,11 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .aj-tile span{min-width:0}.aj-tile b{display:block;font-size:14.5px}.aj-tile small{display:block;font-size:13px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aj-pan{margin-top:10px}
 .pf-sec h2{display:flex;align-items:center}
+.jr-l{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.jr{display:flex;align-items:center;gap:6px;min-width:0;padding:8px;border:1px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);text-align:left}
+.jr.on{border-color:var(--under);box-shadow:0 0 0 1px var(--under) inset}.jr .ic{width:24px;height:24px;flex:none}
+.jr span{min-width:0}.jr small{display:block;font-size:11px;color:var(--soft);line-height:1.2}.jr b{display:block;font-size:13.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jr-p{margin-top:8px;padding:10px;border:1px solid var(--rule);border-radius:12px;background:var(--card)}.jr-p section{margin:0}
 .sug{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 10px 10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--card);min-width:0}
 .sug-t{flex:1;min-width:0}.sug-t small{display:block;font-size:12px;color:var(--soft)}.sug-t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pf-chg{margin:0 0 0 2px;width:auto;font-size:13px}
@@ -992,7 +997,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='22/10/2026 08h45';
+const APP_VERSION='22/10/2026 11h03';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1900,6 +1905,14 @@ function suggestionJour(d){
   if(!l)return null;
   return {cr:cr,nom:Array.isArray(l.aliments)&&l.aliments.length?nomRepas(l.aliments):(l.detail||l.repas),kcal:l.kcal,src:'comme '+libDate(l.date).toLowerCase(),g:{l:l}};
 }
+// Jour : raccourcis de saisie ; un toucher ouvre la saisie sur place, un second la referme
+function racJour(d){
+  const R=S.jour.rac,p=d.poids||[],pa=((d.activite||[]).find(x=>x.date===auj())||{}).pas||0;
+  const t=(k,ic,l,v)=>'<button class="jr'+(R===k?' on':'')+'" data-jr="'+k+'" aria-expanded="'+(R===k)+'">'+ico(ic,'x')+'<span><small>'+l+'</small><b>'+v+'</b></span></button>';
+  let h='<div class="jr-l">'+t('pesee','balance','Pesée',p.length?fr1(p[p.length-1].poids)+' kg':'Noter')+t('pas','pas','Pas',pa?nb(pa):'Noter')+t('crise','pied','Crise','Noter')+'</div>';
+  if(S.vue!=='jour'||!R)return h;
+  return h+'<div class="jr-p">'+(R==='pesee'?formPesee(d):R==='pas'?formPas(d):formCrise())+'</div>';
+}
 function bandeSemaine(d){
   const sel=jourPasse()||auj(),c=d.cibles||{},a=d.aujourdhui||{};
   let h='<div class="sem" role="group" aria-label="7 derniers jours">';
@@ -1928,7 +1941,8 @@ function vueJour(d){
     if(!pas){h+=blocPasJour(d,c.kcal);
       const sg=S.sugJ=suggestionJour(d);
       if(sg)h+='<div class="sug">'+ico(IC_REPAS[sg.cr]||'assiette','m')+'<span class="sug-t"><small>'+libelleRepas(sg.cr)+' · '+sg.src+'</small><b>'+esc(sg.nom)+'</b></span>'+
-        '<span class="rf-k">'+nb(sg.kcal)+' kcal</span><button class="rf-aj" id="j-sug" aria-label="Ajouter '+esc(sg.nom)+' en '+libelleRepas(sg.cr)+'">+</button></div>';}
+        '<span class="rf-k">'+nb(sg.kcal)+' kcal</span><button class="rf-aj" id="j-sug" aria-label="Ajouter '+esc(sg.nom)+' en '+libelleRepas(sg.cr)+'">+</button></div>';
+      h+=racJour(d);}
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour la fixer.</p>';
   h+='</section>';
 
@@ -2566,7 +2580,7 @@ function blocNutriscore(d){
 function courbesInit(){
   try{
     const o=JSON.parse(localStorage.getItem('suivi.courbes')||'{}');
-    return {onglet:['poids','calories','purines','qualite'].indexOf(o.onglet)>=0?o.onglet:'poids',
+    return {onglet:['poids','calories','purines','qualite','corps'].indexOf(o.onglet)>=0?o.onglet:'poids',
             per:[3,7,14,30,90,0].indexOf(o.per)>=0?o.per:30,nut:NUTS.concat(['alcool']).indexOf(o.nut)>=0?o.nut:'satures'};
   }catch(e){return {onglet:'poids',per:30,nut:'satures'};}
 }
@@ -2637,7 +2651,7 @@ function ongletPoids(d,P){
   const p=d.poids||[];
   const pr=calcProgression(d,P);
   let h='';
-  if(!pr)h+='<p class="vide">Pas encore assez de données. Ajoute quelques pesées (écran Corps) et des repas pour voir ta progression.</p>';
+  if(!pr)h+='<p class="vide">Pas encore assez de données. Ajoute quelques pesées (raccourci Pesée sur Jour) et des repas pour voir ta progression.</p>';
   else{
     h+='<div class="tuiles">'+
       tuile('Balance',pr.reel===null?'—':kgSigne(pr.reel)+' kg',
@@ -2701,16 +2715,22 @@ function vueCourbes(d){
   [[3,'3 j'],[7,'7 j'],[14,'14 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].forEach(x=>{
     h+='<button data-cper="'+x[0]+'" class="'+(P===x[0]?'on':'')+'">'+x[1]+'</button>';
   });
-  h+='</div><div class="seg seg-i" role="tablist">';
-  [['poids','Poids','balance'],['calories','Calories','flamme'],['purines','Purines','pied'],['qualite','Qualité','brocoli']].forEach(x=>{
+  h+='</div>';
+  if(o==='corps')h='<section>';
+  h+='<div class="seg seg-i" role="tablist">';
+  [['poids','Poids','balance'],['calories','Calories','flamme'],['purines',(d.crises||[]).length?'Goutte':'Purines','pied'],['qualite','Qualité','brocoli'],['corps','Corps','metre']].forEach(x=>{
     h+='<button role="tab" data-cong="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+ico(x[2])+x[1]+'</button>';
   });
   h+='</div>';
   if(o==='calories')h+=ongletCalories(d,P);
   else if(o==='purines')h+=blocPurinesCourbes(d,P);
   else if(o==='qualite')h+=ongletQualite(d,P);
+  else if(o==='corps')h+='<div class="chips" role="tablist">'+CORPS_ONGLETS.map(x=>'<button role="tab" data-ko="'+x[0]+'" class="'+(S.corps.onglet===x[0]?'on':'')+'">'+ico(x[2],'x')+x[1]+'</button>').join('')+'</div>';
   else h+=ongletPoids(d,P);
   h+='</section>';
+  if(o==='poids')h+=histPesees(d);
+  if(o==='purines')h+=sectionGoutte(d);
+  if(o==='corps')h+=S.corps.onglet==='pas'?sectionPas(d):S.corps.onglet==='photos'?sectionPhotos(d):blocIMC(d)+sectionMesures(d);
   if(o==='calories'){
     h+='<section><h2>'+ico('calendrier','x')+'Régularité</h2><p class="crb-st">4 dernières semaines</p>'+calendrier(d.jours||[])+
        detailJour(d,S.inspCal?S.inspCal.date:null)+
@@ -3484,19 +3504,9 @@ function ongletQualite(d,P){
 }
 
 /* ---------- Corps : onglets (pesée, pas, mesures, photos, goutte) ---------- */
-const CORPS_ONGLETS=[['pesee','Pesée','balance'],['pas','Pas','pas'],['mesures','Mesures','metre'],['photos','Photos','portrait'],['goutte','Goutte','pied']];
-function corpsOngletInit(){try{const v=localStorage.getItem('suivi.corps.onglet');return CORPS_ONGLETS.some(x=>x[0]===v)?v:'pesee';}catch(e){return 'pesee';}}
-function vueCorps(d){
-  const o=S.corps.onglet||'pesee';
-  let h='<section class="corps-tete"><div class="seg seg-i" role="tablist">';
-  CORPS_ONGLETS.forEach(x=>{h+='<button role="tab" data-ko="'+x[0]+'" aria-selected="'+(o===x[0])+'" class="'+(o===x[0]?'on':'')+'">'+ico(x[2])+x[1]+'</button>';});
-  h+='</div></section>';
-  if(o==='pas')return h+sectionPas(d);
-  if(o==='mesures')return h+blocIMC(d)+sectionMesures(d);
-  if(o==='photos')return h+sectionPhotos(d);
-  if(o==='goutte')return h+sectionGoutte(d);
-  return h+sectionPesee(d);
-}
+// Progrès › Corps : sous-onglets
+const CORPS_ONGLETS=[['mesures','Mesures','metre'],['photos','Photos','portrait'],['pas','Pas','pas']];
+function corpsOngletInit(){try{const v=localStorage.getItem('suivi.corps.onglet');return CORPS_ONGLETS.some(x=>x[0]===v)?v:'mesures';}catch(e){return 'mesures';}}
 
 /* ---------- Crises de goutte ---------- */
 const ARTICS=[['gros orteil','Gros orteil','orteil'],['cheville','Cheville','cheville'],['genou','Genou','genou'],['pied','Pied','piedvert'],['poignet, main','Poignet, main','main'],['autre','Autre','articulation']];
@@ -3617,11 +3627,10 @@ function carteCrise(c,a){
   h+='<div class="crise-act"><button class="lien" data-gmod="'+esc(c.id)+'">Modifier</button><button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div></div>';
   return h;
 }
-function sectionGoutte(d){
-  const G=S.gt,cr=d.crises||[];
-  const hier=plusJours(auj(),-1);
-  // G.mod : id de la crise en cours de modification (même formulaire, prérempli)
-  let h=friseCrises(d)+precedeCrises(d)+'<section id="g-form"><h2>'+ico('pied','x')+(G.mod?'Modifier la crise':'Noter une crise')+'</h2>'+
+// formulaire Noter / Modifier une crise (Jour › Crise, ou Progrès › Goutte)
+function formCrise(){
+  const G=S.gt,hier=plusJours(auj(),-1);
+  let h='<section id="g-form"><h2>'+ico('pied','x')+(G.mod?'Modifier la crise':'Noter une crise')+'</h2>'+
     '<label>'+ico('calendrier','x')+'Quand</label><div class="chips" id="g-quand">'+
       [['auj','Aujourd’hui'],['hier','Hier'],['autre','Autre date']].map(x=>'<button data-gq="'+x[0]+'" class="'+(G.quand===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>';
   if(G.quand==='autre')h+='<input id="g-date" type="date" max="'+auj()+'" value="'+esc(G.date||hier)+'">';
@@ -3633,6 +3642,13 @@ function sectionGoutte(d){
   if(G.etat==='ko')h+='<p class="alerte">'+esc(G.message)+'</p>';
   if(G.etat==='ok')h+='<p class="bien">'+esc(G.message)+'</p>';
   h+='</section>';
+  return h;
+}
+function sectionGoutte(d){
+  const G=S.gt,cr=d.crises||[];
+  const hier=plusJours(auj(),-1);
+  // G.mod : id de la crise en cours de modification (même formulaire, prérempli)
+  let h=friseCrises(d)+precedeCrises(d)+(S.vue==='jour'?'':formCrise());
   if(!cr.length)return h+'<section><p class="note">Aucune crise notée. Chacune apparaîtra ici avec ce que tu as mangé et bu les trois jours avant, pour repérer ce qui revient. Tu peux aussi noter les crises passées dont tu te souviens (Autre date).</p></section>';
   const an=cr.map(c=>({c:c,a:analyseCrise(d,c)}));
   const conn=an.filter(x=>x.a);
@@ -3653,7 +3669,7 @@ function sectionGoutte(d){
       (conn.length<3?' La synthèse devient parlante à partir de quelques crises.':'')+'</div>';
   }
   an.forEach(x=>{h+=carteCrise(x.c,x.a);});
-  return h+'<p class="note">Les crises apparaissent aussi en repères rouges sur le graphique des purines (Courbes). Une crise peut suivre un excès de purines, d’alcool ou de sucres, mais aussi une perte de poids trop rapide ou un changement de traitement : parles-en à ton médecin.</p></section>';
+  return h+'<p class="note">Les crises apparaissent aussi en repères rouges sur le graphique des purines, en haut de cet onglet. Une crise peut suivre un excès de purines, d’alcool ou de sucres, mais aussi une perte de poids trop rapide ou un changement de traitement : parles-en à ton médecin.</p></section>';
 }
 
 /* ---------- Alcool en verres standard ----------
@@ -4452,10 +4468,16 @@ function sectionPas(d){
   const der=act.length?act[act.length-1].date:null;
   h+='<p class="note">'+(der?'Dernière synchronisation : '+jjmmJour(der)+'. ':'Aucun pas reçu pour l\'instant. ')+
      'Les pas arrivent tout seuls depuis ton Raccourci iPhone. En cas de besoin, corrige le total du jour ici.</p>';
-  h+='<div class="qte-saisie pas-saisie"><input id="k-pas" type="number" inputmode="numeric" min="0" max="150000" placeholder="Pas du jour" value="'+(ajd||'')+'"><button class="secondaire" id="k-pas-ok"'+(C.pasEtat==='envoi'?' disabled':'')+'>'+(C.pasEtat==='envoi'?'<span class="attente"></span>':'Enregistrer')+'</button></div>';
+  if(S.vue!=='jour')h+=formPas(d);
+  return h+'</section>';
+}
+// saisie des pas du jour (Jour › Pas, ou Progrès › Corps › Pas)
+function formPas(d){
+  const C=S.corps,ajd=((d.activite||[]).find(x=>x.date===auj())||{}).pas||0;
+  let h='<div class="qte-saisie pas-saisie"><input id="k-pas" type="number" inputmode="numeric" min="0" max="150000" placeholder="Pas du jour" value="'+(ajd||'')+'"><button class="secondaire" id="k-pas-ok"'+(C.pasEtat==='envoi'?' disabled':'')+'>'+(C.pasEtat==='envoi'?'<span class="attente"></span>':'Enregistrer')+'</button></div>';
   if(C.pasEtat==='ko')h+='<p class="alerte">'+esc(C.pasMsg)+'</p>';
   if(C.pasEtat==='ok')h+='<p class="bien">'+esc(C.pasMsg)+'</p>';
-  return h+'</section>';
+  return h;
 }
 /* IMC (Corps › Mesures) : calculé à la volée (dernière pesée / taille²), rien n'est stocké.
    Début = première pesée, objectif = objectif_poids. Zones OMS. Images : 5 paliers par sexe (img/imc), le plus proche. */
@@ -4609,12 +4631,12 @@ function sectionPhotos(d){
   h+='<p class="note">Touche une vignette pour la voir en grand, la remplacer, changer sa date ou la supprimer. Tes photos sont gardées dans l\'appli et archivées par ton bot dans ta conversation Telegram, sans notification. Personne d\'autre n\'y a accès.</p>';
   return h+'</section>';
 }
-function sectionPesee(d){
+// saisie de la pesée (Jour › Pesée)
+function formPesee(d){
   const p=d.poids||[];
   const dernier=p.length?p[p.length-1].poids:((d.reference&&d.reference.poids)||80);
   if(S.pesée.val===null||S.pesée.val===undefined)S.pesée.val=dernier;
-  let h='<section><h2>'+ico('balance','x')+'Pesée du jour</h2>'+
-    '<div class="peson">'+
+  let h='<div class="peson">'+
       '<button id="p-moins" aria-label="Retirer 100 grammes">−</button>'+
       '<input id="p-val" type="number" step="0.1" min="30" max="300" inputmode="decimal" value="'+S.pesée.val.toFixed(1)+'">'+
       '<button id="p-plus" aria-label="Ajouter 100 grammes">+</button>'+
@@ -4625,6 +4647,10 @@ function sectionPesee(d){
     (S.pesée.etat==='envoi'?'<span class="attente"></span>Enregistrement':'Enregistrer la pesée')+'</button>';
   if(S.pesée.etat==='ko')h+='<p class="alerte">'+esc(S.pesée.message)+'</p>';
   if(S.pesée.etat==='ok')h+='<p class="bien">'+esc(S.pesée.message)+'</p>';
+  return h;
+}
+function histPesees(d){
+  const p=d.poids||[];let h='<section>';
   if(p.length){
     const kg=v=>String((Math.round(v*10)/10).toFixed(1)).replace('.',',');
     h+='<details class="aide pes-hist" id="pes-hist"'+(S.pesée.histOuv?' open':'')+'><summary>Toutes mes pesées ('+p.length+')</summary><div class="pes-l">';
@@ -5138,14 +5164,13 @@ function bandeau(d){
     m='<span class="badge sous">'+esc(r.mode)+(r.ecart!==null?' '+sgn(r.ecart)+' kcal/j':'')+'</span>';
   }
   const perime=(d.reference&&d.reference.date&&d.reference.date!==auj());
-  if(perime)m+='<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+
-    '. Touche Actualiser pour passer à aujourd\'hui.</div>';
-  const btns='<div class="btns">'+(S.vue==='coach'&&!S.reglages?'':'<button class="roue" id="b-coach">'+ico('coach','x')+'Coach</button>')+'<button class="roue" id="b-maj">'+ico('actualiser','x')+'Actualiser</button>'+
-    '<button class="roue" id="b-reglages">'+(S.reglages?'Fermer':ico('reglages','x')+'Réglages')+'</button></div>';
+  const perimeT='<div class="perime">Ce relevé date du '+(perime?jjmm(d.reference.date):'')+' : il se met à jour dès que l’appli joint le serveur.</div>';
+  if(perime)m+=perimeT;
+  const btns='<div class="btns"><button class="roue" id="b-reglages">'+(S.reglages?'Fermer':ico('reglages','x')+'Réglages')+'</button></div>';
   // hors de l'écran Jour : une seule ligne (titre de l'écran), les chiffres restent sur Jour
   if(S.reglages||S.vue!=='jour'){
-    const t=S.reglages?'Réglages':({ajout:'Ajouter',courbes:'Courbes',corps:'Corps',journal:'Journal',coach:'Coach'}[S.vue]||'Suivi');
-    return '<div class="bandeau compact"><div class="qui"><h1>'+t+'</h1>'+btns+'</div>'+(perime?'<div class="perime">Ce relevé date du '+jjmm(d.reference.date)+'. Touche Actualiser pour passer à aujourd\'hui.</div>':'')+'</div>';
+    const t=S.reglages?'Réglages':({ajout:'Ajouter',courbes:'Progrès',journal:'Journal',coach:'Coach'}[S.vue]||'Suivi');
+    return '<div class="bandeau compact"><div class="qui"><h1>'+t+'</h1>'+btns+'</div>'+(perime?perimeT:'')+'</div>';
   }
   return '<div class="bandeau"><div class="qui"><h1>'+esc(d.profil.prenom||'Suivi')+
     ' <span class="lejour">'+dateLongue(jourPasse())+'</span></h1>'+btns+'</div>'+m+'</div>';
@@ -5154,9 +5179,9 @@ function bandeau(d){
 const VUES=[
  ['jour','Jour',ico('calendrier')],
  ['ajout','Ajouter','<span class="ico-b">'+ico('assiette')+'<b class="plus" aria-hidden="true">+</b></span>'],
- ['courbes','Courbes',ico('courbes')],
- ['corps','Corps',ico('corps')],
- ['journal','Journal',ico('livre')]
+ ['courbes','Progrès',ico('courbes')],
+ ['journal','Journal',ico('livre')],
+ ['coach','Coach',ico('coach')]
 ];
 
 /* Modales maison, en remplacement de window.confirm / window.alert (bloquants
@@ -5282,7 +5307,6 @@ function rendre(){
     h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
     h+='<div class="vue v-ajout'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
     h+='<div class="vue'+(S.vue==='courbes'?' on':'')+'">'+vueCourbes(d)+'</div>';
-    h+='<div class="vue'+(S.vue==='corps'?' on':'')+'">'+vueCorps(d)+'</div>';
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
     h+='<div class="vue'+(S.vue==='coach'?' on':'')+'">'+vueCoach()+'</div>';
   }
@@ -5308,13 +5332,6 @@ function brancher(){
       S.vue=b.dataset.vue;S.reglages=false;S.corps.phInit=false;S.rac.q='';S.jn.q='';S.jn.f=null;rendre();hautPage();
     });
   });
-  on('#b-maj','click',async e=>{
-    e.target.textContent='Mise à jour…';
-    try{await actualiserApplication();await rafraichir();}
-    catch(err){await modaleAlert(err.message||'Impossible de mettre à jour l’application.');}
-    rendre();
-  });
-  on('#b-coach','click',()=>{S.vue='coach';S.reglages=false;rendre();hautPage();});
   on('#b-reglages','click',()=>{fermerAdmVolet();S.reglages=!S.reglages;S.regl.sale=false;S.regl.qr=null;S.para.etat=null;S.regl.obj=null;S.prof.etat=null;S.cpt.etat=null;
     S.adm.comptes=null;S.adm.etat=null;S.adm.cree=null;rendre();hautPage();});
   on('#g-actualiser','click',async e=>{
@@ -5384,6 +5401,8 @@ function brancher(){
     rendre();
   }));
   on('#j-sug','click',async()=>{const sg=S.sugJ;if(!sg)return;S.vue='ajout';prendreRepas(sg.g,sg.cr,sg.note);ecrireRepasCache();const e=enregistrer(auj());hautPage();await e;});
+  document.querySelectorAll('[data-jr]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.jr;S.jour.rac=S.jour.rac===k?null:k;
+    if(k==='crise'&&S.gt.mod)S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:null};S.pesée.etat=null;S.corps.pasEtat=null;rendre();}));
   on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});
   document.querySelectorAll('.sem button').forEach(b=>b.addEventListener('click',()=>{S.jour.date=b.dataset.jd===auj()?null:b.dataset.jd;rendre();}));
   on('#j-retour','click',()=>{S.jour.date=null;rendre();});
@@ -5727,7 +5746,7 @@ function brancher(){
       try{await rafraichir();}catch(e){rafraichi=false;}
       A.confirm='fait';
       A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.'+
-        (rafraichi?'':' Les chiffres du jour ne se sont pas mis à jour : touche Actualiser.');
+        (rafraichi?'':' Les chiffres du jour se mettront à jour au prochain retour dans l’appli.');
       // on garde de quoi supprimer cette ligne si l'utilisateur la Modifie ensuite
       A.enregistre={id:r.id||id,date:(r.date||date),repas:l.repas,detail:l.detail,kcal:l.kcal};
       ecrireRepasCache();

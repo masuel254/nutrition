@@ -70,7 +70,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## Repères techniques indispensables
 
-- **Rendu** : état global `S`, DOM régénéré par `rendre()`. Onglets Jour, Ajouter, Courbes, Corps, Journal, Coach + Réglages.
+- **Rendu** : état global `S`, DOM régénéré par `rendre()`. Menu : Jour, Ajouter, Progrès (vue `courbes` : Poids, Calories, Goutte, Qualité, Corps), Journal, Coach ; Réglages dans l'en-tête.
 - **Coquille iOS, ne pas casser** : `html,body{height:100%;overflow:hidden}`, seul `#defile` défile, `nav` en bas
   d'une colonne flex (jamais `position:fixed`), utiliser `hautPage()` / `basPage()`, jamais `window.scrollTo`.
   Les champs de saisie restent en 16 px (sinon zoom iOS). Aucun débordement horizontal.
@@ -105,7 +105,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## État au 21/10/2026
 
-- Appli v88, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 42.
+- Appli v89, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 43.
 - Workflow v63 (449 nœuds, crises modifiables avec contrôle du compte), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 

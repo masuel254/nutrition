@@ -765,3 +765,12 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 - Appli : bouton « Modifier » à côté de « Retirer » sur chaque carte de crise (`data-gmod`, liste et frise). Il préremplit le formulaire « Noter une crise » (date, articulation, intensité, remarque ; `S.gt.mod` = id), qui devient « Modifier la crise » avec « Enregistrer la modification » et « Annuler la modification » (`#g-annule`). Envoi : `{action:'crise',op:'ajouter',id,...}`, la feuille Crises est écrite sur `id` (ligne remplacée).
 - Workflow : `Build Crise API` n'accepte un `id` que s'il désigne une crise active du même compte (avant, un id quelconque était repris tel quel et pouvait écraser la ligne d'un autre compte). Test : `n8n/tests/t_crise_modifier.js`.
+
+## 43. Nouvelle navigation (22/10, appli v89)
+
+- Menu du bas : Jour, Ajouter, Progrès, Journal, Coach (`VUES`). La vue interne garde la clé `courbes` (libellé Progrès) ; `vueCorps` est supprimée.
+- En-tête : Réglages seulement. « Coach » devient un onglet ; « Actualiser » disparaît (les données se rechargent déjà au retour dans l'appli, `visibilitychange`, et au changement de jour) ; « Actualiser l'application » reste dans Réglages › Appli.
+- Jour : raccourcis Pesée, Pas, Crise sous le repas proposé (`racJour`, `data-jr`, `S.jour.rac`) ; un toucher ouvre la saisie sur place (`formPesee`, `formPas`, `formCrise`), un second la referme.
+- Progrès : onglets Poids (courbe + `histPesees`), Calories, Goutte (libellé « Purines » sans crise notée ; courbe des purines + `sectionGoutte` : frise, ce qui précède, formulaire, historique, modifier), Qualité, Corps (sous-onglets Mesures, Photos, Pas via `data-ko`, `CORPS_ONGLETS`). Pas de choix de période sur Corps.
+- Tous les écrans sont rendus ensemble par `rendre()` : chaque formulaire à identifiants (`#p-val`, `#k-pas`, `#g-form`) n'est rendu que dans l'écran affiché (`S.vue`), jamais en double.
+- Tests : `tests/e2e.mjs` passe par `vaJourRac`, `vaProgres`, `vaCoach` ; contrôle des débordements sur les 5 onglets de Progrès et les 3 saisies de Jour.
