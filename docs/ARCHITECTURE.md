@@ -803,3 +803,8 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 - Retour sur iPhone : la v93 laissait environ 85 px libres. Espacements de `.v-jour` en partie rendus (sections 18 px, lignes de repas 7 px, etc.). Test e2e : Jour tient dans 390 × 844 hors bannière goutte.
 - `const APP_NUM=N;` dans `index.html`, affiché dans Réglages › Appli (« Version N · mise à jour le … »). `tools/bump_version.mjs` le pose à (numéro du dernier commit) + 1 : relancer le script avant de pousser ne le fait pas grimper. `check_html.mjs` l'affiche.
+
+## 49. Jour : plus d'air, cercle plus grand (23/10, appli v95)
+
+- Environ 20 px rendus (sections 21 px, calendrier, lignes de repas 8 px, barres 7 px).
+- Cercle des calories 136 px (au lieu de 120) : écart 8 px, texte des lignes P/L/G 12,5 px, icônes 18 px, pour que chaque ligne tienne encore sur une ligne (test e2e).

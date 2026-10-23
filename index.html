@@ -872,14 +872,15 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .rep-nom{display:inline-flex;align-items:center}.rep-tete{align-items:center}
 .hm.i{display:grid;grid-template-columns:22px 1fr;column-gap:7px;align-items:center}.hm.i>.ic{grid-row:1/3}
 /* écran Jour resserré : tout tient sans défiler sur un iPhone (390 × 844) */
-.v-jour section{margin-bottom:18px}.v-jour>section:last-child{margin-bottom:0}
-.v-jour .sem{margin-bottom:10px}.v-jour .sem button{padding:5px 0 4px}
+.v-jour section{margin-bottom:21px}.v-jour>section:last-child{margin-bottom:0}
+.v-jour .sem{margin-bottom:12px}.v-jour .sem button{padding:5px 0 4px}
 .v-jour .vg{padding:8px 12px}
-.v-jour .hero{gap:12px}.v-jour .hero .cal-anneau svg{width:120px;height:120px}
-.v-jour .hm{margin-top:6px}.v-jour .hero-d .cal-pastille{margin-bottom:4px;padding:5px 12px}
+.v-jour .hero{gap:8px}.v-jour .hero .cal-anneau svg{width:136px;height:136px}
+.v-jour .hero .hm{font-size:12.5px}.v-jour .hero .hm.i{grid-template-columns:18px 1fr;column-gap:5px}.v-jour .hero .hm.i>.ic{width:18px;height:18px}
+.v-jour .hm{margin-top:7px}.v-jour .hero-d .cal-pastille{margin-bottom:4px;padding:5px 12px}
 .v-jour .jr-l{margin-top:10px}.v-jour .jr{padding:5px 8px}
 .v-jour .seg-i{margin-bottom:8px}.v-jour .seg-i button{gap:2px;padding:4px 2px}.v-jour .seg-i .ic{width:18px;height:18px}
-.v-jour .rep-ligne{padding:7px 0}
+.v-jour .rep-ligne{padding:8px 0}
 .v-jour .qj{margin-top:12px;padding-top:10px}
 .seg-i button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px}.seg-i .ic{width:22px;height:22px}
 .bandeau .btns{display:flex;flex:none;white-space:nowrap}.bandeau .roue{display:inline-flex;align-items:center}
@@ -1026,8 +1027,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=94; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='23/10/2026 16h32';
+const APP_NUM=95; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='23/10/2026 16h37';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
