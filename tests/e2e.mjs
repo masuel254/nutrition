@@ -981,21 +981,30 @@ console.log('IA : estimation incertaine, portions habituelles');
   await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Note des repas');
-{ const lun0 = (() => { const x = new Date(lundi(jour(0)) + 'T12:00:00'); x.setDate(x.getDate() - 21); return iso(x); })();
-  const R = LIGNES.filter(l => l.date >= lun0 && l.ia && /^[a-e]$/.test(l.nutriscore)), P = { a: 5, b: 4, c: 3, d: 2, e: 1 };
-  const moy = R.reduce((t, l) => t + P[l.nutriscore], 0) / R.length, L = moy >= 4.5 ? 'A' : moy >= 3.5 ? 'B' : moy >= 2.5 ? 'C' : moy >= 1.5 ? 'D' : 'E';
-  const nD = R.filter(l => l.nutriscore === 'd').length;
-  await page.click('nav button[data-vue="courbes"]'); await page.click('.vue.on [data-cong="qualite"]');
-  await page.waitForFunction(() => { const t = document.querySelector('.vue.on .nr'); return t && !/chargement/i.test(t.textContent); }, null, { timeout: 5000 });
-  const t = await texte('.vue.on .nr');
-  ok(new RegExp('sur ' + R.length + ' repas notés par l’IA').test(t) && (await texte('.vue.on .nr .ns-note b')) === L && new RegExp(moy.toFixed(1).replace('.', ',') + '/5').test(t), 'Note des repas : moyenne (' + L + ') sur les ' + R.length + ' repas IA des 4 semaines, semaines anciennes chargées');
-  ok(appels.some(a => a.action === 'journal' && a.debut === lun0), 'Note des repas : la semaine la plus ancienne est chargée à la demande');
-  ok((await page.locator('.vue.on .nr .nr-sem .nutri').count()) === 4 && (await texte('.vue.on .nr [data-nrc="matin"]')).endsWith('B') && /–/.test(await texte('.vue.on .nr [data-nrc="soir"]')), 'Note des repas : 4 semaines, Matin B, Soir sans repas noté');
-  ok(new RegExp('À retravailler D Blanc de poulet, Riz basmati cuit \\(midi\\) · ' + nD + ' fois').test(t) && !/\(150 g\)/.test(t), 'Note des repas : les repas D regroupés sans les quantités (' + nD + ' fois)');
-  ok(await page.locator('.vue.on .nr details.aide .nr-topo li').count() === 5 && /Comment l’IA note un repas/.test(t), 'Note des repas : topo des lettres A à E, toujours disponible');
+{ const attendu = per => { const debut = per ? jour(-(per - 1)) : jour(-60); const R = LIGNES.filter(l => l.date >= debut && l.ia && /^[a-e]$/.test(l.nutriscore));
+    const t = R.map(l => l.nutriscore).sort(); return { R, debut, L: t[Math.floor((t.length - 1) / 2)].toUpperCase(), nD: R.filter(l => l.nutriscore === 'd').length }; };
+  const pret = () => page.waitForFunction(() => { const t = document.querySelector('.vue.on .nr'); return t && !/chargement/i.test(t.textContent); }, null, { timeout: 5000 });
+  ok(await page.evaluate(() => nrMediane('aaabbcccde'.split('').map(l => ({ l }))) === 'b' && nrMediane('aaabbbccccdd'.split('').map(l => ({ l }))) === 'b' && nrMediane('cdd'.split('').map(l => ({ l }))) === 'd'),
+    'Note des repas : lettre médiane (30 % A + 20 % B => B ; C, D, D => D)');
+  await page.click('nav button[data-vue="courbes"]'); await page.click('.vue.on [data-cong="qualite"]'); await page.click('.vue.on [data-cper="30"]');
+  await pret();
+  let a = attendu(30), t = await texte('.vue.on .nr');
+  ok(new RegExp('sur ' + a.R.length + ' repas consommés notés par l’IA · 30 derniers jours').test(t) && (await texte('.vue.on .nr .ns-note b')) === a.L && /médiane/.test(await texte('.vue.on .nr .ns-note')), 'Note des repas (30 j) : lettre médiane ' + a.L + ' sur les ' + a.R.length + ' repas consommés');
+  ok(appels.some(x => x.action === 'journal' && x.debut === lundi(a.debut)), 'Note des repas : l historique de la période est chargé en une requête');
+  ok(await page.evaluate(() => { const v = document.querySelector('.vue.on'), n = v.querySelector('.nr'), q = v.querySelector('.tuiles'); return !!(n && q && (q.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING) && !n.nextElementSibling); }), 'Note des repas : en dernier, après la qualité');
+  ok((await page.locator('.vue.on .nr .nr-sem .nutri').count()) >= 4 && (await texte('.vue.on .nr [data-nrc="matin"]')).endsWith('B') && /–/.test(await texte('.vue.on .nr [data-nrc="soir"]')), 'Note des repas : une lettre par semaine, Matin B, Soir sans repas noté');
+  ok(new RegExp('À retravailler D Blanc de poulet, Riz basmati cuit \\(midi\\) · ' + a.nD + ' fois').test(t) && !/\(150 g\)/.test(t), 'Note des repas : les repas D regroupés sans les quantités (' + a.nD + ' fois)');
+  ok(await page.locator('.vue.on .nr details.aide .nr-topo li').count() === 5 && /Comment l’IA note un repas/.test(t) && /médiane/.test(await page.locator('.vue.on .nr details.aide').textContent()), 'Note des repas : topo des lettres A à E et de la médiane');
   ok(await page.evaluate(() => { const e = document.querySelector('.vue.on .nr'); return e.scrollWidth <= e.clientWidth; }), 'Note des repas : aucun débordement');
+  await page.click('.vue.on [data-cper="7"]'); await pret();
+  a = attendu(7); t = await texte('.vue.on .nr');
+  ok(new RegExp('sur ' + a.R.length + ' repas consommés notés par l’IA · 7 derniers jours').test(t) && (await texte('.vue.on .nr .ns-note b')) === a.L && await page.locator('.vue.on .nr .nr-sem').count() === 0, 'Note des repas : suit le sélecteur (7 j : ' + a.R.length + ' repas, pas de ligne par semaine)');
+  await page.click('.vue.on [data-cper="0"]'); await pret();
+  a = attendu(0); t = await texte('.vue.on .nr');
+  ok(new RegExp('sur ' + a.R.length + ' repas consommés notés par l’IA · depuis le début').test(t) && (await page.locator('.vue.on .nr .nr-sem .nutri').count()) === 8, 'Note des repas : Tout = depuis le début (' + a.R.length + ' repas), 8 semaines au plus');
+  await page.click('.vue.on [data-cper="30"]');
   await page.click('.vue.on [data-cong="calories"]');
-  ok(/sur 1 produit consommé/.test(await texte('.vue.on')) && !/repas notés/.test(await texte('.vue.on')), 'Produits scannés : seules les lignes du scan comptent, plus les notes IA des repas');
+  ok(/sur 1 produit consommé/.test(await texte('.vue.on')) && !/repas consommés notés/.test(await texte('.vue.on')), 'Produits scannés : seules les lignes du scan comptent, plus les notes IA des repas');
   await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Affichage');

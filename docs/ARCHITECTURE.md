@@ -814,3 +814,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Cercle des calories 148 px (le plafond `max-width:38vw` à 390 px de large). Lignes P/L/G 12 px, icônes 16 px, pour rester sur une ligne.
 - Centre du cercle (`anneauCalories`) : « kcal mangées » et « sur N » sur deux lignes en 17 (unités du viewBox 200), au lieu d'une ligne en 12,5.
 - Haut aéré : en-tête une ligne 13/11 px, 14 px sous le calendrier ; repris au-dessus des raccourcis et de la qualité du jour.
+
+## 51. Note de tes repas : période, médiane, en bas (23/10, appli v97)
+
+- `blocNotesRepas(d,per)` passe en dernier dans Progrès › Qualité (après le graphique), séparé par un filet.
+- Suit le sélecteur de période (3 j à 90 j, Tout = depuis le premier jour suivi). Historique manquant chargé en une seule requête `action journal` (`nrCharger`, de lundi(début) à la veille de `journal_depuis`), erreur gardée par jeu de données (`S.nrErr.d`) pour ne pas boucler.
+- Grande lettre = **médiane** (`nrMediane` : lettre atteinte à la moitié des repas en partant de A), plus la moyenne sur 5. Même règle par semaine et par créneau ; la tendance compare encore les moyennes. Ligne « Par semaine » à partir de 14 j, 8 semaines au plus.
+- Libellés : « repas consommés notés par l’IA ».

@@ -294,7 +294,7 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
   display:flex;align-items:baseline;justify-content:center;gap:1px}
 .ns-note b{font-size:26px;font-weight:700;color:var(--ink);line-height:1}
 .ns-note.nr-note{flex-direction:column;align-items:center;gap:3px}
-.nr{margin-bottom:18px}.nr h2{display:flex;align-items:center;margin-bottom:12px}
+.nr{margin-top:24px;padding-top:14px;border-top:1px solid var(--rule)}.nr h2{display:flex;align-items:center;margin-bottom:12px}
 .nr-sem{display:flex;align-items:center;gap:6px;margin:12px 0 2px;font-size:13px;color:var(--soft)}
 .nr-sem .nutri{width:22px;height:22px;font-size:12px}.nutri.nr-vide{background:var(--creux);color:var(--soft)}
 .nr-cr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 4px}
@@ -1027,8 +1027,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=96; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='23/10/2026 16h46';
+const APP_NUM=97; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='23/10/2026 16h53';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2586,29 +2586,47 @@ function historiqueRepas(A){
 function estScan(r){return r.ia==='code-barres'||(!r.ia&&!r.evaluation);}
 // Note de tes repas : lettres A à E données par l'IA aux repas enregistrés, sur les 4 dernières semaines.
 const NR_PTS={a:5,b:4,c:3,d:2,e:1};
-function nrLettre(m){return m>=4.5?'a':m>=3.5?'b':m>=2.5?'c':m>=1.5?'d':'e';}
-function blocNotesRepas(d){
-  const lun0=plusJours(lundiJn(auj()),-21);
-  const manque=[0,7,14].map(n=>plusJours(lun0,n)).filter(l=>!semaineChargee(d,l));
-  manque.forEach(l=>{if(!S.jn.charge[l]&&!S.jn.err[l])setTimeout(()=>chargerSemaine(l),0);});
-  const R=(d.journal||[]).filter(r=>r.date>=lun0&&r.date<=auj()&&!estScan(r)&&/^[abcde]$/.test(String(r.nutriscore||'').trim().toLowerCase()))
+// Lettre médiane : celle où l'on atteint la moitié des repas en partant de A (30 % A + 25 % B => B).
+function nrMediane(x){const t=x.map(y=>y.l).sort();return t[Math.floor((t.length-1)/2)];}
+// Historique du Journal pour la période : une seule requête (action journal) de debut à la veille de journal_depuis.
+function nrManque(d,debut){if(!d.journal_depuis)return false;for(let l=lundiJn(debut);l<d.journal_depuis;l=plusJours(l,7))if(!semaineChargee(d,l))return true;return false;}
+async function nrCharger(d,debut){
+  if(S.nrCharge)return;S.nrCharge=true;
+  const de=lundiJn(debut),fin=plusJours(d.journal_depuis,-1);
+  try{const r=await appel({action:'journal',debut:de,fin:fin});
+    if(S.data===d){d.journal=(d.journal||[]).filter(x=>!(x.date>=de&&x.date<=fin)).concat(r.journal||[]);
+      d.__sem=d.__sem||{};for(let l=de;l<=fin;l=plusJours(l,7))d.__sem[l]=true;}}
+  catch(e){S.nrErr={d:d,m:e.message};}
+  S.nrCharge=false;if(S.vue==='courbes')rendre();
+}
+// Note de tes repas : lettres A à E données par l'IA aux repas enregistrés (donc consommés), sur la période choisie.
+function blocNotesRepas(d,per){
+  const js=(d.jours||[]).filter(j=>j.repas>0);
+  const debut=per?plusJours(auj(),-(per-1)):(js.length?js[0].date:auj());
+  const manque=nrManque(d,debut),err=S.nrErr&&S.nrErr.d===d?S.nrErr.m:'';
+  if(manque&&!S.nrCharge&&!err)setTimeout(()=>nrCharger(d,debut),0);
+  const R=(d.journal||[]).filter(r=>r.date>=debut&&r.date<=auj()&&!estScan(r)&&/^[abcde]$/.test(String(r.nutriscore||'').trim().toLowerCase()))
     .map(r=>({r:r,l:String(r.nutriscore).trim().toLowerCase()}));
   const P=n=>'<span class="nutri '+n+'">'+n.toUpperCase()+'</span>',moy=x=>x.reduce((t,y)=>t+NR_PTS[y.l],0)/x.length;
+  const lib=per?per+' derniers jours':'depuis le début',att=manque?(err?' (historique incomplet : '+esc(err)+')':' (chargement…)'):'';
   let h='<div class="nr"><h2>'+ico('assiette','x')+'Note de tes repas</h2>';
-  if(!R.length)return h+'<p class="note">'+(manque.length?'Chargement des 4 dernières semaines…':'Aucun repas noté ces 4 dernières semaines : la note (A à E) est donnée par l’IA à chaque repas analysé puis enregistré.')+'</p>'+nrTopo()+'</div>';
+  if(!R.length)return h+'<p class="note">'+(manque&&!err?'Chargement de l’historique…':'Aucun repas consommé noté sur les '+lib.replace('depuis le début','jours suivis')+' : la note (A à E) est donnée par l’IA à chaque repas analysé puis enregistré.'+att)+'</p>'+nrTopo()+'</div>';
   const N={a:0,b:0,c:0,d:0,e:0};R.forEach(x=>N[x.l]++);
-  const m=moy(R),L=nrLettre(m),pc=g=>Math.round(N[g]/R.length*100);
-  h+='<div class="ns-tete"><div class="ns-note nr-note"><b style="color:'+EV_COUL[L.toUpperCase()]+'">'+L.toUpperCase()+'</b><small>'+m.toFixed(1).replace('.',',')+'/5</small></div>'+
+  const L=nrMediane(R),pc=g=>Math.round(N[g]/R.length*100);
+  h+='<div class="ns-tete"><div class="ns-note nr-note"><b style="color:'+EV_COUL[L.toUpperCase()]+'">'+L.toUpperCase()+'</b><small>médiane</small></div>'+
     '<div class="ns-tete-t"><b>'+(['a','b'].filter(g=>N[g]).map(g=>P(g)+' '+pc(g)+' %').join(' · ')||'Aucun repas A ou B')+'</b>'+
-    '<small>sur '+R.length+' repas noté'+(R.length>1?'s':'')+' par l’IA · 4 dernières semaines'+(manque.length?' (chargement…)':'')+'</small></div></div>';
+    '<small>sur '+R.length+' repas consommé'+(R.length>1?'s':'')+' noté'+(R.length>1?'s':'')+' par l’IA · '+lib+att+'</small></div></div>';
   h+='<div class="ns-barre">'+'abcde'.split('').map(g=>N[g]?'<span class="ns-seg" style="width:'+(N[g]/R.length*100).toFixed(2)+'%;background:'+EV_COUL[g.toUpperCase()]+'">'+(pc(g)>=11?'<b>'+g.toUpperCase()+'</b><small>'+pc(g)+'%</small>':'')+'</span>':'').join('')+'</div>';
-  // une lettre par semaine, de la plus ancienne à la semaine en cours
-  const sem=[0,7,14,21].map(n=>{const l=plusJours(lun0,n),x=R.filter(y=>y.r.date>=l&&y.r.date<=plusJours(l,6));return x.length?moy(x):null;});
-  const sv=sem.filter(v=>v!==null),tend=sv.length>=2?sv[sv.length-1]-sv[0]:0;
-  h+='<div class="nr-sem">4 semaines : '+sem.map(v=>v===null?'<span class="nutri nr-vide">–</span>':P(nrLettre(v))).join('')+
-    (tend>=0.5?' <span>en progrès</span>':tend<=-0.5?' <span>en recul</span>':'')+'</div>';
+  // une lettre par semaine (8 au plus), quand la période couvre au moins deux semaines
+  const lun=[];for(let l=lundiJn(debut);l<=auj();l=plusJours(l,7))lun.push(l);
+  if(lun.length>=2&&(per===0||per>=14)){
+    const sem=lun.slice(-8).map(l=>{const x=R.filter(y=>y.r.date>=l&&y.r.date<=plusJours(l,6));return x.length?x:null;});
+    const sv=sem.filter(Boolean),tend=sv.length>=2?moy(sv[sv.length-1])-moy(sv[0]):0;
+    h+='<div class="nr-sem">Par semaine : '+sem.map(x=>x?P(nrMediane(x)):'<span class="nutri nr-vide">–</span>').join('')+
+      (tend>=0.5?' <span>en progrès</span>':tend<=-0.5?' <span>en recul</span>':'')+'</div>';
+  }
   h+='<div class="nr-cr">'+[['matin','Matin'],['midi','Midi'],['encas','En-cas'],['soir','Soir']].map(c=>{const x=R.filter(y=>creneauDe(y.r.repas)===c[0]);
-    return '<div data-nrc="'+c[0]+'">'+c[1]+(x.length?P(nrLettre(moy(x))):'<span class="nutri nr-vide">–</span>')+'</div>';}).join('')+'</div>';
+    return '<div data-nrc="'+c[0]+'">'+c[1]+(x.length?P(nrMediane(x)):'<span class="nutri nr-vide">–</span>')+'</div>';}).join('')+'</div>';
   // repas notés D ou E, regroupés quand la description revient (sans les quantités)
   const G={};R.filter(x=>x.l==='d'||x.l==='e').forEach(x=>{const k=normNom(String(x.r.detail||'').replace(/\([^)]*\)/g,''));
     const g=G[k]=G[k]||{n:0,l:x.l,txt:String(x.r.detail||'sans description').replace(/\s*\([^)]*\)/g,''),cr:x.r.repas};g.n++;if(x.l==='e')g.l='e';});
@@ -2624,7 +2642,7 @@ function nrTopo(){
     '<li>'+P('c')+'<span><b>Moyen</b> : nourrissant mais trop gras, trop salé ou pauvre en fibres.</span></li>'+
     '<li>'+P('d')+'<span><b>À limiter</b> : sucré ou gras ultra-transformé, peu nourrissant pour ses calories.</span></li>'+
     '<li>'+P('e')+'<span><b>À éviter</b> : très sucré, très gras ou très salé, alcool fort, beaucoup de charcuterie.</span></li></ul>'+
-    '<p class="note">L’IA juge ce qu’apporte le repas pour ses calories, pas la quantité : une petite salade peut être A, un gros plat équilibré aussi. Seuls les repas analysés par l’IA puis enregistrés sont notés (les produits scannés ont leur Nutri-Score, onglet Calories). Touche la lettre d’un repas dans le Journal pour revoir l’avis de l’IA.</p>',
+    '<p class="note">L’IA juge ce qu’apporte le repas pour ses calories, pas la quantité : une petite salade peut être A, un gros plat équilibré aussi. La grande lettre est la note médiane : la moitié de tes repas font au moins aussi bien. Seuls les repas analysés par l’IA puis enregistrés (donc consommés) sont notés (les produits scannés ont leur Nutri-Score, onglet Calories). Touche la lettre d’un repas dans le Journal pour revoir l’avis de l’IA.</p>',
     'Comment l’IA note un repas ?',true);
 }
 function blocNutriscore(d){
@@ -2828,7 +2846,7 @@ function vueCourbes(d){
   h+='</div>';
   if(o==='calories')h+=ongletCalories(d,P);
   else if(o==='purines')h+=blocPurinesCourbes(d,P);
-  else if(o==='qualite')h+=blocNotesRepas(d)+ongletQualite(d,P);
+  else if(o==='qualite')h+=ongletQualite(d,P)+blocNotesRepas(d,P);
   else if(o==='corps')h+='<div class="chips" role="tablist">'+CORPS_ONGLETS.map(x=>'<button role="tab" data-ko="'+x[0]+'" class="'+(S.corps.onglet===x[0]?'on':'')+'">'+ico(x[2],'x')+x[1]+'</button>').join('')+'</div>';
   else h+=ongletPoids(d,P);
   h+='</section>';
