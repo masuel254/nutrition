@@ -781,3 +781,8 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Analyse d'un repas : le champ `incertitude` déjà renvoyé par l'IA (faible, moyenne, elevee) s'affiche en encadré `.incert` quand il vaut `elevee` (résultat IA non enregistré) ; la note du bas met les accents et ne le répète pas.
 - Portions habituelles (`suivi.portions` en localStorage, 40 aliments au plus, local à l'appareil) : à l'enregistrement d'un résultat IA, chaque aliment dont la quantité a été corrigée avec − / + est retenu par nom normalisé (`portRetenir`). À l'analyse suivante, si l'IA estime une autre quantité dans la même unité, le bloc `.port` propose « Appliquer » (`portSuggestions`, `data-port`, recalcul par `ajusteAliment`). Rien n'est envoyé à l'IA ni au serveur.
 - Appli seule. Tests : section « IA : estimation incertaine, portions habituelles » et Goutte (B) de `tests/e2e.mjs`.
+
+## 45. En-tête de Jour sur une ligne (23/10, appli v91)
+
+- `bandeau()` sur Jour : classe `.bandeau.une`, prénom + date (`.lejour`, coupée par « … » si trop longue) + pastille du mode (`Sèche -600`, sans « kcal/j ») + roue Réglages ronde (`.rg`, `aria-label`). Environ 75 px gagnés. Les autres écrans gardent l'en-tête compact à titre.
+- Test : « Jour : en-tête sur une ligne » dans `tests/e2e.mjs`.

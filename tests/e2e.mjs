@@ -453,6 +453,7 @@ ok(/Coach/.test(await texte('.bandeau h1')) && await page.locator('nav button[da
   await page.click('#c-vider'); }
 await page.click('nav button[data-vue="jour"]');
 ok(!/métabolisme|besoins/.test(await texte('.bandeau')) && /Seche -600/.test(await texte('.bandeau')) && /reste \d/.test(await texte('.vue.on .repas-liste')), 'Jour : en-tête allégé (pastille Sèche, plus de chiffres), « reste » par repas');
+ok(await page.evaluate(() => { const b = document.querySelector('.bandeau.une'), q = b && b.querySelector('.qui'); if (!q) return false; const h = q.getBoundingClientRect().height, t = [q.querySelector('h1'), q.querySelector('.badge'), q.querySelector('#b-reglages')].map(e => e.getBoundingClientRect()); return h <= 40 && t.every(x => x.height > 0 && Math.abs((x.top + x.bottom) / 2 - (t[0].top + t[0].bottom) / 2) < 8) && b.scrollWidth <= b.clientWidth; }) && await page.locator('#b-reglages[aria-label="Réglages"] .ic').count() === 1, 'Jour : en-tête sur une ligne (prénom, date, pastille, roue Réglages), sans débordement');
 await page.click('#b-reglages');
 ok(/Mes chiffres/.test(await texte('.vue.on')) && /100,0 kg/.test(await texte('.chif')) && /1 ?900/.test(await texte('.chif')) && /2 ?700/.test(await texte('.chif')), 'Réglages : poids, cible, métabolisme et besoins dans « Mes chiffres »');
 await page.click('#b-reglages');
