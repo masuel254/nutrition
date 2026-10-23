@@ -116,7 +116,7 @@ const vaCoach = () => page.click('nav button[data-vue="coach"]');
 
 console.log('Jour');
 ok(await page.evaluate(() => { const d = document.getElementById('defile'), v = document.querySelector('.v-jour .vg'), s = v ? v.closest('section') : null; const h = s ? s.getBoundingClientRect().height + parseFloat(getComputedStyle(s).marginBottom) : 0; return d.scrollHeight - h <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, qualité du jour affichée, hors bannière goutte)');
-ok(await page.evaluate(() => [...document.querySelectorAll('.v-jour .hero .hm-l')].every(e => e.getBoundingClientRect().height < 24)) && await page.evaluate(() => Math.round(document.querySelector('.v-jour .hero .cal-anneau svg').getBoundingClientRect().width)) === 136, 'Jour : grand cercle (136 px), protéines, lipides, glucides chacun sur une ligne');
+ok(await page.evaluate(() => [...document.querySelectorAll('.v-jour .hero .hm-l')].every(e => e.getBoundingClientRect().height < 24)) && await page.evaluate(() => Math.round(document.querySelector('.v-jour .hero .cal-anneau svg').getBoundingClientRect().width)) === 148, 'Jour : grand cercle (148 px), protéines, lipides, glucides chacun sur une ligne');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
 ok(await page.locator('.hero .hm').count() === 3, 'barres des trois macros');
 ok(await page.locator('.seg .on[data-jo="repas"]').count() === 1, 'onglet Repas ouvert par défaut');

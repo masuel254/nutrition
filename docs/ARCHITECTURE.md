@@ -808,3 +808,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 - Environ 20 px rendus (sections 21 px, calendrier, lignes de repas 8 px, barres 7 px).
 - Cercle des calories 136 px (au lieu de 120) : écart 8 px, texte des lignes P/L/G 12,5 px, icônes 18 px, pour que chaque ligne tienne encore sur une ligne (test e2e).
+
+## 50. Jour : grand cercle lisible, haut aéré (23/10, appli v96)
+
+- Cercle des calories 148 px (le plafond `max-width:38vw` à 390 px de large). Lignes P/L/G 12 px, icônes 16 px, pour rester sur une ligne.
+- Centre du cercle (`anneauCalories`) : « kcal mangées » et « sur N » sur deux lignes en 17 (unités du viewBox 200), au lieu d'une ligne en 12,5.
+- Haut aéré : en-tête une ligne 13/11 px, 14 px sous le calendrier ; repris au-dessus des raccourcis et de la qualité du jour.
