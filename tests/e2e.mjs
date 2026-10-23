@@ -115,7 +115,7 @@ const vaProgres = async (o, ko) => { await page.click('nav button[data-vue="cour
 const vaCoach = () => page.click('nav button[data-vue="coach"]');
 
 console.log('Jour');
-ok(await page.evaluate(() => { const d = document.getElementById('defile'); return d.scrollHeight <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, bannière goutte et qualité du jour affichées)');
+ok(await page.evaluate(() => { const d = document.getElementById('defile'), v = document.querySelector('.v-jour .vg'), s = v ? v.closest('section') : null; const h = s ? s.getBoundingClientRect().height + parseFloat(getComputedStyle(s).marginBottom) : 0; return d.scrollHeight - h <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, qualité du jour affichée, hors bannière goutte)');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
 ok(await page.locator('.hero .hm').count() === 3, 'barres des trois macros');
 ok(await page.locator('.seg .on[data-jo="repas"]').count() === 1, 'onglet Repas ouvert par défaut');
@@ -285,6 +285,7 @@ const rq = appels.filter(a => a.action === 'params').pop().reperes;
 ok(rq && rq.fibres_min === 25 && rq.sodium_max === 0 && await page.evaluate(() => seuilsQualite(S.data).fibres.max) === 25, 'Repères qualité : fibres 25 g enregistrées et appliquées');
 delete DATA.reference.reperes;
 await page.click('[data-rg="appli"]');
+ok(/Version \d+ · mise à jour le \d{2}\/\d{2}\/\d{4} à \d{2}h\d{2}/.test(await texte('.vue.on')), 'Réglages › Appli : numéro de version et date de mise à jour');
 ok(await page.locator('#r-token').isHidden(), 'Réglages : connexion repliée');
 await page.click('.rg-cnx summary');
 ok((await page.getAttribute('#r-token', 'type')) === 'password', 'Réglages : code d accès masqué');

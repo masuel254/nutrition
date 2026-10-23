@@ -21,6 +21,6 @@ scripts.forEach((s, i) => verifier('index.html script ' + (i + 1), s));
 verifier('sw.js', readFileSync(join(RACINE, 'sw.js'), 'utf8'));
 const v1 = (html.match(/const APP_VERSION='([^']*)'/) || [])[1];
 const v2 = (readFileSync(join(RACINE, 'sw.js'), 'utf8').match(/const VERSION = '([^']*)'/) || [])[1];
-console.log('APP_VERSION = ' + v1 + ' | sw VERSION = ' + v2);
+console.log('APP_NUM = ' + ((html.match(/const APP_NUM=(\d+);/) || [])[1] || 'ABSENT') + ' | APP_VERSION = ' + v1 + ' | sw VERSION = ' + v2);
 if (!v1 || !v2) { erreurs++; console.log('  ÉCHEC versions introuvables'); }
 process.exit(erreurs ? 1 : 0);

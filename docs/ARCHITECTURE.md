@@ -798,3 +798,8 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - La vue Jour porte la classe `v-jour` ; règles `.v-jour …` limitées à cet écran : marges entre sections 14 px (0 pour la dernière), calendrier, bannière goutte, anneau 120 px (les lignes P/L/G tiennent sur une ligne), raccourcis, onglets Repas/Tendance… (icône 18 px), lignes de repas, Qualité du jour. En-tête une ligne : 6 px au-dessus de la zone de sécurité.
 - Qualité du jour : libellés courts (`q.court`, « Saturées »).
 - Gain : environ 200 px ; tout tient dans 390 × 844 sans zone de sécurité (test e2e). Sur un iPhone réel (encoche et barre du bas, environ 85 px), il manque encore environ 70 px quand la bannière goutte et la qualité du jour sont affichées.
+
+## 48. Jour réaéré, numéro de version (23/10, appli v94)
+
+- Retour sur iPhone : la v93 laissait environ 85 px libres. Espacements de `.v-jour` en partie rendus (sections 18 px, lignes de repas 7 px, etc.). Test e2e : Jour tient dans 390 × 844 hors bannière goutte.
+- `const APP_NUM=N;` dans `index.html`, affiché dans Réglages › Appli (« Version N · mise à jour le … »). `tools/bump_version.mjs` le pose à (numéro du dernier commit) + 1 : relancer le script avant de pousser ne le fait pas grimper. `check_html.mjs` l'affiche.

@@ -872,16 +872,15 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .rep-nom{display:inline-flex;align-items:center}.rep-tete{align-items:center}
 .hm.i{display:grid;grid-template-columns:22px 1fr;column-gap:7px;align-items:center}.hm.i>.ic{grid-row:1/3}
 /* écran Jour resserré : tout tient sans défiler sur un iPhone (390 × 844) */
-.v-jour section{margin-bottom:14px}.v-jour>section:last-child{margin-bottom:0}
-.v-jour .sem{margin-bottom:8px}.v-jour .sem button{padding:4px 0 3px}
+.v-jour section{margin-bottom:18px}.v-jour>section:last-child{margin-bottom:0}
+.v-jour .sem{margin-bottom:10px}.v-jour .sem button{padding:5px 0 4px}
 .v-jour .vg{padding:8px 12px}
 .v-jour .hero{gap:12px}.v-jour .hero .cal-anneau svg{width:120px;height:120px}
-.v-jour .hm{margin-top:5px}.v-jour .hero-d .cal-pastille{margin-bottom:3px;padding:5px 12px}
-.v-jour .jr-l{margin-top:8px}.v-jour .jr{padding:4px 8px}
-.v-jour .seg-i{margin-bottom:6px}.v-jour .seg-i button{gap:1px;padding:3px 2px}.v-jour .seg-i .ic{width:18px;height:18px}
-.v-jour .rep-ligne{padding:5px 0}
-.v-jour .qj{margin-top:10px;padding-top:8px}
-.bandeau.une{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:7px}
+.v-jour .hm{margin-top:6px}.v-jour .hero-d .cal-pastille{margin-bottom:4px;padding:5px 12px}
+.v-jour .jr-l{margin-top:10px}.v-jour .jr{padding:5px 8px}
+.v-jour .seg-i{margin-bottom:8px}.v-jour .seg-i button{gap:2px;padding:4px 2px}.v-jour .seg-i .ic{width:18px;height:18px}
+.v-jour .rep-ligne{padding:7px 0}
+.v-jour .qj{margin-top:12px;padding-top:10px}
 .seg-i button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px}.seg-i .ic{width:22px;height:22px}
 .bandeau .btns{display:flex;flex:none;white-space:nowrap}.bandeau .roue{display:inline-flex;align-items:center}
 .bandeau .qui .badge{margin:0}
@@ -1027,7 +1026,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/10/2026 16h22';
+const APP_NUM=94; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='23/10/2026 16h32';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4146,7 +4146,7 @@ function vueRéglages(d){
   h+=pan('appli')+blocRaccourci(pf);
 
   h+='<section><h2>'+ico('reglages','x')+'Application</h2>'+
-    '<p class="note">Dernière mise à jour le : '+esc(formatVersion(APP_VERSION))+'</p>'+
+    '<p class="note">Version '+APP_NUM+' · mise à jour le '+esc(formatVersion(APP_VERSION))+'</p>'+
     '<button class="primaire" id="g-actualiser">Actualiser l\'application</button>'+
     aide('<p class="note"><b>Ajouter</b> : photo, texte ou code-barres, l\'IA estime les calories ; « Refaire un repas » et « Composer » évitent de tout ressaisir (★ met un aliment en tête de Composer), « Saisir à la main » marche sans IA. '+
       '<b>Jour</b> : où tu en es aujourd\'hui. <b>Courbes</b> : poids, calories, purines et qualité (saturées, fibres, sodium, sucres ajoutés, alcool) sur la période choisie. <b>Corps</b> : pesée, pas, mensurations, photos et crises de goutte. '+

@@ -30,6 +30,8 @@ Lire avant toute modification :
 - À chaque livraison de l'appli : **bumper les deux versions** à l'heure de Paris (`node tools/bump_version.mjs`) :
   - `sw.js` : `const VERSION = 'JJ/MM/AAAA à HHhMM';`
   - `index.html` : `const APP_VERSION='JJ/MM/AAAA HHhMM';`
+  - `index.html` : `const APP_NUM=N;` (numéro affiché dans Réglages, posé automatiquement à dernier commit + 1).
+    Toujours annoncer à Samuel ce numéro (« v94 ») avec la date dans le récapitulatif de livraison.
 - Workflow : toujours repasser la **mise en page automatique** (`tools/layout.py`) avant de livrer le JSON.
 - Nouveau credential n8n : **demander son ID à Samuel** avant de livrer (jamais de clé dans le JSON).
 - **Commit et push uniquement quand Samuel le demande.** Un push sur `main` met l'appli en ligne pour tout le monde.
@@ -105,7 +107,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## État au 21/10/2026
 
-- Appli v93, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 47.
+- Appli v94, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 48.
 - Workflow v63 (449 nœuds, crises modifiables avec contrôle du compte), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
