@@ -115,6 +115,7 @@ const vaProgres = async (o, ko) => { await page.click('nav button[data-vue="cour
 const vaCoach = () => page.click('nav button[data-vue="coach"]');
 
 console.log('Jour');
+ok(await page.evaluate(() => { const d = document.getElementById('defile'); return d.scrollHeight <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, bannière goutte et qualité du jour affichées)');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
 ok(await page.locator('.hero .hm').count() === 3, 'barres des trois macros');
 ok(await page.locator('.seg .on[data-jo="repas"]').count() === 1, 'onglet Repas ouvert par défaut');
@@ -193,7 +194,7 @@ await page.click('.vue.on [data-jr="pas"]');
 
 console.log('Qualité et goutte');
 await page.click('nav button[data-vue="jour"]');
-ok(/Graisses saturées 26/.test(await texte('.qj')) && /3 g en trop/.test(await texte('.qj')), 'Jour : qualité du jour (saturées au-dessus du plafond)');
+ok(/Saturées 26/.test(await texte('.qj')) && /3 g en trop/.test(await texte('.qj')), 'Jour : qualité du jour (saturées au-dessus du plafond)');
 await page.click('nav button[data-vue="courbes"]'); await page.click('[data-cong="qualite"]');
 ok(await page.locator('.vue.on .tuiles.t2 .tu').count() === 5 && await page.locator('[data-cnut="satures"].on').count() === 1, 'Courbes : onglet Qualité, quatre tuiles + alcool');
 await page.click('[data-cnut="fibres"]');

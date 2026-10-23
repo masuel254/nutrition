@@ -792,3 +792,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Progrès › Qualité, en tête : `blocNotesRepas(d)`. Lettres A à E données par l'IA aux repas enregistrés (colonne `nutriscore` du Journal), sur les 4 dernières semaines (lundi d'il y a 3 semaines à aujourd'hui ; semaines manquantes chargées par `chargerSemaine`, pas de relance après une erreur). Moyenne A=5 à E=1 convertie en lettre (`nrLettre`), répartition, une lettre par semaine (en progrès / en recul à 0,5 point), une lettre par créneau, « À retravailler » (repas D et E regroupés par description sans quantités, 3 au plus), topo repliable `nrTopo()` toujours disponible (critères de la consigne IA).
 - Correction : la colonne `nutriscore` sert aussi à la note IA des repas ; « Qualité des produits scannés » (onglet Calories) ne compte plus que les lignes du scan (`estScan` : `ia` = `code-barres`, ou ligne ancienne sans `ia` ni `evaluation`).
 - Appli seule. Tests : section « Note des repas » de `tests/e2e.mjs` (les lignes fictives portent désormais des notes).
+
+## 47. Écran Jour resserré (23/10, appli v93)
+
+- La vue Jour porte la classe `v-jour` ; règles `.v-jour …` limitées à cet écran : marges entre sections 14 px (0 pour la dernière), calendrier, bannière goutte, anneau 120 px (les lignes P/L/G tiennent sur une ligne), raccourcis, onglets Repas/Tendance… (icône 18 px), lignes de repas, Qualité du jour. En-tête une ligne : 6 px au-dessus de la zone de sécurité.
+- Qualité du jour : libellés courts (`q.court`, « Saturées »).
+- Gain : environ 200 px ; tout tient dans 390 × 844 sans zone de sécurité (test e2e). Sur un iPhone réel (encoche et barre du bas, environ 85 px), il manque encore environ 70 px quand la bannière goutte et la qualité du jour sont affichées.

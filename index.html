@@ -871,6 +871,17 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .ic.p{width:22px;height:22px;margin:-3px 6px 0 0}.ic.fl{width:20px;height:20px;margin:-3px 6px 0 -4px}.ic.ph{width:30px;height:30px}
 .rep-nom{display:inline-flex;align-items:center}.rep-tete{align-items:center}
 .hm.i{display:grid;grid-template-columns:22px 1fr;column-gap:7px;align-items:center}.hm.i>.ic{grid-row:1/3}
+/* écran Jour resserré : tout tient sans défiler sur un iPhone (390 × 844) */
+.v-jour section{margin-bottom:14px}.v-jour>section:last-child{margin-bottom:0}
+.v-jour .sem{margin-bottom:8px}.v-jour .sem button{padding:4px 0 3px}
+.v-jour .vg{padding:8px 12px}
+.v-jour .hero{gap:12px}.v-jour .hero .cal-anneau svg{width:120px;height:120px}
+.v-jour .hm{margin-top:5px}.v-jour .hero-d .cal-pastille{margin-bottom:3px;padding:5px 12px}
+.v-jour .jr-l{margin-top:8px}.v-jour .jr{padding:4px 8px}
+.v-jour .seg-i{margin-bottom:6px}.v-jour .seg-i button{gap:1px;padding:3px 2px}.v-jour .seg-i .ic{width:18px;height:18px}
+.v-jour .rep-ligne{padding:5px 0}
+.v-jour .qj{margin-top:10px;padding-top:8px}
+.bandeau.une{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:7px}
 .seg-i button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px}.seg-i .ic{width:22px;height:22px}
 .bandeau .btns{display:flex;flex:none;white-space:nowrap}.bandeau .roue{display:inline-flex;align-items:center}
 .bandeau .qui .badge{margin:0}
@@ -1016,7 +1027,7 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_VERSION='23/10/2026 16h16';
+const APP_VERSION='23/10/2026 16h22';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3533,7 +3544,7 @@ function etatNut(q,v){
 }
 function barreNut(q,v){
   const e=etatNut(q,v);
-  return '<div class="hm i">'+ico(q.ico,'s')+'<div class="hm-l"><span>'+q.lib+' <b>'+nb(v)+'</b> / '+nb(q.max)+' '+q.u+'</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
+  return '<div class="hm i">'+ico(q.ico,'s')+'<div class="hm-l"><span>'+q.court+' <b>'+nb(v)+'</b> / '+nb(q.max)+' '+q.u+'</span><span class="hm-e" style="color:'+e.coul+'">'+e.txt+'</span></div>'+
     '<div class="hm-b"><i style="width:'+Math.min(100,q.max?v/q.max*100:0).toFixed(0)+'%;background:'+e.coul+'"></i></div></div>';
 }
 function blocQualiteJour(d){
@@ -5396,7 +5407,7 @@ function rendre(){
   if(S.reglages){
     h+='<div class="vue on">'+vueRéglages(d)+'</div>';
   } else {
-    h+='<div class="vue'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
+    h+='<div class="vue v-jour'+(S.vue==='jour'?' on':'')+'">'+vueJour(d)+'</div>';
     h+='<div class="vue v-ajout'+(S.vue==='ajout'?' on':'')+'">'+vueAjout(d)+'</div>';
     h+='<div class="vue'+(S.vue==='courbes'?' on':'')+'">'+vueCourbes(d)+'</div>';
     h+='<div class="vue'+(S.vue==='journal'?' on':'')+'">'+vueJournal(d)+'</div>';
