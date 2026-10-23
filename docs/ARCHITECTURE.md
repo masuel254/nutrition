@@ -786,3 +786,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 - `bandeau()` sur Jour : classe `.bandeau.une`, prénom + date (`.lejour`, coupée par « … » si trop longue) + pastille du mode (`Sèche -600`, sans « kcal/j ») + roue Réglages ronde (`.rg`, `aria-label`). Environ 75 px gagnés. Les autres écrans gardent l'en-tête compact à titre.
 - Test : « Jour : en-tête sur une ligne » dans `tests/e2e.mjs`.
+
+## 46. Note de tes repas (23/10, appli v92)
+
+- Progrès › Qualité, en tête : `blocNotesRepas(d)`. Lettres A à E données par l'IA aux repas enregistrés (colonne `nutriscore` du Journal), sur les 4 dernières semaines (lundi d'il y a 3 semaines à aujourd'hui ; semaines manquantes chargées par `chargerSemaine`, pas de relance après une erreur). Moyenne A=5 à E=1 convertie en lettre (`nrLettre`), répartition, une lettre par semaine (en progrès / en recul à 0,5 point), une lettre par créneau, « À retravailler » (repas D et E regroupés par description sans quantités, 3 au plus), topo repliable `nrTopo()` toujours disponible (critères de la consigne IA).
+- Correction : la colonne `nutriscore` sert aussi à la note IA des repas ; « Qualité des produits scannés » (onglet Calories) ne compte plus que les lignes du scan (`estScan` : `ia` = `code-barres`, ou ligne ancienne sans `ia` ni `evaluation`).
+- Appli seule. Tests : section « Note des repas » de `tests/e2e.mjs` (les lignes fictives portent désormais des notes).

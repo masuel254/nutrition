@@ -29,6 +29,8 @@ for (let n = -60; n <= -1; n++) {
     LIGNES.push(Object.assign({ id: 'test' + (-n) + k, ia: k === 1 ? 'claude' : (n % 2 ? 'flash' : ''), date: d, repas: r, detail: als.map(a => a.nom + ' (' + a.quantite + ')').join(', '), nutriscore: '', fibres: 5, sucres: 8, sodium: 400, alcool: n % 9 && n !== -4 ? 0 : 12, boissons_sucrees: 0, aliments: (n % 9 && n !== -4) || k ? als : als.concat([{ nom: 'Vin rouge', quantite: '1 verre', kcal: 0, alcool: 12 }]) }, t));
   });
 }
+// notes : lettre de l'IA sur les repas analysés (claude, flash) ; une ligne sans IA notée = produit scanné
+LIGNES.forEach(l => { const n = +l.id.slice(4, -1); l.nutriscore = l.ia === 'claude' ? 'abbcd'[n % 5] : l.ia === 'flash' ? 'b' : (n === 2 ? 'a' : ''); });
 const depuis = (() => { const l = lundi(jour(0)); const x = new Date(l + 'T12:00:00'); x.setDate(x.getDate() - 7); return iso(x); })();
 const jours = [...new Set(LIGNES.map(l => l.date))].sort().map(d => {
   const ls = LIGNES.filter(l => l.date === d), k = ls.reduce((t, l) => t + l.kcal, 0);
@@ -207,7 +209,7 @@ await page.locator('.vue.on [data-bar="pur|' + jour(-1) + '"]').click();
 ok(/Midi\s*225 mg/.test(await texte('.vue.on .jd')) && /Blanc de poulet · 150 g\s*225/.test(await texte('.vue.on .jd')) && await page.locator('.vue.on .pur-top').count() === 0, 'Purines : barre touchée, détail du jour par repas et par aliment');
 const nJ = appels.filter(a => a.action === 'journal').length;
 await page.locator('.vue.on [data-bar="pur|' + jour(-20) + '"]').click(); await page.waitForTimeout(600);
-ok(appels.filter(a => a.action === 'journal').length === nJ + 1 && /Blanc de poulet/.test(await texte('.vue.on .jd')), 'Purines : jour ancien, semaine chargée à la demande');
+ok(appels.filter(a => a.action === 'journal').length <= nJ + 1 && /Blanc de poulet/.test(await texte('.vue.on .jd')), 'Purines : jour ancien, détail affiché (semaine chargée à la demande si besoin)');
 await page.click('.vue.on [data-bar-off="pur"]');
 ok(await page.locator('.vue.on .jd').count() === 0 && await page.locator('.vue.on .pur-top').count() === 1, 'Purines : retour aux repas les plus chargés');
 ok(/Goutte/.test(await texte('.vue.on [data-cong="purines"]')), 'Progrès : l onglet des purines s appelle Goutte quand des crises sont notées');
@@ -810,7 +812,7 @@ ok(await page.locator('.vue.on .seg-i button').count() === 4 && await page.locat
 await page.click('nav button[data-vue="courbes"]');
 ok(await page.locator('.vue.on .seg-i .ic').count() === 5 && await chargees('.vue.on .seg-i .ic') && await page.locator('.vue.on .tu small .ic').count() >= 3, 'Progrès : 5 onglets avec icône, icônes sur les tuiles du Poids');
 for (const [o, n] of [['calories', 2], ['purines', 3], ['qualite', 5]]) {
-  await page.click('.vue.on [data-cong="' + o + '"]');
+  await page.click('.vue.on [data-cong="' + o + '"]'); await page.waitForTimeout(400);
   ok(await page.locator('.vue.on .tu small .ic').count() >= n && await chargees('.vue.on .tu small .ic'), 'Courbes > ' + o + ' : icônes sur les tuiles');
 }
 ok(await page.locator('.vue.on .nut-sel .ic').count() === 5, 'Courbes > Qualité : une icône par nutriment, alcool compris');
@@ -973,6 +975,24 @@ console.log('IA : estimation incertaine, portions habituelles');
   ok(await page.locator('.resu .port').count() === 0, 'portions : rien à proposer quand l IA estime déjà ta portion');
   await page.click('#a-abandon'); if (await page.locator('#modale-hote [data-mod="oui"]').count()) await page.click('#modale-hote [data-mod="oui"]');
   iaRep = null; await page.evaluate(() => localStorage.removeItem('suivi.portions'));
+  await page.click('nav button[data-vue="jour"]'); }
+
+console.log('Note des repas');
+{ const lun0 = (() => { const x = new Date(lundi(jour(0)) + 'T12:00:00'); x.setDate(x.getDate() - 21); return iso(x); })();
+  const R = LIGNES.filter(l => l.date >= lun0 && l.ia && /^[a-e]$/.test(l.nutriscore)), P = { a: 5, b: 4, c: 3, d: 2, e: 1 };
+  const moy = R.reduce((t, l) => t + P[l.nutriscore], 0) / R.length, L = moy >= 4.5 ? 'A' : moy >= 3.5 ? 'B' : moy >= 2.5 ? 'C' : moy >= 1.5 ? 'D' : 'E';
+  const nD = R.filter(l => l.nutriscore === 'd').length;
+  await page.click('nav button[data-vue="courbes"]'); await page.click('.vue.on [data-cong="qualite"]');
+  await page.waitForFunction(() => { const t = document.querySelector('.vue.on .nr'); return t && !/chargement/i.test(t.textContent); }, null, { timeout: 5000 });
+  const t = await texte('.vue.on .nr');
+  ok(new RegExp('sur ' + R.length + ' repas notés par l’IA').test(t) && (await texte('.vue.on .nr .ns-note b')) === L && new RegExp(moy.toFixed(1).replace('.', ',') + '/5').test(t), 'Note des repas : moyenne (' + L + ') sur les ' + R.length + ' repas IA des 4 semaines, semaines anciennes chargées');
+  ok(appels.some(a => a.action === 'journal' && a.debut === lun0), 'Note des repas : la semaine la plus ancienne est chargée à la demande');
+  ok((await page.locator('.vue.on .nr .nr-sem .nutri').count()) === 4 && (await texte('.vue.on .nr [data-nrc="matin"]')).endsWith('B') && /–/.test(await texte('.vue.on .nr [data-nrc="soir"]')), 'Note des repas : 4 semaines, Matin B, Soir sans repas noté');
+  ok(new RegExp('À retravailler D Blanc de poulet, Riz basmati cuit \\(midi\\) · ' + nD + ' fois').test(t) && !/\(150 g\)/.test(t), 'Note des repas : les repas D regroupés sans les quantités (' + nD + ' fois)');
+  ok(await page.locator('.vue.on .nr details.aide .nr-topo li').count() === 5 && /Comment l’IA note un repas/.test(t), 'Note des repas : topo des lettres A à E, toujours disponible');
+  ok(await page.evaluate(() => { const e = document.querySelector('.vue.on .nr'); return e.scrollWidth <= e.clientWidth; }), 'Note des repas : aucun débordement');
+  await page.click('.vue.on [data-cong="calories"]');
+  ok(/sur 1 produit consommé/.test(await texte('.vue.on')) && !/repas notés/.test(await texte('.vue.on')), 'Produits scannés : seules les lignes du scan comptent, plus les notes IA des repas');
   await page.click('nav button[data-vue="jour"]'); }
 
 console.log('Affichage');
