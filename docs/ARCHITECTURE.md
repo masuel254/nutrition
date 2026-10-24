@@ -829,3 +829,4 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Appli : champ « Durée » dans le formulaire Noter / Modifier (`champDuree` : En cours, 1 à 4 jours, 5 jours et + avec un nombre de 5 à 60), période affichée ; la carte montre « N jours, du … au … » ou « En cours ? durée à compléter ». Une crise notée sans durée part en cours ; on la complète par Modifier.
 - « Ce qui précède tes crises » : tous les jours d'une crise (durée) sont exclus des deux groupes, plus seulement le premier.
 - Test e2e « Jour tient sans défiler » : la carte du repas proposé (selon l'heure) est déduite comme la bannière goutte.
+- (v99) Carte de crise : « Repas des 3 jours avant la crise », avec « (seulement N jours sur 3 notés) » s'il en manque ; l'ancien « (3 jours notés) » se lisait comme une durée.

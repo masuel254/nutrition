@@ -1031,8 +1031,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=98; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='24/10/2026 07h39';
+const APP_NUM=99; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='24/10/2026 07h57';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3749,7 +3749,7 @@ function carteCrise(c,a){
   if(!a)h+='<p class="note" style="margin:4px 0 0">Pas de repas notés les trois jours avant.</p>';
   else{
     const o=v=>' style="color:var(--over)"';
-    h+='<div class="crise-i">Les 3 jours avant ('+a.n+' jour'+(a.n>1?'s':'')+' notés)</div><ul>'+
+    h+='<div class="crise-i">Repas des 3 jours avant la crise'+(a.n<3?' (seulement '+a.n+' jour'+(a.n>1?'s':'')+' sur 3 noté'+(a.n>1?'s':'')+')':'')+'</div><ul>'+
       '<li>Purines à risque <b'+(a.purDessus?o():'')+'>'+nb(a.pur)+' mg/j</b> en moyenne (plafond '+nb(a.max)+')</li>'+
       '<li>'+(a.alc>0?'Alcool <b'+o()+'>'+verresTxt(a.alc)+'</b>':'Pas d’alcool')+'</li>'+
       (a.sa!==null?'<li>Sucres ajoutés <b'+(a.saDessus?o():'')+'>'+nb(a.sa)+' g/j</b> (repère '+nb(a.maxSa)+')</li>':'')+

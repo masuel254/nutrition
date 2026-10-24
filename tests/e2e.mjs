@@ -235,6 +235,7 @@ await page.locator('.crise [data-gmod="g1"]').last().click(); await page.click('
 ok(/Noter une crise/.test(await texte('#g-form')) && await page.locator('[data-gi].on').count() === 0, 'Goutte : Annuler la modification vide le formulaire');
 // durée : en cours par défaut, à compléter par Modifier
 ok(/En cours \? durée à compléter/.test(await texte('.crise')), 'Goutte : crise sans durée affichée « En cours ? »');
+ok(/Repas des 3 jours avant la crise/.test(await texte('.crise')) && !/jours notés\)/.test(await texte('.crise')), 'Goutte : carte, « Repas des 3 jours avant la crise » (plus de « 3 jours notés » à côté de la durée)');
 await page.locator('.crise [data-gmod="g1"]').last().click();
 ok(await page.locator('#g-duree [data-gd="0"].on').count() === 1, 'Goutte : Modifier, durée sur En cours');
 await page.click('#g-duree [data-gd="3"]');
