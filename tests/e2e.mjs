@@ -460,16 +460,26 @@ ok(await page.locator('.vue.on .coach-sug button').count() === 4 && /kcal restan
 ok(/Coach/.test(await texte('.bandeau h1')) && await page.locator('nav button[data-vue="coach"].on').count() === 1, 'Coach : titre Coach, onglet allumé');
 { const qs = async () => (await page.locator('.vue.on .coach-sug button').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
   const avant = await qs();
-  ok(avant.length === 4 && new Set(avant).size === 4 && /kcal restantes|dépassé ma cible/.test(avant[0]), 'Coach : 4 questions toutes prêtes, toutes différentes');
+  ok(avant.length === 4 && new Set(avant).size === 4 && avant[0] === 'Fais-moi le bilan du mois en cours' && /kcal restantes|dépassé ma cible/.test(avant[1]), 'Coach : 4 questions toutes prêtes, toutes différentes, le bilan du mois en premier');
   const posee = avant[1];
   await page.locator('.vue.on .coach-sug button').nth(1).click(); await page.waitForSelector('.vue.on .coach-sug button');
   const apres = await qs();
   ok(apres.length === 4 && !apres.includes(posee) && new Set(apres).size === 4 && [0, 2, 3].every(i => apres.includes(avant[i])), 'Coach : la question touchée disparaît, une nouvelle prend sa place, les autres restent');
+  // bilan du mois : chiffres calculés par l'appli joints à la question, la conversation n'affiche que la question
+  const nB = appels.filter(a => a.action === 'conseil').length;
+  await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button');
+  const qB = appels.filter(a => a.action === 'conseil').pop().question;
+  ok(appels.filter(a => a.action === 'conseil').length === nB + 1 && /^Fais-moi le bilan du mois en cours\n\n\[Chiffres du mois calculés par l’appli, du 01\//.test(qB), 'Coach › bilan du mois : question envoyée avec les chiffres du mois');
+  ok(['Poids : ', 'Alimentation : ', 'Pas : ', 'Crises de goutte : ', 'Alcool : '].every(x => qB.includes('\n' + x)) && /maintenant 100 kg \(pesée du \d\d\/\d\d\)|dernière pesée 100 kg/.test(qB) && /5 rubriques courtes, dans cet ordre : Poids, Alimentation, Pas, Goutte, Alcool/.test(qB), 'Coach › bilan du mois : poids (début, maintenant, écart), alimentation, pas, goutte, alcool, consigne des 5 rubriques');
+  ok(!/Chiffres du mois/.test(await page.locator('.vue.on .bulle.moi').last().innerText()) && /Fais-moi le bilan du mois en cours/.test(await page.locator('.vue.on .bulle.moi').last().innerText()), 'Coach › bilan du mois : la bulle n affiche que la question');
+  ok((await qs())[0] === 'Fais-moi le bilan du mois en cours', 'Coach › bilan du mois : reste en tête après avoir été posé');
   for (let k = 0; k < 6; k++) { await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button'); }
   const fin = await qs();
   ok(fin.length === 4 && new Set(fin).size === 4, 'Coach : toujours 4 questions différentes, même quand tout a été posé');
   await page.click('#c-vider');
   ok(JSON.stringify(await qs()) === JSON.stringify(avant), 'Coach : « Vider » remet les questions de départ'); }
+ok(await page.evaluate(async () => { const d = JSON.parse(JSON.stringify(S.data)), m0 = auj().slice(0, 8) + '01'; d.journal_depuis = ''; d.crises = [{ id: 'x', date: m0, articulation: 'gros orteil', intensite: 4, duree: 3 }, { id: 'y', date: auj(), articulation: 'cheville', intensite: 2, duree: null }]; d.poids = [{ date: plusJours(m0, -2), poids: 102 }, { date: auj(), poids: 100.4 }];
+  const t = await bilanMoisTxt(d); return /Poids : début du mois 102 kg \(pesée du \d\d\/\d\d\), maintenant 100,4 kg \(pesée du \d\d\/\d\d\), écart -1,6 kg\./.test(t) && /Crises de goutte : 2 \(le 01\/\d\d, gros orteil, intensité 4\/5, 3 jours ; le \d\d\/\d\d, cheville, intensité 2\/5, durée non renseignée\), 3 jours de crise au total\./.test(t); }), 'Coach › bilan du mois : écart de poids depuis la pesée du début du mois, crises avec leur durée');
 { await page.locator('.vue.on .coach-sug button').first().click(); await page.waitForSelector('.vue.on .coach-sug button');
   ok(await page.locator('.vue.on .bulle.moi').count() === 1 && /suivi\.chat/.test(await page.evaluate(() => Object.keys(localStorage).join(' '))), 'Coach : une question posée, conversation visible et mémorisée');
   await page.click('nav button[data-vue="journal"]'); await vaCoach();

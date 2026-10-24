@@ -830,3 +830,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - « Ce qui précède tes crises » : tous les jours d'une crise (durée) sont exclus des deux groupes, plus seulement le premier.
 - Test e2e « Jour tient sans défiler » : la carte du repas proposé (selon l'heure) est déduite comme la bannière goutte.
 - (v99) Carte de crise : « Repas des 3 jours avant la crise », avec « (seulement N jours sur 3 notés) » s'il en manque ; l'ancien « (3 jours notés) » se lisait comme une durée.
+
+## 53. Coach : bilan du mois en cours (24/10, appli v100)
+
+- Question toute prête « Fais-moi le bilan du mois en cours » (`BILAN_Q`), toujours en tête des 4 questions (`suggestionsAffichees`).
+- À l'envoi, `bilanMoisTxt(d)` calcule dans l'appli les chiffres du 1er du mois à aujourd'hui et les joint à la question (la bulle n'affiche que la question) : poids (pesée du début du mois = dernière avant le 1er si elle a moins de 7 jours, sinon la première du mois ; pesée actuelle ; écart), alimentation (journées complètes, kcal moyennes et cible, jours dans la cible, protéines, saturées, fibres, sodium, sucres ajoutés, purines à risque), notes IA des repas consommés (médiane), aliments les plus fréquents, pas, crises de goutte avec intensité et durée, jours d'alcool et verres. Journal du mois chargé au besoin (`nrCharger`). Consigne : 5 rubriques dans l'ordre Poids, Alimentation, Pas, Goutte, Alcool, puis un levier.
+- Aucun changement du workflow (le nœud Build Conseil API reçoit une question plus longue). Telegram n'a pas cette question.

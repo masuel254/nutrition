@@ -1031,8 +1031,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=99; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='24/10/2026 07h57';
+const APP_NUM=100; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='24/10/2026 08h15';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4002,9 +4002,58 @@ function etapeCoach(){
   return (s<30?'Le coach réfléchit… ':(s<50?'Gemini tarde, essai d’un autre modèle… ':'Modèle de secours en cours… '))+s+' s';
 }
 setInterval(()=>{if(S.coach&&S.coach.etat==='envoi'){const e=document.getElementById('c-etape');if(e)e.textContent=etapeCoach();}},1000);
+// Bilan du mois : l'appli calcule les chiffres (poids, alimentation, pas, goutte, alcool) et les joint à la question ;
+// la conversation n'affiche que la question.
+const BILAN_Q='Fais-moi le bilan du mois en cours';
+async function bilanMoisTxt(d){
+  const a0=auj(),m0=a0.slice(0,8)+'01',f1=x=>String(Math.round(x*10)/10).replace('.',','),L=[];
+  if(nrManque(d,m0)&&!S.nrCharge)await nrCharger(d,m0);
+  // poids : pesée du début du mois (la dernière avant le 1er si elle a moins de 7 jours, sinon la première du mois)
+  const P=(d.poids||[]).filter(x=>x&&x.date&&Number(x.poids)>0).slice().sort((x,y)=>x.date.localeCompare(y.date));
+  const av=P.filter(x=>x.date<=m0).pop(),da=P.filter(x=>x.date>=m0),deb=av&&av.date>=plusJours(m0,-7)?av:(da[0]||av),fin=P[P.length-1];
+  if(deb&&fin&&fin.date>deb.date)L.push('Poids : début du mois '+f1(deb.poids)+' kg (pesée du '+jjmm(deb.date)+'), maintenant '+f1(fin.poids)+' kg (pesée du '+jjmm(fin.date)+'), écart '+(fin.poids>deb.poids?'+':'')+f1(fin.poids-deb.poids)+' kg.');
+  else L.push('Poids : '+(fin?'dernière pesée '+f1(fin.poids)+' kg le '+jjmm(fin.date)+', pas assez de pesées ce mois pour un écart.':'aucune pesée.'));
+  // alimentation : journées complètes (2 repas ou plus) passées du mois
+  const moy=(l,k)=>{const v=l.map(j=>j[k]).filter(x=>x!==null&&x!==undefined&&x!=='').map(Number);return v.length?v.reduce((t,x)=>t+x,0)/v.length:null;};
+  const V=(d.jours||[]).filter(j=>j.date>=m0&&j.date<a0&&j.repas>0&&j.valide),np=Number(a0.slice(8))-1;
+  if(V.length){
+    const k=moy(V,'kcal'),c=moy(V,'cible'),ok=V.filter(j=>bonJourApp(Number(j.kcal)||0,Number(j.cible)||0)).length,pr=moy(V,'prot'),cp=(d.cibles||{}).prot,Q=seuilsQualite(d);
+    L.push('Alimentation : '+V.length+' journée'+(V.length>1?'s':'')+' complète'+(V.length>1?'s':'')+' notée'+(V.length>1?'s':'')+' sur '+np+' jour'+(np>1?'s':'')+' passé'+(np>1?'s':'')+' ; moyenne '+nb(k)+' kcal/j'+(c?' pour une cible moyenne de '+nb(c)+' kcal ('+sgn(Math.round(k-c))+')':'')+', '+ok+' jour'+(ok>1?'s':'')+' dans la cible'+
+      (pr!==null?' ; protéines '+nb(pr)+' g/j'+(cp?' (cible '+nb(cp)+' g)':''):'')+'.');
+    const nu=NUTS.map(x=>{const m=moy(V,x);return m===null?'':Q[x].court+' '+nb(m)+' '+Q[x].u+'/j ('+(Q[x].plancher?'objectif ':'max ')+nb(Q[x].max)+')';}).filter(Boolean);
+    if(nu.length)L.push('Qualité : '+nu.join(', ')+'.');
+    const pm=moy(V,'purines_risque'),mx=purMax(d);
+    if(pm!==null)L.push('Purines à risque : '+nb(pm)+' mg/j en moyenne (plafond '+nb(mx)+'), '+V.filter(j=>Number(j.purines_risque)>mx).length+' jour(s) au-dessus.');
+  }else L.push('Alimentation : aucune journée complète notée ce mois-ci.');
+  // notes de l'IA et aliments les plus fréquents (journal du mois)
+  const JM=(d.journal||[]).filter(x=>x.date>=m0&&x.date<=a0);
+  const R=JM.filter(x=>!estScan(x)&&/^[abcde]$/.test(String(x.nutriscore||'').trim().toLowerCase())).map(x=>({r:x,l:String(x.nutriscore).trim().toLowerCase()}));
+  if(R.length){const N={};R.forEach(x=>{N[x.l]=(N[x.l]||0)+1;});
+    L.push('Notes de l’IA des repas consommés : médiane '+nrMediane(R).toUpperCase()+' sur '+R.length+' repas ('+'abcde'.split('').filter(g=>N[g]).map(g=>g.toUpperCase()+' '+N[g]).join(', ')+').');}
+  const F={};JM.forEach(x=>(Array.isArray(x.aliments)?x.aliments:[]).forEach(al=>{const k=normNom(al&&al.nom);if(k)(F[k]=F[k]||{n:0,nom:al.nom}).n++;}));
+  const top=Object.values(F).sort((x,y)=>y.n-x.n).slice(0,6);
+  if(top.length)L.push('Aliments les plus fréquents : '+top.map(x=>x.nom+' ('+x.n+' fois)').join(', ')+'.');
+  // pas
+  const A=(d.activite||[]).filter(x=>x.date>=m0&&x.date<=a0&&Number(x.pas)>0);
+  if(A.length){const b=A.reduce((x,y)=>Number(y.pas)>Number(x.pas)?y:x);
+    L.push('Pas : '+nb(A.reduce((t,x)=>t+Number(x.pas),0)/A.length)+' pas/j en moyenne sur '+A.length+' jour'+(A.length>1?'s':'')+' enregistré'+(A.length>1?'s':'')+', meilleur jour '+nb(b.pas)+' pas le '+jjmm(b.date)+'.');}
+  else L.push('Pas : aucun enregistré ce mois-ci.');
+  // goutte : crises commencées dans le mois, avec leur durée
+  const C=(d.crises||[]).filter(x=>x.date>=m0&&x.date<=a0).sort((x,y)=>x.date.localeCompare(y.date));
+  if(C.length){const tj=C.reduce((t,x)=>t+(Number(x.duree)||0),0);
+    L.push('Crises de goutte : '+C.length+' ('+C.map(x=>'le '+jjmm(x.date)+', '+x.articulation+', intensité '+x.intensite+'/5, '+(Number(x.duree)?x.duree+' jour'+(x.duree>1?'s':''):'durée non renseignée')).join(' ; ')+')'+(tj?', '+tj+' jour'+(tj>1?'s':'')+' de crise au total':'')+'.');}
+  else{const der=(d.crises||[]).map(x=>x.date).sort().pop();L.push('Crises de goutte : aucune ce mois-ci'+(der?' (dernière le '+jjmm(der)+')':'')+'.');}
+  // alcool : jours suivis (colonne alcool renseignée)
+  const AL=(d.jours||[]).filter(j=>j.date>=m0&&j.date<=a0&&j.repas>0&&j.alcool!==null&&j.alcool!==undefined&&j.alcool!=='');
+  if(AL.length){const av2=AL.filter(j=>Number(j.alcool)>0),g=av2.reduce((t,j)=>t+Number(j.alcool),0);
+    L.push('Alcool : '+av2.length+' jour'+(av2.length>1?'s':'')+' avec alcool sur '+AL.length+' jour'+(AL.length>1?'s':'')+' suivis, '+(g?verresTxt(g):'aucun verre')+' au total.');}
+  else L.push('Alcool : pas suivi ce mois-ci.');
+  return '[Chiffres du mois calculés par l’appli, du '+jjmm(m0)+' au '+jjmm(a0)+'. Utilise-les tels quels, ne les recalcule pas.]\n'+L.join('\n')+
+    '\n\nFais le bilan en 5 rubriques courtes, dans cet ordre : Poids, Alimentation, Pas, Goutte, Alcool. Pour chacune, les chiffres puis une phrase de lecture. Termine par UN levier prioritaire pour la fin du mois. Texte simple, sans markdown ni astérisques.';
+}
 function suggestionsCoach(d){
   if(!d)return [];
-  const out=[],c=d.cibles||{},a=d.aujourdhui||{};
+  const out=[BILAN_Q],c=d.cibles||{},a=d.aujourdhui||{};
   const hr=new Date().getHours(),moment=hr<11?'ce matin':(hr<15?'ce midi':(hr<18?'en en-cas':'ce soir'));
   if(c.kcal){const reste=Math.round(c.kcal-(a.kcal||0));
     out.push(reste>0?'Que manger '+moment+' avec '+nb(reste)+' kcal restantes ?':'J’ai dépassé ma cible de '+nb(-reste)+' kcal, comment rattraper sans me priver ?');}
@@ -4022,7 +4071,10 @@ function suggestionsCoach(d){
 // ancienne revenant en premier. Le texte de la question du jour change : on la repère par sa position.
 function suggestionsAffichees(d){
   const tout=suggestionsCoach(d).map((q,i)=>({q:q,i:i})),P=S.coach.posees||(S.coach.posees=[]);
-  return tout.filter(x=>P.indexOf(x.i)<0).concat(P.map(i=>tout[i]).filter(Boolean)).slice(0,4);
+  if(!tout.length)return [];
+  // le bilan du mois (position 0) reste toujours en tête
+  const reste=tout.slice(1);
+  return [tout[0]].concat(reste.filter(x=>P.indexOf(x.i)<0).concat(P.map(i=>tout[i]).filter(x=>x&&x.i>0))).slice(0,4);
 }
 // Réponse de l'action « menu » : tableau des plats lus (tri par kcal ou protéines), « + » ajoute un plat au repas.
 function bulleMenu(m,i){
@@ -6301,7 +6353,8 @@ function brancher(){
     S.coach.brouillon='';$('#c-q').value='';
     S.coach.etat='envoi';S.coach.t0=Date.now();rendre();versDernier();
     try{
-      const r=await appel({action:'conseil',question:q,
+      const qEnv=normNom(q)===normNom(BILAN_Q)?q+'\n\n'+await bilanMoisTxt(S.data):q;
+      const r=await appel({action:'conseil',question:qEnv,
         historique:S.coach.fil.slice(-6).map(m=>({role:m.role,texte:m.texte}))});
       S.coach.fil.push({role:'coach',texte:r.texte});
     }catch(e){S.coach.fil.push({role:'coach',texte:e.message});}
