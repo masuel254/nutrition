@@ -715,6 +715,10 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .crise{border:1px solid var(--rule);border-left:4px solid var(--over);border-radius:10px;background:var(--card);padding:11px 13px 4px;margin-top:12px}
 .crise-t{display:flex;justify-content:space-between;font-size:14.5px}.crise-t b{font-weight:700}
 .crise-i{font-size:13px;color:var(--soft);margin:2px 0 6px}
+.du-l{display:flex;align-items:center;gap:8px;margin:5px 0 4px;font-size:13px;color:var(--soft)}
+.du-p{flex:none;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.du-p.cours{background:color-mix(in srgb,var(--over) 16%,var(--card));color:var(--over)}.du-p.fini{background:var(--creux);color:var(--ink)}
+.g-du-n{margin:6px 0 0;text-align:left}
 .gf-carte{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:12px 12px 10px}
 .gf-svg{display:block;width:100%;height:auto;overflow:visible}.gf-c{cursor:pointer}
 .gf-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--soft);margin-top:8px}
@@ -1027,8 +1031,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=97; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='23/10/2026 16h53';
+const APP_NUM=98; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='24/10/2026 07h39';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3690,7 +3694,7 @@ function precedeCrises(d){
   const cr=(d.crises||[]).filter(c=>c&&c.date);
   if(!cr.length)return '';
   const avant={},jc={};
-  cr.forEach(c=>{jc[c.date]=1;[1,2,3].forEach(n=>{avant[plusJours(c.date,-n)]=1;});});
+  cr.forEach(c=>{for(let k=0;k<Math.max(1,Number(c.duree)||1);k++)jc[plusJours(c.date,k)]=1;[1,2,3].forEach(n=>{avant[plusJours(c.date,-n)]=1;});});
   const js=(d.jours||[]).filter(j=>j.repas>0&&!jc[j.date]),A=js.filter(j=>avant[j.date]),O=js.filter(j=>!avant[j.date]);
   const moy=(l,f)=>{const v=l.map(f).filter(x=>x!==null&&!isNaN(x));return v.length?v.reduce((t,x)=>t+x,0)/v.length:null;};
   const champ=k=>j=>(j[k]===null||j[k]===undefined||j[k]==='')?null:Number(j[k]);
@@ -3738,7 +3742,9 @@ function precedeCrises(d){
   return h+'</section>';
 }
 function carteCrise(c,a){
+  const du=Number(c.duree)||0;
   let h='<div class="crise"><div class="crise-t"><b>'+jjmm(c.date)+' · '+esc(c.articulation)+'</b><span>'+ico('niveau','x')+c.intensite+'/5</span></div>'+
+    '<div class="du-l">'+(du?'<span class="du-p fini">'+du+' jour'+(du>1?'s':'')+'</span><span>'+periodeCrise(c.date,du)+'</span>':'<span class="du-p cours">En cours ?</span><span>durée à compléter</span>')+'</div>'+
     (c.remarque?'<div class="crise-i">'+esc(c.remarque)+'</div>':'');
   if(!a)h+='<p class="note" style="margin:4px 0 0">Pas de repas notés les trois jours avant.</p>';
   else{
@@ -3752,6 +3758,16 @@ function carteCrise(c,a){
   h+='<div class="crise-act"><button class="lien" data-gmod="'+esc(c.id)+'">Modifier</button><button class="lien crise-sup" data-gdel="'+esc(c.id)+'">Retirer</button></div></div>';
   return h;
 }
+// Durée d'une crise en jours (G.dur) : vide = en cours, à compléter plus tard par Modifier.
+function dateCriseForm(G){return G.quand==='hier'?plusJours(auj(),-1):(G.quand==='autre'?(G.date||plusJours(auj(),-1)):auj());}
+function periodeCrise(date,du){return du>1?'du '+jjmm(date)+' au '+jjmm(plusJours(date,du-1)):'le '+jjmm(date);}
+function champDuree(G){
+  const du=G.dur||0,dt=dateCriseForm(G);
+  let h='<label>'+ico('calendrier','x')+'Durée</label><div class="chips" id="g-duree">'+
+    [[0,'En cours'],[1,'1 jour'],[2,'2 jours'],[3,'3 jours'],[4,'4 jours'],[5,'5 jours et +']].map(x=>'<button data-gd="'+x[0]+'" class="'+((x[0]===5?du>=5:du===x[0])?'on':'')+'">'+x[1]+'</button>').join('')+'</div>';
+  if(du>=5)h+='<input id="g-dur" type="number" inputmode="numeric" min="5" max="60" value="'+du+'" aria-label="Nombre de jours">';
+  return h+'<p class="note g-du-n">'+(du?'Crise '+periodeCrise(dt,du)+'.':'« En cours » : reviens par Modifier pour indiquer sa durée quand elle est passée.')+'</p>';
+}
 // formulaire Noter / Modifier une crise (Jour › Crise, ou Progrès › Goutte)
 function formCrise(){
   const G=S.gt,hier=plusJours(auj(),-1);
@@ -3761,6 +3777,7 @@ function formCrise(){
   if(G.quand==='autre')h+='<input id="g-date" type="date" max="'+auj()+'" value="'+esc(G.date||hier)+'">';
   h+='<label>Où</label><div class="chips">'+ARTICS.map(x=>'<button data-ga="'+x[0]+'" class="'+(G.art===x[0]?'on':'')+'">'+ico(x[2],'x')+x[1]+'</button>').join('')+'</div>'+
     '<label>'+ico('niveau','x')+'Intensité (1 = gêne, 5 = impossible de poser le pied)</label><div class="chips">'+[1,2,3,4,5].map(i=>'<button data-gi="'+i+'" class="'+(G.int===i?'on':'')+'">'+i+'</button>').join('')+'</div>'+
+    champDuree(G)+
     '<label for="g-rem">Remarque (facultatif)</label><input id="g-rem" type="text" maxlength="120" placeholder="Ex : côté droit, traitement pris" value="'+esc(G.rem||'')+'">'+
     '<button class="primaire" id="g-noter"'+(G.etat==='envoi'?' disabled':'')+'>'+(G.etat==='envoi'?'<span class="attente"></span>Enregistrement':(G.mod?'Enregistrer la modification':'Noter la crise'))+'</button>'+
     (G.mod?'<button class="lien" id="g-annule">Annuler la modification</button>':'');
@@ -5492,7 +5509,9 @@ function brancher(){
   document.querySelectorAll('[data-gq]').forEach(b=>b.addEventListener('click',()=>{S.gt.quand=b.dataset.gq;S.gt.etat=null;rendre();}));
   document.querySelectorAll('[data-ga]').forEach(b=>b.addEventListener('click',()=>{S.gt.art=b.dataset.ga;S.gt.etat=null;rendre();}));
   document.querySelectorAll('[data-gi]').forEach(b=>b.addEventListener('click',()=>{S.gt.int=Number(b.dataset.gi);S.gt.etat=null;rendre();}));
-  on('#g-date','change',e=>{S.gt.date=e.target.value;});
+  document.querySelectorAll('[data-gd]').forEach(b=>b.addEventListener('click',()=>{const v=Number(b.dataset.gd);S.gt.dur=v===5?Math.max(5,S.gt.dur||0):(v||null);S.gt.etat=null;rendre();}));
+  on('#g-dur','change',e=>{const v=parseInt(e.target.value,10);S.gt.dur=v>=5?Math.min(60,v):5;rendre();});
+  on('#g-date','change',e=>{S.gt.date=e.target.value;if(S.gt.dur)rendre();});
   on('#g-rem','input',e=>{S.gt.rem=e.target.value;});
   on('#g-noter','click',async()=>{
     const G=S.gt;
@@ -5500,9 +5519,10 @@ function brancher(){
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>auj()){G.etat='ko';G.message='Choisis une date passée.';rendre();return;}
     if(!G.art){G.etat='ko';G.message='Indique où se situe la crise.';rendre();return;}
     if(!G.int){G.etat='ko';G.message='Indique l’intensité, de 1 à 5.';rendre();return;}
+    if(G.dur&&plusJours(date,G.dur-1)>auj()){G.etat='ko';G.message='Elle finirait après aujourd’hui : choisis « En cours » et reviens plus tard.';rendre();return;}
     G.etat='envoi';rendre();
     try{
-      await appel(Object.assign({action:'crise',op:'ajouter',date:date,articulation:G.art,intensite:G.int,remarque:G.rem||''},G.mod?{id:G.mod}:{}));
+      await appel(Object.assign({action:'crise',op:'ajouter',date:date,articulation:G.art,intensite:G.int,remarque:G.rem||'',duree:G.dur||''},G.mod?{id:G.mod}:{}));
       await rafraichir();
       S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:'ok',message:'Crise du '+jjmm(date)+(G.mod?' modifiée.':' notée.')};
     }catch(err){G.etat='ko';G.message=err.message;}
@@ -5513,7 +5533,7 @@ function brancher(){
   document.querySelectorAll('[data-gmod]').forEach(b=>b.addEventListener('click',()=>{
     const c=((S.data&&S.data.crises)||[]).find(x=>String(x.id)===b.dataset.gmod);if(!c)return;
     const q=c.date===auj()?'auj':(c.date===plusJours(auj(),-1)?'hier':'autre');
-    S.gt={quand:q,date:c.date,art:String(c.articulation||'').toLowerCase(),int:Number(c.intensite)||null,rem:c.remarque||'',mod:c.id,etat:null};
+    S.gt={quand:q,date:c.date,art:String(c.articulation||'').toLowerCase(),int:Number(c.intensite)||null,rem:c.remarque||'',dur:Number(c.duree)||null,mod:c.id,etat:null};
     rendre();const f=$('#g-form');if(f)f.scrollIntoView({block:'start'});
   }));
   on('#g-annule','click',()=>{S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:null};rendre();});

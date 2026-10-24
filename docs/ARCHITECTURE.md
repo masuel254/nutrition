@@ -142,7 +142,7 @@ avec l'heure réelle de livraison (Paris).
   mettre à jour » ; vide sur les lignes antérieures au 27/09 (suppression par l'ancienne
   correspondance date + repas + détail + kcal)
 - **Poids** : `uid, date, poids`
-- **Crises** : `id, uid, date, articulation, intensite, remarque, statut, maj` (écriture sur `id` ;
+- **Crises** : `id, uid, date, articulation, intensite, remarque, duree, statut, maj` (`duree` en jours, vide = en cours, depuis le workflow v64) (écriture sur `id` ;
   retirer = `statut` `supprimee`, la ligne reste)
 - **Params** : `uid, date_effet, cible, activite, facteur, prot, lip, gluc,
   repartition, macros, poids_ref, mb, tdee, mode, ts, purines_max, objectif_poids, objectif, ecart_kcal`
@@ -821,3 +821,11 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Suit le sélecteur de période (3 j à 90 j, Tout = depuis le premier jour suivi). Historique manquant chargé en une seule requête `action journal` (`nrCharger`, de lundi(début) à la veille de `journal_depuis`), erreur gardée par jeu de données (`S.nrErr.d`) pour ne pas boucler.
 - Grande lettre = **médiane** (`nrMediane` : lettre atteinte à la moitié des repas en partant de A), plus la moyenne sur 5. Même règle par semaine et par créneau ; la tendance compare encore les moyennes. Ligne « Par semaine » à partir de 14 j, 8 semaines au plus.
 - Libellés : « repas consommés notés par l’IA ».
+
+## 52. Goutte : durée des crises (24/10, appli v98, workflow v64)
+
+- Feuille **Crises** : nouvelle colonne `duree` (jours ; vide = en cours).
+- Workflow v64 (v63 archivée) : `Build Crise API` valide `duree` (entier 1 à 60, ou vide ; la crise ne peut pas finir après aujourd'hui), `Crises Upsert` écrit la colonne, `Build API Payload` renvoie `duree` (null si vide). Test `t_crise_duree.js`.
+- Appli : champ « Durée » dans le formulaire Noter / Modifier (`champDuree` : En cours, 1 à 4 jours, 5 jours et + avec un nombre de 5 à 60), période affichée ; la carte montre « N jours, du … au … » ou « En cours ? durée à compléter ». Une crise notée sans durée part en cours ; on la complète par Modifier.
+- « Ce qui précède tes crises » : tous les jours d'une crise (durée) sont exclus des deux groupes, plus seulement le premier.
+- Test e2e « Jour tient sans défiler » : la carte du repas proposé (selon l'heure) est déduite comme la bannière goutte.

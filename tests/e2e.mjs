@@ -115,7 +115,7 @@ const vaProgres = async (o, ko) => { await page.click('nav button[data-vue="cour
 const vaCoach = () => page.click('nav button[data-vue="coach"]');
 
 console.log('Jour');
-ok(await page.evaluate(() => { const d = document.getElementById('defile'), v = document.querySelector('.v-jour .vg'), s = v ? v.closest('section') : null; const h = s ? s.getBoundingClientRect().height + parseFloat(getComputedStyle(s).marginBottom) : 0; return d.scrollHeight - h <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, qualité du jour affichée, hors bannière goutte)');
+ok(await page.evaluate(() => { const d = document.getElementById('defile'), v = document.querySelector('.v-jour .vg'), s = v ? v.closest('section') : null; const g = document.querySelector('.v-jour .sug'), cs = g && getComputedStyle(g); const h = (s ? s.getBoundingClientRect().height + parseFloat(getComputedStyle(s).marginBottom) : 0) + (g ? g.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom) : 0); return d.scrollHeight - h <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, qualité du jour affichée, hors bannière goutte et repas proposé selon l heure)');
 ok(await page.evaluate(() => [...document.querySelectorAll('.v-jour .hero .hm-l')].every(e => e.getBoundingClientRect().height < 24)) && await page.evaluate(() => Math.round(document.querySelector('.v-jour .hero .cal-anneau svg').getBoundingClientRect().width)) === 148, 'Jour : grand cercle (148 px), protéines, lipides, glucides chacun sur une ligne');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
 ok(await page.locator('.hero .hm').count() === 3, 'barres des trois macros');
@@ -221,6 +221,7 @@ await page.click('[data-gq="hier"]'); await page.click('[data-ga="cheville"]'); 
 const cr = appels.filter(a => a.action === 'crise').pop();
 ok(cr && cr.op === 'ajouter' && cr.date === jour(-1) && cr.articulation === 'cheville' && cr.intensite === 3, 'Jour › Crise : crise notée (hier, cheville, 3)');
 ok(!('id' in cr), 'Jour › Crise : nouvelle crise envoyée sans id');
+ok(cr.duree === '', 'Jour › Crise : sans durée choisie, crise envoyée en cours (durée vide)');
 await vaProgres('purines');
 ok(await page.locator('.crise').count() === 1 && /gros orteil/.test(await texte('.crise')) && await page.locator('#g-form').count() === 1, 'Progrès › Goutte : courbe, crise listée avec son analyse, formulaire');
 await page.locator('.crise [data-gmod="g1"]').last().click();
@@ -232,6 +233,26 @@ ok(crM.op === 'ajouter' && crM.id === 'g1' && crM.date === jour(-5) && crM.artic
 ok(/modifiée/.test(await texte('#g-form')) && /Noter une crise/.test(await texte('#g-form')) && await page.locator('#g-annule').count() === 0, 'Goutte : confirmation, le formulaire repasse en Noter une crise');
 await page.locator('.crise [data-gmod="g1"]').last().click(); await page.click('#g-annule');
 ok(/Noter une crise/.test(await texte('#g-form')) && await page.locator('[data-gi].on').count() === 0, 'Goutte : Annuler la modification vide le formulaire');
+// durée : en cours par défaut, à compléter par Modifier
+ok(/En cours \? durée à compléter/.test(await texte('.crise')), 'Goutte : crise sans durée affichée « En cours ? »');
+await page.locator('.crise [data-gmod="g1"]').last().click();
+ok(await page.locator('#g-duree [data-gd="0"].on').count() === 1, 'Goutte : Modifier, durée sur En cours');
+await page.click('#g-duree [data-gd="3"]');
+ok(new RegExp('Crise du ' + jour(-5).slice(8) + '/' + jour(-5).slice(5, 7) + ' au ' + jour(-3).slice(8) + '/' + jour(-3).slice(5, 7)).test(await texte('#g-form')), 'Goutte : 3 jours, période affichée');
+await page.click('#g-duree [data-gd="5"]');
+ok((await page.inputValue('#g-dur')) === '5', 'Goutte : 5 jours et +, champ du nombre de jours');
+await page.fill('#g-dur', '8'); await page.locator('#g-dur').dispatchEvent('change');
+const nC = appels.filter(a => a.action === 'crise').length; await page.click('#g-noter'); await page.waitForTimeout(200);
+ok(appels.filter(a => a.action === 'crise').length === nC && /finirait après aujourd/.test(await texte('#g-form')), 'Goutte : 8 jours depuis il y a 5 jours, refusé (finirait après aujourd hui)');
+await page.click('#g-duree [data-gd="3"]');
+DATA.crises[0].duree = 3;
+await page.click('#g-noter'); await page.waitForTimeout(300);
+const crD = appels.filter(a => a.action === 'crise').pop();
+ok(crD.id === 'g1' && crD.duree === 3, 'Goutte : durée de 3 jours envoyée avec l id');
+ok(/3 jours/.test(await texte('.crise .du-p')) && /du \d\d\/\d\d au \d\d\/\d\d/.test(await texte('.crise .du-l')), 'Goutte : la carte affiche 3 jours et la période');
+await page.locator('.crise [data-gmod="g1"]').last().click();
+ok(await page.locator('#g-duree [data-gd="3"].on').count() === 1, 'Goutte : Modifier reprend la durée enregistrée');
+await page.click('#g-annule'); delete DATA.crises[0].duree; await page.evaluate(() => rafraichir());
 await page.click('.vue.on [data-cong="poids"]');
 
 console.log('Réglages');
