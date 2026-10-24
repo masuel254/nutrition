@@ -918,6 +918,18 @@ nav button .ico-b{position:relative;display:inline-block;line-height:0}
 .coach-sug button{text-align:left;border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:10px 12px;font-size:14.5px;color:var(--ink)}
 /* coach : analyse d'un menu */
 .bulle.mn-b{max-width:100%;white-space:normal}
+/* bilan du mois : graphiques en tête de la réponse */
+.bulle.bm-b{max-width:100%;width:100%;box-sizing:border-box;white-space:normal}.bm-txt{white-space:pre-wrap}
+.bm{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:10px 10px 6px;margin:0 0 12px}
+.bm h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;margin:12px 0 4px;color:var(--ink)}.bm h3:first-child{margin-top:0}
+.bm h3 small{font-size:12px;color:var(--soft);font-weight:400;text-align:right}
+.bm-svg{display:block;width:100%;height:auto}
+.bm-fr{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+.bm-fr div{height:30px;border-radius:5px;background:var(--creux);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:1px}
+.bm-fr div.cr{background:color-mix(in srgb,var(--rouge) 75%,var(--card))}.bm-fr i{font-style:normal;font-size:11px;line-height:1}.bm-fr small{font-size:9px;color:var(--soft)}.bm-fr div.cr small{color:#fff}
+.bm-lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--soft);margin:5px 0 2px}
+.bm-lg b.cr{display:inline-block;width:10px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--rouge) 75%,var(--card));margin-right:4px;vertical-align:-1px}
+.bm-ns{height:26px;margin-bottom:4px}
 .mn-tri{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0;font-size:13px;color:var(--soft)}
 .mn-tri button{border:1px solid var(--rule);border-radius:8px;background:var(--paper);padding:6px 9px;font-size:13px;color:var(--ink)}
 .mn-tri button.on{background:var(--ink);color:var(--paper)}
@@ -1031,8 +1043,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=100; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='24/10/2026 08h15';
+const APP_NUM=101; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='24/10/2026 08h58';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4003,9 +4015,9 @@ function etapeCoach(){
 }
 setInterval(()=>{if(S.coach&&S.coach.etat==='envoi'){const e=document.getElementById('c-etape');if(e)e.textContent=etapeCoach();}},1000);
 // Bilan du mois : l'appli calcule les chiffres (poids, alimentation, pas, goutte, alcool) et les joint à la question ;
-// la conversation n'affiche que la question.
+// la conversation n'affiche que la question. Renvoie {txt, g} : g = séries du mois pour les graphiques de la réponse.
 const BILAN_Q='Fais-moi le bilan du mois en cours';
-async function bilanMoisTxt(d){
+async function bilanMois(d){
   const a0=auj(),m0=a0.slice(0,8)+'01',f1=x=>String(Math.round(x*10)/10).replace('.',','),L=[];
   if(nrManque(d,m0)&&!S.nrCharge)await nrCharger(d,m0);
   // poids : pesée du début du mois (la dernière avant le 1er si elle a moins de 7 jours, sinon la première du mois)
@@ -4048,8 +4060,54 @@ async function bilanMoisTxt(d){
   if(AL.length){const av2=AL.filter(j=>Number(j.alcool)>0),g=av2.reduce((t,j)=>t+Number(j.alcool),0);
     L.push('Alcool : '+av2.length+' jour'+(av2.length>1?'s':'')+' avec alcool sur '+AL.length+' jour'+(AL.length>1?'s':'')+' suivis, '+(g?verresTxt(g):'aucun verre')+' au total.');}
   else L.push('Alcool : pas suivi ce mois-ci.');
-  return '[Chiffres du mois calculés par l’appli, du '+jjmm(m0)+' au '+jjmm(a0)+'. Utilise-les tels quels, ne les recalcule pas.]\n'+L.join('\n')+
-    '\n\nFais le bilan en 5 rubriques courtes, dans cet ordre : Poids, Alimentation, Pas, Goutte, Alcool. Pour chacune, les chiffres puis une phrase de lecture. Termine par UN levier prioritaire pour la fin du mois. Texte simple, sans markdown ni astérisques.';
+  // séries par jour du mois (1 à aujourd'hui) pour les graphiques ; la pesée du début peut dater de fin du mois d'avant (placée au 1er)
+  const n=Number(a0.slice(8)),jr=x=>Number(x.slice(8)),JD={};(d.jours||[]).forEach(j=>{if(j.date>=m0&&j.date<a0&&j.repas>0)JD[jr(j.date)]=[Math.round(Number(j.kcal)||0),Math.round(Number(j.cible)||0)];});
+  const AD={};A.forEach(x=>{AD[jr(x.date)]=Math.round(Number(x.pas));});
+  const g={m0:m0,n:n,
+    po:deb?[deb].concat(P.filter(x=>x.date>deb.date)).map(x=>[x.date<m0?1:jr(x.date),Number(x.poids)]):[],
+    kc:Array.from({length:n},(_,i)=>JD[i+1]||null),pas:Array.from({length:n},(_,i)=>AD[i+1]||0),
+    cr:C.map(x=>[jr(x.date),Number(x.duree)||0]),al:AL.filter(j=>Number(j.alcool)>0).map(j=>jr(j.date)),alg:AL.reduce((t,j)=>t+(Number(j.alcool)||0),0),alSuivi:AL.length,
+    nt:R.length?{N:'abcde'.split('').map(x=>R.filter(y=>y.l===x).length),m:nrMediane(R)}:null};
+  return {g:g,txt:'[Chiffres du mois calculés par l’appli, du '+jjmm(m0)+' au '+jjmm(a0)+'. Utilise-les tels quels, ne les recalcule pas.]\n'+L.join('\n')+
+    '\n\nFais le bilan en 5 rubriques courtes, dans cet ordre : Poids, Alimentation, Pas, Goutte, Alcool. Pour chacune, les chiffres puis une phrase de lecture. Termine par UN levier prioritaire pour la fin du mois. Texte simple, sans markdown ni astérisques.'};
+}
+// Graphiques du bilan du mois, en tête de la réponse du coach : poids, calories, pas, goutte et alcool, notes des repas.
+function carteBilan(g){
+  const W=334,n=g.n,f1=x=>String(Math.round(x*10)/10).replace('.',','),x=i=>14+(n>1?(i-1)/(n-1):0.5)*(W-28),fin='<text x="14" y="Y" font-size="10" fill="var(--soft)">'+jjmm(g.m0)+'</text><text x="'+(W-14)+'" y="Y" font-size="10" fill="var(--soft)" text-anchor="end">'+jjmm(plusJours(g.m0,n-1))+'</text>';
+  let h='<div class="bm">';
+  // poids : courbe, valeurs du début et de maintenant au-dessus des points
+  const po=g.po||[];
+  if(po.length>=2){
+    const v=po.map(p=>p[1]),mn=Math.min(...v)-0.3,mx=Math.max(...v)+0.3,y=t=>22+(mx-t)/(mx-mn)*70,a=po[0],b=po[po.length-1],e=b[1]-a[1];
+    h+='<h3>Poids <small><b style="color:'+(e<=0?'var(--under)':'var(--over)')+'">'+(e>0?'+':'')+f1(e)+' kg</b> · '+f1(a[1])+' → '+f1(b[1])+'</small></h3><svg viewBox="0 0 '+W+' 112" class="bm-svg" role="img" aria-label="Poids du mois">'+
+      '<polyline fill="none" stroke="var(--under)" stroke-width="2.5" stroke-linejoin="round" points="'+po.map(p=>x(p[0]).toFixed(1)+','+y(p[1]).toFixed(1)).join(' ')+'"/>'+
+      po.map(p=>'<circle cx="'+x(p[0]).toFixed(1)+'" cy="'+y(p[1]).toFixed(1)+'" r="3.5" fill="var(--under)"/>').join('')+
+      '<text x="'+x(a[0]).toFixed(1)+'" y="'+(y(a[1])-8).toFixed(1)+'" font-size="11" font-weight="700" fill="var(--ink)">'+f1(a[1])+'</text>'+
+      '<text x="'+x(b[0]).toFixed(1)+'" y="'+(y(b[1])-8).toFixed(1)+'" font-size="11" font-weight="700" fill="var(--ink)" text-anchor="end">'+f1(b[1])+' kg</text>'+fin.replace(/Y/g,'110')+'</svg>';
+  }
+  // barres par jour avec une ligne de repère
+  const barres=(vals,ref,lab,col,H)=>{const bw=(W-28)/n,mx=Math.max(ref,...vals.map(t=>t||0))*1.08||1,y=t=>10+(1-t/mx)*(H-28);
+    return '<svg viewBox="0 0 '+W+' '+H+'" class="bm-svg">'+vals.map((t,i)=>{const x0=(14+i*bw+bw*0.12).toFixed(1),w=(bw*0.76).toFixed(1);
+      return t?'<rect x="'+x0+'" y="'+y(t).toFixed(1)+'" width="'+w+'" height="'+(y(0)-y(t)).toFixed(1)+'" rx="2" fill="'+col(t)+'"/>':'<rect x="'+x0+'" y="'+(y(0)-2).toFixed(1)+'" width="'+w+'" height="2" fill="var(--rule)"/>';}).join('')+
+      (ref?'<line x1="14" x2="'+(W-14)+'" y1="'+y(ref).toFixed(1)+'" y2="'+y(ref).toFixed(1)+'" stroke="var(--ink)" stroke-dasharray="4 3" stroke-width="1.2"/><text x="'+(W-14)+'" y="'+(y(ref)-4).toFixed(1)+'" font-size="10.5" font-weight="700" fill="var(--ink)" text-anchor="end">'+lab+'</text>':'')+fin.replace(/Y/g,String(H-2))+'</svg>';};
+  const kc=(g.kc||[]).map(k=>k?k[0]:0),cs=(g.kc||[]).filter(k=>k&&k[1]).map(k=>k[1]),cm=cs.length?Math.round(cs.reduce((t,c)=>t+c,0)/cs.length):0,kv=kc.filter(Boolean);
+  if(kv.length){const km=Math.round(kv.reduce((t,k)=>t+k,0)/kv.length);
+    h+='<h3>Calories par jour <small>moy. '+nb(km)+(cm?' · cible '+nb(cm):'')+'</small></h3>'+barres(kc,cm,'cible '+nb(cm),t=>cm&&t>cm*1.1?'var(--over)':'var(--under)',96);}
+  const pv=(g.pas||[]).filter(Boolean);
+  if(pv.length){const pm=Math.round(pv.reduce((t,p)=>t+p,0)/pv.length);
+    h+='<h3>Pas par jour <small>moy. '+nb(pm)+'</small></h3>'+barres(g.pas,pm,'moy. '+nb(pm),()=>'color-mix(in srgb,var(--under) 70%,var(--card))',80);}
+  // goutte et alcool : calendrier du mois, jours de crise (toute la durée) et jours avec alcool
+  const cj={},al={};(g.cr||[]).forEach(c=>{for(let k=0;k<Math.max(1,c[1]);k++)cj[c[0]+k]=1;});(g.al||[]).forEach(j=>{al[j]=1;});
+  const ncr=(g.cr||[]).length,tj=(g.cr||[]).reduce((t,c)=>t+c[1],0);
+  h+='<h3>Goutte et alcool <small>'+(ncr?ncr+' crise'+(ncr>1?'s':''):'aucune crise')+'</small></h3><div class="bm-fr">';
+  for(let i=1;i<=n;i++)h+='<div class="'+(cj[i]?'cr':'')+'">'+(al[i]?'<i aria-hidden="true">🍷</i>':'')+'<small>'+i+'</small></div>';
+  h+='</div><div class="bm-lg">'+(ncr?'<span><b class="cr"></b>crise'+(tj?' ('+tj+' jour'+(tj>1?'s':'')+')':' (durée à compléter)')+'</span>':'')+
+    (g.alSuivi?'<span>🍷 alcool : '+(g.al||[]).length+' jour'+((g.al||[]).length>1?'s':'')+(g.alg?', '+verresTxt(g.alg):'')+'</span>':'<span>alcool non suivi</span>')+'</div>';
+  // notes des repas
+  if(g.nt){const t=g.nt.N.reduce((s,v)=>s+v,0);
+    h+='<h3>Notes de tes repas <small>médiane '+g.nt.m.toUpperCase()+' · '+t+' repas</small></h3><div class="ns-barre bm-ns">'+
+      'abcde'.split('').map((l,i)=>g.nt.N[i]?'<span class="ns-seg" style="width:'+(g.nt.N[i]/t*100).toFixed(2)+'%;background:'+EV_COUL[l.toUpperCase()]+'">'+(g.nt.N[i]/t>=0.08?'<b>'+l.toUpperCase()+'</b>':'')+'</span>':'').join('')+'</div>';}
+  return h+'</div>';
 }
 function suggestionsCoach(d){
   if(!d)return [];
@@ -4100,7 +4158,7 @@ function vueCoach(){
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
   // #c-der : repère du dernier message (ou de l'attente), pour y caler la page après une réponse
   const env=S.coach.etat==='envoi',n=S.coach.fil.length,F=S.coach.fil,der=(n>1&&F[n-2].role==='moi'&&F[n-1].role!=='moi')?n-2:n-1;
-  S.coach.fil.forEach((m,i)=>{h+=(!env&&i===der?'<span id="c-der"></span>':'')+(m.menu?bulleMenu(m,i):'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>');});
+  S.coach.fil.forEach((m,i)=>{h+=(!env&&i===der?'<span id="c-der"></span>':'')+(m.menu?bulleMenu(m,i):m.bilan?'<div class="bulle coach bm-b">'+carteBilan(m.bilan)+'<div class="bm-txt">'+esc(m.texte)+'</div></div>':'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>');});
   if(env)h+='<span id="c-der"></span><div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
      '<button class="primaire" id="c-envoi"'+(env?' disabled':'')+'>Envoyer</button>';
@@ -6353,10 +6411,10 @@ function brancher(){
     S.coach.brouillon='';$('#c-q').value='';
     S.coach.etat='envoi';S.coach.t0=Date.now();rendre();versDernier();
     try{
-      const qEnv=normNom(q)===normNom(BILAN_Q)?q+'\n\n'+await bilanMoisTxt(S.data):q;
-      const r=await appel({action:'conseil',question:qEnv,
+      const bm=normNom(q)===normNom(BILAN_Q)?await bilanMois(S.data):null;
+      const r=await appel({action:'conseil',question:bm?q+'\n\n'+bm.txt:q,
         historique:S.coach.fil.slice(-6).map(m=>({role:m.role,texte:m.texte}))});
-      S.coach.fil.push({role:'coach',texte:r.texte});
+      S.coach.fil.push(bm?{role:'coach',texte:r.texte,bilan:bm.g}:{role:'coach',texte:r.texte});
     }catch(e){S.coach.fil.push({role:'coach',texte:e.message});}
     S.coach.etat=null;
     localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));

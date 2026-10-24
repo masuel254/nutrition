@@ -836,3 +836,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Question toute prête « Fais-moi le bilan du mois en cours » (`BILAN_Q`), toujours en tête des 4 questions (`suggestionsAffichees`).
 - À l'envoi, `bilanMoisTxt(d)` calcule dans l'appli les chiffres du 1er du mois à aujourd'hui et les joint à la question (la bulle n'affiche que la question) : poids (pesée du début du mois = dernière avant le 1er si elle a moins de 7 jours, sinon la première du mois ; pesée actuelle ; écart), alimentation (journées complètes, kcal moyennes et cible, jours dans la cible, protéines, saturées, fibres, sodium, sucres ajoutés, purines à risque), notes IA des repas consommés (médiane), aliments les plus fréquents, pas, crises de goutte avec intensité et durée, jours d'alcool et verres. Journal du mois chargé au besoin (`nrCharger`). Consigne : 5 rubriques dans l'ordre Poids, Alimentation, Pas, Goutte, Alcool, puis un levier.
 - Aucun changement du workflow (le nœud Build Conseil API reçoit une question plus longue). Telegram n'a pas cette question.
+
+## 54. Bilan du mois : graphiques dans la réponse (24/10, appli v101)
+
+- `bilanMois(d)` (ex-`bilanMoisTxt`) renvoie `{txt, g}` : `g` = séries par jour du mois (`po` pesées, la première placée au 1er ; `kc` [kcal, cible] ; `pas` ; `cr` [jour, durée] ; `al` jours avec alcool, `alg` grammes, `alSuivi` ; `nt` notes A à E et médiane).
+- La réponse du coach garde `bilan:g` dans `S.coach.fil` (donc dans `suivi.chat`) ; `carteBilan(g)` dessine en tête de la bulle : courbe du poids (écart, début → maintenant), calories par jour avec la cible, pas par jour avec la moyenne, calendrier du mois (jours de crise sur toute la durée, verre les jours d'alcool), barre des notes. Puis le texte du coach.
+- Aucun changement du workflow.
