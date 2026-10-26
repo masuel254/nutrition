@@ -1018,6 +1018,29 @@ console.log('IA : estimation incertaine, portions habituelles');
   iaRep = null; await page.evaluate(() => localStorage.removeItem('suivi.portions'));
   await page.click('nav button[data-vue="jour"]'); }
 
+console.log('Pièces avec leur poids : nombre et grammes');
+{ ok(await page.evaluate(() => { const p = qtePieces('1 pièce (environ 180g)'), o = qtePieces('2 oeufs (120 g)');
+    return p.n === 1 && p.g === 180 && p.u === '1 pièce' && o.n === 2 && o.g === 120 && qtePieces('200 g') === null && qtePieces('150 g (2 tranches)') === null && qtePieces('1 bol de 250 ml') === null
+      && qtePiecesTexte('1 pièce (environ 180g)', 2, 440) === '2 pièce (environ 440g)'; }), 'Pièces : nombre et poids lus dans la quantité, rien pour une quantité en grammes seuls');
+  iaRep = { ok: true, enregistre: false, repas: 'Midi', date: jour(0), ia: 'flash-lite', incertitude: 'faible', note: '', aliments: [{ nom: 'Steak de boeuf grillé', quantite: '1 pièce (environ 180g)', kcal: 396, prot: 47, lip: 23, gluc: 0 }, { nom: 'Purée', quantite: 'environ 200g', kcal: 218, prot: 4, lip: 9, gluc: 30 }],
+    total: { kcal: 614, prot: 51, lip: 32, gluc: 30 }, ligne: { repas: 'Midi', detail: 'Steak purée', kcal: 614, prot: 51, lip: 32, gluc: 30 } };
+  await page.click('nav button[data-vue="ajout"]'); if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+  await page.fill('#a-desc', 'steak purée'); await page.click('#a-envoi'); await page.waitForSelector('.resu');
+  const li = '.resu .resu-al li:first-child';
+  ok(await page.locator(li + ' .al-mm').count() === 4 && await page.locator(li + ' [data-g="1"]').count() === 2 && /1 pièce/.test(await texte(li + ' .al-ctrl')) && /180 g/.test(await texte(li + ' .al-ctrl')), 'Pièces : deux réglages, nombre (1 pièce) et poids (180 g)');
+  ok(await page.locator('.resu .resu-al li:nth-child(2) .al-mm').count() === 2, 'Pièces : une quantité en grammes seuls garde un seul réglage');
+  for (let n = 0; n < 4; n++) await page.locator(li + ' [data-g="1"][data-d="1"]').click();
+  ok(/220 g/.test(await texte(li + ' .al-ctrl')) && /484 kcal/.test(await texte(li + ' .al-kc')) && /1 pièce de 220 g/.test(await texte(li + ' .al-pp')), 'Pièces : poids d une pièce 180 → 220 g, 396 → 484 kcal');
+  await page.locator(li + ' [data-ai="0"][data-d="1"]:not([data-g])').click();
+  ok(/2 pièce/.test(await texte(li + ' .al-ctrl')) && /220 g/.test(await texte(li + ' .al-ctrl')) && /968 kcal/.test(await texte(li + ' .al-kc')) && /440 g en tout/.test(await texte(li + ' .al-pp')), 'Pièces : une pièce de plus garde 220 g par pièce (440 g, 968 kcal)');
+  ok(await page.evaluate(() => S.ajout.resultat.aliments[0].quantite === '2 pièce (environ 440g)'), 'Pièces : la quantité enregistrée porte le nouveau poids total');
+  await page.locator(li + ' [data-ai="0"][data-d="-1"]:not([data-g])').click();
+  for (let n = 0; n < 30; n++) await page.locator(li + ' [data-g="1"][data-d="-1"]').click();
+  ok(/^10 g$/.test((await page.locator(li + ' .al-q').nth(1).innerText()).trim()) && /22 kcal/.test(await texte(li + ' .al-kc')), 'Pièces : le poids ne descend pas sous 10 g');
+  ok(await page.evaluate(() => document.getElementById('defile').scrollWidth <= document.getElementById('defile').clientWidth), 'Pièces : aucun débordement horizontal');
+  await page.click('#a-abandon'); if (await page.locator('#modale-hote [data-mod="oui"]').count()) await page.click('#modale-hote [data-mod="oui"]');
+  iaRep = null; await page.click('nav button[data-vue="jour"]'); }
+
 console.log('Note des repas');
 { const attendu = per => { const debut = per ? jour(-(per - 1)) : jour(-60); const R = LIGNES.filter(l => l.date >= debut && l.ia && /^[a-e]$/.test(l.nutriscore));
     const t = R.map(l => l.nutriscore).sort(); return { R, debut, L: t[Math.floor((t.length - 1) / 2)].toUpperCase(), nD: R.filter(l => l.nutriscore === 'd').length }; };

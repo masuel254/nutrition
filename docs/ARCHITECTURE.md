@@ -842,3 +842,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - `bilanMois(d)` (ex-`bilanMoisTxt`) renvoie `{txt, g}` : `g` = séries par jour du mois (`po` pesées, la première placée au 1er ; `kc` [kcal, cible] ; `pas` ; `cr` [jour, durée] ; `al` jours avec alcool, `alg` grammes, `alSuivi` ; `nt` notes A à E et médiane).
 - La réponse du coach garde `bilan:g` dans `S.coach.fil` (donc dans `suivi.chat`) ; `carteBilan(g)` dessine en tête de la bulle : courbe du poids (écart, début → maintenant), calories par jour avec la cible, pas par jour avec la moyenne, calendrier du mois (jours de crise sur toute la durée, verre les jours d'alcool), barre des notes. Puis le texte du coach.
 - Aucun changement du workflow.
+
+## 55. Pièces avec leur poids : régler le nombre et les grammes (26/10, appli v102)
+
+- `qtePieces(q)` lit une quantité « nombre de pièces + poids en grammes » (« 1 pièce (environ 180g) » → `{n:1, g:180, u:'1 pièce'}`, `g` = poids total) ; `null` si le premier nombre est déjà une unité de poids ou de volume, ou s'il n'y a pas de poids en g.
+- Écran de résultat (analyse et « Modifier ce repas » du Journal) : deux réglages `− 1 pièce +` et `− 220 g +` (poids d'une pièce, de 10 g en 10 g, minimum 10 g, boutons `data-g="1"`), plus la ligne `.al-pp` « 1 pièce de 220 g » (« , 440 g en tout » au-delà d'une pièce).
+- `ajusteAliment(al, n, g)` : pour les pièces, le facteur est `g / poids d'origine` ; sans `g`, le poids actuel par pièce suit le nombre. `qtePiecesTexte` réécrit la quantité enregistrée (« 2 pièce (environ 440g) »).
+- Aucun changement du workflow.

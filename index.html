@@ -237,6 +237,10 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .al-ctrl .al-mm{width:30px;height:30px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .al-q{font-size:13px;color:var(--soft);min-width:0}
 .al-q.fixe{margin-top:2px}
+.al-ctrl.pp{flex-wrap:wrap;row-gap:4px}
+.al-ctrl .al-mm.g{margin-left:10px}
+.al-q b{color:var(--ink);font-weight:600}
+.al-pp{font-size:12px;color:var(--soft);margin-top:4px}
 .resu .resu-al li.al-plg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px;padding-top:12px}
 .al-plg .t{border:1px solid var(--rule);border-radius:10px;padding:8px 10px;background:var(--paper);min-width:0}
 .al-plg .t small{display:block;font-size:13px;color:var(--soft)}
@@ -1043,8 +1047,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=101; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='24/10/2026 08h58';
+const APP_NUM=102; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='26/10/2026 13h58';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2429,6 +2433,20 @@ function qtePas(q){
   if(n===null)return 1;
   return n>=20?10:(n>=5?1:1);
 }
+// Pièces avec leur poids : "1 pièce (environ 180g)" -> {n:1,g:180,u:'1 pièce',i,l} (g = poids total des pièces).
+// null si la quantité n'a pas un nombre de pièces suivi d'un poids en grammes.
+function qtePieces(q){
+  const s=String(q||''),N=[...s.matchAll(/\d+(?:[.,]\d+)?/g)];
+  if(N.length<2||/^\s*(k?g|mg|m?l|cl|dl)\b/i.test(s.slice(N[0].index+N[0][0].length))||!/^\s*g\b/i.test(s.slice(N[1].index+N[1][0].length)))return null;
+  const n=parseFloat(N[0][0].replace(',','.')),g=parseFloat(N[1][0].replace(',','.'));
+  if(!(n>0&&g>0))return null;
+  return {n:n,g:g,i:N[1].index,l:N[1][0].length,u:s.slice(0,N[1].index).replace(/[\s(,~≈]*(environ|env\.?|soit)?[\s(~≈]*$/i,'').trim()};
+}
+// Réécrit la quantité en pièces avec un nouveau nombre et un nouveau poids total.
+function qtePiecesTexte(q,n,g){
+  const s=String(q||''),P=qtePieces(s);if(!P)return qteRemplace(s,n);
+  return qteRemplace(s.slice(0,P.i),n)+String(Math.round(g))+s.slice(P.i+P.l);
+}
 // Portions habituelles : une quantité corrigée (− / +) sur un aliment estimé par l'IA est retenue par nom d'aliment
 // à l'enregistrement, puis proposée à la prochaine analyse qui estime autre chose (même unité). Local à l'appareil.
 const PORT_LS='suivi.portions',PORT_MAX=40;
@@ -2451,13 +2469,14 @@ function portSuggestions(r){
     return p&&v!==null&&p.n!==v&&p.u===portUnite(a.quantite)?{i:i,nom:a.nom,de:a.quantite,a:p.q,n:p.n}:null;}).filter(Boolean);
 }
 // Ajuste un aliment à une nouvelle quantité, au prorata de l'ancienne.
-function ajusteAliment(al,nouvelleQte){
-  const base=al.__base||al;
-  const q0=qteNombre(base.quantite);
-  if(q0===null||q0<=0)return al;
-  const f=nouvelleQte/q0;
+// Pièces avec leur poids : le poids total suit le nombre de pièces, sauf s'il est donné (réglage du poids).
+function ajusteAliment(al,nouvelleQte,nouveauxG){
+  const base=al.__base||al,P=qtePieces(base.quantite);
+  let f,qte;
+  if(P){const C=qtePieces(al.quantite)||P,g=nouveauxG===undefined?C.g/C.n*nouvelleQte:nouveauxG;f=g/P.g;qte=qtePiecesTexte(base.quantite,nouvelleQte,g);}
+  else{const q0=qteNombre(base.quantite);if(q0===null||q0<=0)return al;f=nouvelleQte/q0;qte=qteRemplace(base.quantite,nouvelleQte);}
   const R=x=>Math.round((Number(x)||0)*f);
-  const o={nom:base.nom,quantite:qteRemplace(base.quantite,nouvelleQte),
+  const o={nom:base.nom,quantite:qte,
     kcal:R(base.kcal),prot:R(base.prot),lip:R(base.lip),gluc:R(base.gluc),
     fibres:R(base.fibres),sucres:R(base.sucres),sodium:R(base.sodium),satures:R(base.satures),sucres_ajoutes:R(base.sucres_ajoutes),__base:base};
   if(base.purines!==undefined){
@@ -2541,7 +2560,18 @@ function vueAjout(d){
          '<span class="al-kc">'+nb(al.kcal)+' kcal</span>';
       if(!fige)h+='<button class="al-sup" data-alsup="'+i+'" aria-label="Retirer cet aliment">\u00d7</button>';
       h+='</div>';
-      if(!fige&&num!==null){
+      const pp=fige?null:qtePieces(al.quantite);
+      if(pp){
+        // pièces avec leur poids : un réglage pour le nombre, un pour le poids d'une pièce
+        const w=Math.round(pp.g/pp.n);
+        h+='<div class="al-ctrl pp"><button class="al-mm" data-ai="'+i+'" data-d="-1" aria-label="Une pièce de moins">\u2212</button>'+
+           '<span class="al-q">'+esc(pp.u).replace(/^([\d.,]+)/,'<b>$1</b>')+'</span>'+
+           '<button class="al-mm" data-ai="'+i+'" data-d="1" aria-label="Une pièce de plus">+</button>'+
+           '<button class="al-mm g" data-ai="'+i+'" data-d="-1" data-g="1" aria-label="10 g de moins par pièce">\u2212</button>'+
+           '<span class="al-q"><b>'+w+'</b> g</span>'+
+           '<button class="al-mm" data-ai="'+i+'" data-d="1" data-g="1" aria-label="10 g de plus par pièce">+</button>'+pastillePurines(al)+'</div>'+
+           '<div class="al-pp">'+esc(pp.u)+' de '+w+' g'+(pp.n!==1?', '+Math.round(pp.g)+' g en tout':'')+'</div>';
+      }else if(!fige&&num!==null){
         h+='<div class="al-ctrl"><button class="al-mm" data-ai="'+i+'" data-d="-1" aria-label="Moins">\u2212</button>'+
            '<span class="al-q">'+esc(al.quantite)+'</span>'+
            '<button class="al-mm" data-ai="'+i+'" data-d="1" aria-label="Plus">+</button>'+pastillePurines(al)+'</div>';
@@ -6047,6 +6077,12 @@ function brancher(){
       const A=S.ajout,r=A.resultat;if(!r)return;
       const i=Number(b.dataset.ai),dir=Number(b.dataset.d);
       const al=r.aliments[i];if(!al)return;
+      const P=qtePieces(al.quantite);
+      if(P&&b.dataset.g){
+        // poids d'une pièce, de 10 g en 10 g (arrondi à la dizaine au premier geste)
+        const w=P.g/P.n,nw=Math.max(10,dir>0?Math.floor(w/10)*10+10:Math.ceil(w/10)*10-10);
+        r.aliments[i]=ajusteAliment(al,P.n,nw*P.n);recalculeTotal(r);ecrireRepasCache();rendre();return;
+      }
       const cur=qteNombre(al.quantite);if(cur===null)return;
       const pas=qtePas(al.quantite);
       const nv=Math.max(pas,Math.round((cur+dir*pas)*100)/100);
