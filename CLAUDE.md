@@ -107,8 +107,8 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## État au 21/10/2026
 
-- Appli v102, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 55.
-- Workflow v64 (449 nœuds, durée des crises, colonne `duree` dans Crises), tests n8n au vert.
+- Appli v103, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 56.
+- Workflow v65 (449 nœuds, Nutri-Score par produit scanné dans `aliments`), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
 ## Hors sujet

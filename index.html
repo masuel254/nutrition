@@ -1047,8 +1047,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=102; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='26/10/2026 13h58';
+const APP_NUM=103; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='26/10/2026 14h14';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1469,6 +1469,7 @@ function utiliserProduits(items){
   const al=items.map(x=>{const c=calculProduit(x.p,x.g);
     return {nom:x.p.nom+(x.p.marque?' '+x.p.marque:''),quantite:nb(x.g)+' g',kcal:c.kcal,
       prot:c.prot,lip:c.lip,gluc:c.gluc,fibres:c.fibres,sucres:c.sucres,sodium:c.sodium,satures:c.satures,sucres_ajoutes:c.sucres_ajoutes,
+      ...(/^[abcde]$/i.test(String(x.p.nutriscore||''))?{ns:String(x.p.nutriscore).toLowerCase()}:{}),
       ...(c.purines!==undefined?{purines:c.purines,purines_risque:c.purines_risque,alcool:c.alcool,sucree:c.sucree,famille:x.p.famille||''}:{})};});
   items.forEach(x=>pousserFoodScan(x.p,x.g));
   SC.etat=null;
@@ -2479,6 +2480,7 @@ function ajusteAliment(al,nouvelleQte,nouveauxG){
   const o={nom:base.nom,quantite:qte,
     kcal:R(base.kcal),prot:R(base.prot),lip:R(base.lip),gluc:R(base.gluc),
     fibres:R(base.fibres),sucres:R(base.sucres),sodium:R(base.sodium),satures:R(base.satures),sucres_ajoutes:R(base.sucres_ajoutes),__base:base};
+  if(base.ns)o.ns=base.ns;
   if(base.purines!==undefined){
     o.purines=R(base.purines);o.purines_risque=R(base.purines_risque);
     o.alcool=Math.round((Number(base.alcool)||0)*f*10)/10;o.sucree=base.sucree||0;
@@ -2691,15 +2693,22 @@ function nrTopo(){
     '<p class="note">L’IA juge ce qu’apporte le repas pour ses calories, pas la quantité : une petite salade peut être A, un gros plat équilibré aussi. La grande lettre est la note médiane : la moitié de tes repas font au moins aussi bien. Seuls les repas analysés par l’IA puis enregistrés (donc consommés) sont notés (les produits scannés ont leur Nutri-Score, onglet Calories). Touche la lettre d’un repas dans le Journal pour revoir l’avis de l’IA.</p>',
     'Comment l’IA note un repas ?',true);
 }
-function blocNutriscore(d){
-  // Distribution des Nutri-Scores sur les seuls produits CONSOMMÉS.
-  // d.journal ne contient que les repas enregistrés : les estimations
-  // (repas 'estim') ne sont jamais écrites, donc elles sont exclues de fait.
+function blocNutriscore(d,per){
+  // Distribution des Nutri-Scores sur les seuls produits CONSOMMÉS, sur la période choisie.
+  // d.journal ne contient que les repas enregistrés : un scan non enregistré n'est jamais compté.
+  // Un produit par aliment scanné (champ ns) ; les anciens repas d'un seul produit gardent la note de la ligne.
+  const js=(d.jours||[]).filter(j=>j.repas>0);
+  const debut=per?plusJours(auj(),-(per-1)):(js.length?js[0].date:auj());
+  const manque=nrManque(d,debut),err=S.nrErr&&S.nrErr.d===d;
+  if(manque&&!S.nrCharge&&!err)setTimeout(()=>nrCharger(d,debut),0);
   const N={a:0,b:0,c:0,d:0,e:0};
   let tot=0;
   (d.journal||[]).forEach(r=>{
+    if(r.date<debut||r.date>auj())return;
+    const L=(Array.isArray(r.aliments)?r.aliments:[]).map(a=>String((a&&a.ns)||'').trim().toLowerCase()).filter(x=>/^[abcde]$/.test(x));
     const s=String(r.nutriscore||'').trim().toLowerCase();
-    if(/^[abcde]$/.test(s)&&estScan(r)){N[s]++;tot++;}
+    if(!L.length&&/^[abcde]$/.test(s)&&estScan(r))L.push(s);
+    L.forEach(x=>{N[x]++;tot++;});
   });
   if(!tot)return '';
   const ORD=['a','b','c','d','e'];
@@ -2736,7 +2745,7 @@ function blocNutriscore(d){
   let h='<section><h2>'+ico('pomme','x')+'Qualité des produits scannés</h2>';
   h+='<div class="ns-tete"><div class="ns-note"><b>'+moy.toFixed(1).replace('.',',')+'</b><small>/5</small></div>'+
      '<div class="ns-tete-t"><b>'+teteTxt+'</b>'+
-     '<small>sur '+tot+(tot>1?' produits consommés':' produit consommé')+'</small></div></div>';
+     '<small>sur '+tot+(tot>1?' produits consommés':' produit consommé')+' · '+(per?per+' derniers jours':'depuis le début')+(manque&&!err?' (chargement…)':'')+'</small></div></div>';
   h+=barre+leg;
   h+='<p class="note '+cls+'">'+lecture+' Basé uniquement sur les produits que tu as enregistrés dans un repas, avec un Nutri-Score officiel Open Food Facts.</p>';
   h+='</section>';
@@ -2904,7 +2913,7 @@ function vueCourbes(d){
        detailJour(d,S.inspCal?S.inspCal.date:null)+
        aide('<p class="note">'+libCouleursEcart()+' Plus la case est foncée plus l’écart est marqué. Les cases grises sont les jours sans aucune saisie. Touche une case pour le détail.</p>','Comment lire le calendrier ?')+
        '</section>';
-    h+=blocNutriscore(d);
+    h+=blocNutriscore(d,P);
   }
   return h;
 }

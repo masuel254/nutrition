@@ -803,6 +803,17 @@ console.log('Scan de plusieurs produits d\'affilée');
   await scanne('333');
   await page.click('#scan-fin'); await page.waitForSelector('.resu .al-nom');
   ok(await page.locator('.resu .al-nom').count() === 3 && /450 kcal/.test(await texte('#e-total')), 'scan à la chaîne : ajout d\'un produit scanné à un repas existant');
+  ok(await page.evaluate(() => S.ajout.resultat.aliments.map(a => a.ns || '-').join('') === 'ba-'), 'scan : chaque produit garde son Nutri-Score (yaourt B, pain A, jambon sans note)');
+  await page.locator('.resu [data-ai="0"][data-d="1"]').click();
+  ok(await page.evaluate(() => S.ajout.resultat.aliments[0].ns === 'b' && alimentsAEnvoyer(S.ajout.resultat)[0].ns === 'b'), 'scan : le Nutri-Score suit la quantité réglée et part à l enregistrement');
+  ok(await page.evaluate(() => { const d = { jours: [{ date: plusJours(auj(), -40), repas: 2 }], journal: [
+      { date: auj(), ia: 'flash', nutriscore: 'c', evaluation: 'x', aliments: [{ nom: 'Riz', ns: '' }, { nom: 'Yaourt', ns: 'b' }, { nom: 'Biscuit', ns: 'e' }] },
+      { date: plusJours(auj(), -2), ia: 'code-barres', nutriscore: '', aliments: [{ nom: 'Pain', ns: 'a' }, { nom: 'Compote', ns: 'a' }] },
+      { date: plusJours(auj(), -3), ia: 'code-barres', nutriscore: 'd', aliments: [{ nom: 'Ancien scan' }] },
+      { date: plusJours(auj(), -20), ia: 'code-barres', nutriscore: 'a', aliments: [{ nom: 'Muesli', ns: 'a' }] }] };
+    const t7 = blocNutriscore(d, 7), t30 = blocNutriscore(d, 30);
+    return /sur 5 produits consommés · 7 derniers jours/.test(t7) && !/Muesli/.test(t7) && /sur 6 produits consommés · 30 derniers jours/.test(t30); }),
+    'Qualité des produits scannés : un produit par aliment scanné (même dans un repas de l IA), anciens scans seuls comptés, suit la période');
   await page.evaluate(() => { S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; S.ajout.histo = []; rendre(); });
   await page.click('nav button[data-vue="jour"]'); }
 

@@ -40,6 +40,7 @@ Ces tests lisent `n8n/Agent_Nutrition.json` (ou le chemin passé en argument). `
 | `t_lib_calculs.js` | Appli et Telegram iso : les 15 copies du bloc de calcul identiques à `lib_calculs_n8n.js`, fonction par fonction |
 | `t_crise_modifier.js` | Goutte : modifier une crise seulement si elle est active et à ce compte ; sans id, nouvelle crise |
 | `t_crise_duree.js` | Goutte : durée d'une crise (1 à 60 jours, vide = en cours, pas de fin après aujourd'hui), écrite dans Crises et renvoyée par Build API Payload |
+| `t_nutriscore_produits.js` | Qualité des produits scannés : Build Ligne API garde le Nutri-Score de chaque produit (`ns` dans `aliments`), lettre invalide ignorée |
 | `t_analyses.js` | Feuille Analyses : une ligne par analyse IA réussie (appli, menu, coach, Telegram), aucune en échec, `analyses_jours` |
 
 `n8n/tests/sim.js` : mini-exécuteur qui suit les connexions, exécute les vrais nœuds Code / IF / Switch et simule

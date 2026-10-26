@@ -849,3 +849,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Écran de résultat (analyse et « Modifier ce repas » du Journal) : deux réglages `− 1 pièce +` et `− 220 g +` (poids d'une pièce, de 10 g en 10 g, minimum 10 g, boutons `data-g="1"`), plus la ligne `.al-pp` « 1 pièce de 220 g » (« , 440 g en tout » au-delà d'une pièce).
 - `ajusteAliment(al, n, g)` : pour les pièces, le facteur est `g / poids d'origine` ; sans `g`, le poids actuel par pièce suit le nombre. `qtePiecesTexte` réécrit la quantité enregistrée (« 2 pièce (environ 440g) »).
 - Aucun changement du workflow.
+
+## 56. Qualité des produits scannés : un produit par aliment, suit la période (26/10, appli v103, workflow v65)
+
+- Avant : la colonne `nutriscore` d'une ligne ne portait le Nutri-Score que pour un repas d'un seul produit scanné ; plusieurs produits d'affilée ou un produit greffé sur un repas de l'IA n'étaient pas comptés, et le bloc ignorait le sélecteur de période.
+- `utiliserProduits` pose `ns` (a à e) sur chaque aliment scanné ; `ajusteAliment` le garde. Workflow v65 : `alimentsJSON` de `Build Ligne API` garde `ns` dans la colonne `aliments` (v64 archivé dans `n8n/archives/`).
+- `blocNutriscore(d, per)` : compte les `ns` des aliments des repas enregistrés de la période ; une ligne scannée sans `ns` (ancienne) compte une fois avec sa colonne `nutriscore`. Charge l'historique manquant comme la note des repas (`nrManque` / `nrCharger`). Un scan non enregistré n'est jamais compté.
+- Test n8n `t_nutriscore_produits.js`, e2e dans « Scan de plusieurs produits d'affilée ».
