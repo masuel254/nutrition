@@ -804,8 +804,6 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .jr.on{border-color:var(--under);box-shadow:0 0 0 1px var(--under) inset}.jr .ic{width:24px;height:24px;flex:none}
 .jr span{min-width:0}.jr small{display:block;font-size:11px;color:var(--soft);line-height:1.2}.jr b{display:block;font-size:13.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jr-p{margin-top:8px;padding:10px;border:1px solid var(--rule);border-radius:12px;background:var(--card)}.jr-p section{margin:0}
-.sug{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 10px 10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--card);min-width:0}
-.sug-t{flex:1;min-width:0}.sug-t small{display:block;font-size:12px;color:var(--soft)}.sug-t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pf-chg{margin:0 0 0 2px;width:auto;font-size:13px}
 .pf-defil{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}.pf-defil::-webkit-scrollbar{display:none}
 .pf-c{flex:none;display:flex;align-items:center;gap:8px;max-width:72%;padding:8px 8px 8px 10px;border:1px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);text-align:left}
@@ -1047,8 +1045,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=103; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='26/10/2026 14h14';
+const APP_NUM=104; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='28/10/2026 15h17';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1947,17 +1945,6 @@ function pastilleJourPasse(v,t){
   return {coul:couleurKcal(v,t),txt:nb(Math.round(Math.abs(v-t)))+' kcal '+(v>t?'au-delà':'en dessous')};
 }
 // Bande des 7 derniers jours (le plus ancien à gauche, aujourd'hui à droite) : toucher un jour affiche ses données.
-// Jour : à l'heure d'un créneau encore vide, le repas le plus probable (préféré de ce créneau, sinon le dernier
-// pris à ce moment sur 7 jours), ajouté en un toucher
-function suggestionJour(d){
-  const cr=repasParHeure(),a=d.aujourdhui||{};
-  if((((a.parRepas||{})[cr])||{}).kcal)return null;
-  const p=prefListe().find(x=>x.cr===cr);
-  if(p)return {cr:cr,nom:p.nom,kcal:prefTotal(p).kcal,src:'ton préféré',g:{l:{aliments:p.aliments,repas:''}},note:'Ton repas préféré « '+p.nom+' », sans nouvelle analyse.'};
-  const l=((d.journal)||[]).filter(x=>x&&x.kcal&&x.date<auj()&&x.date>=plusJours(auj(),-7)&&creneauDe(x.repas)===cr).sort((x,y)=>x.date<y.date?1:-1)[0];
-  if(!l)return null;
-  return {cr:cr,nom:Array.isArray(l.aliments)&&l.aliments.length?nomRepas(l.aliments):(l.detail||l.repas),kcal:l.kcal,src:'comme '+libDate(l.date).toLowerCase(),g:{l:l}};
-}
 // Jour : raccourcis de saisie ; un toucher ouvre la saisie sur place, un second la referme
 function racJour(d){
   const R=S.jour.rac,p=d.poids||[],pa=((d.activite||[]).find(x=>x.date===auj())||{}).pas||0;
@@ -1992,9 +1979,6 @@ function vueJour(d){
       barreMacro('prot','Prot.',a.prot||0,c.prot,'steak')+barreMacro('lip','Lip.',a.lip||0,c.lip,'huile')+barreMacro('gluc','Gluc.',a.gluc||0,c.gluc,'pain')+
       '</div></div>';
     if(!pas){h+=blocPasJour(d,c.kcal);
-      const sg=S.sugJ=suggestionJour(d);
-      if(sg)h+='<div class="sug">'+ico(IC_REPAS[sg.cr]||'assiette','m')+'<span class="sug-t"><small>'+libelleRepas(sg.cr)+' · '+sg.src+'</small><b>'+esc(sg.nom)+'</b></span>'+
-        '<span class="rf-k">'+nb(sg.kcal)+' kcal</span><button class="rf-aj" id="j-sug" aria-label="Ajouter '+esc(sg.nom)+' en '+libelleRepas(sg.cr)+'">+</button></div>';
       h+=racJour(d);}
   } else h+='<p class="vide">Aucune cible enregistrée. Ouvre les réglages pour la fixer.</p>';
   h+='</section>';
@@ -5692,7 +5676,6 @@ function brancher(){
     catch(err){S.gt.etat='ko';S.gt.message=err.message;}
     rendre();
   }));
-  on('#j-sug','click',async()=>{const sg=S.sugJ;if(!sg)return;S.vue='ajout';prendreRepas(sg.g,sg.cr,sg.note);ecrireRepasCache();const e=enregistrer(auj());hautPage();await e;});
   document.querySelectorAll('[data-jr]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.jr;S.jour.rac=S.jour.rac===k?null:k;
     if(k==='crise'&&S.gt.mod)S.gt={quand:'auj',date:'',art:null,int:null,rem:'',etat:null};S.pesée.etat=null;S.corps.pasEtat=null;rendre();}));
   on('#j-alerte','click',()=>{S.jour.alerteOuv=!S.jour.alerteOuv;rendre();});

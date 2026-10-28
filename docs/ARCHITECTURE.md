@@ -856,3 +856,7 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - `utiliserProduits` pose `ns` (a à e) sur chaque aliment scanné ; `ajusteAliment` le garde. Workflow v65 : `alimentsJSON` de `Build Ligne API` garde `ns` dans la colonne `aliments` (v64 archivé dans `n8n/archives/`).
 - `blocNutriscore(d, per)` : compte les `ns` des aliments des repas enregistrés de la période ; une ligne scannée sans `ns` (ancienne) compte une fois avec sa colonne `nutriscore`. Charge l'historique manquant comme la note des repas (`nrManque` / `nrCharger`). Un scan non enregistré n'est jamais compté.
 - Test n8n `t_nutriscore_produits.js`, e2e dans « Scan de plusieurs produits d'affilée ».
+
+## 57. Jour : carte « repas proposé » retirée (28/10, appli v104)
+
+- La carte `.sug` (`suggestionJour`, bouton `#j-sug`) qui proposait, pour un créneau encore vide, le préféré de ce créneau ou le dernier repas pris à cette heure sur 7 jours est supprimée (jugée inutile par Samuel). Les préférés restent en tête d'Ajouter.

@@ -115,7 +115,7 @@ const vaProgres = async (o, ko) => { await page.click('nav button[data-vue="cour
 const vaCoach = () => page.click('nav button[data-vue="coach"]');
 
 console.log('Jour');
-ok(await page.evaluate(() => { const d = document.getElementById('defile'), v = document.querySelector('.v-jour .vg'), s = v ? v.closest('section') : null; const g = document.querySelector('.v-jour .sug'), cs = g && getComputedStyle(g); const h = (s ? s.getBoundingClientRect().height + parseFloat(getComputedStyle(s).marginBottom) : 0) + (g ? g.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom) : 0); return d.scrollHeight - h <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, qualité du jour affichée, hors bannière goutte et repas proposé selon l heure)');
+ok(await page.evaluate(() => { const d = document.getElementById('defile'), v = document.querySelector('.v-jour .vg'), s = v ? v.closest('section') : null; const h = s ? s.getBoundingClientRect().height + parseFloat(getComputedStyle(s).marginBottom) : 0; return d.scrollHeight - h <= d.clientHeight + 1; }), 'Jour : tout tient sans défiler (390 × 844, qualité du jour affichée, hors bannière goutte)');
 ok(await page.evaluate(() => [...document.querySelectorAll('.v-jour .hero .hm-l')].every(e => e.getBoundingClientRect().height < 24)) && await page.evaluate(() => Math.round(document.querySelector('.v-jour .hero .cal-anneau svg').getBoundingClientRect().width)) === 148, 'Jour : grand cercle (148 px), protéines, lipides, glucides chacun sur une ligne');
 ok(await page.locator('.cal-pastille').count() === 1, 'pastille des calories');
 ok(await page.locator('.hero .hm').count() === 3, 'barres des trois macros');
@@ -969,15 +969,10 @@ await page.click('nav button[data-vue="jour"]');
 console.log('Saisie en un toucher, écrans allégés');
 await page.click('nav button[data-vue="jour"]');
 const crH = await page.evaluate(() => { const cr = repasParHeure(); S.pref = null; S.prefLoc = [{ id: 'pz', nom: 'Mon bol test', cr, src: '', aliments: [{ nom: 'Riz', quantite: '100 g', kcal: 130, prot: 3, lip: 0, gluc: 28 }, { nom: 'Oeuf', quantite: '1', kcal: 70, prot: 6, lip: 5, gluc: 0 }] }]; S.data.aujourdhui.parRepas[cr] = { kcal: 0, prot: 0, lip: 0, gluc: 0 }; rendre(); return cr; });
-ok(await page.locator('.vue.on .sug').count() === 1 && /Mon bol test/.test(await texte('.vue.on .sug')) && /200 kcal/.test(await texte('.vue.on .sug')) && /ton préféré/.test(await texte('.vue.on .sug')), 'Jour : créneau vide, le préféré du moment proposé (' + crH + ')');
+ok(await page.locator('.vue.on .sug, #j-sug').count() === 0 && !/Mon bol test/.test(await texte('.vue.on')), 'Jour : plus de repas proposé selon l heure, même créneau vide avec un préféré (' + crH + ')');
 ok(await page.locator('.vue.on #j-ajout').count() === 0, 'Jour : plus de bouton Ajouter un repas (doublon de l onglet)');
 ok(await page.locator('.vue.on svg[aria-label="Répartition des calories par macronutriment"]').count() === 0, 'Jour : plus de barre P/L/G en %');
-const nSug = appels.filter(a => a.action === 'enregistrer').length;
-await page.click('#j-sug'); await page.waitForTimeout(800);
-const enrS = appels.filter(a => a.action === 'enregistrer').pop();
-ok(appels.filter(a => a.action === 'enregistrer').length === nSug + 1 && enrS.kcal === 200 && enrS.date === jour(0) && enrS.repas === await page.evaluate(c => libelleRepas(c), crH), 'Jour : un toucher sur + enregistre le repas proposé, au créneau du moment');
-ok(await page.locator('nav button[data-vue="ajout"].on, nav button[data-vue="ajout"][aria-current]').count() + await page.locator('.vue.on .resu').count() >= 1 && /enregistr/i.test(await texte('.vue.on .resu')), 'Jour : la confirmation s affiche dans Ajouter (annulable)');
-await page.click('#a-nouveau');
+await page.click('nav button[data-vue="ajout"]'); if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
 ok(await page.locator('.pf-rang [data-pf-aj]').count() === 1 && await page.evaluate(() => { const a = document.querySelector('.pf-rang'), b = document.querySelector('.vue.on .aj-photo'); return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'Ajouter : préférés en tête, avant la photo, sans ouvrir Refaire');
 ok(new RegExp('Ajouté en ' + await page.evaluate(c => libelleRepas(c), crH)).test(await texte('.pf-rang')) && await page.locator('.pf-rang [data-pfc]').count() === 0, 'Ajouter : créneau du moment affiché, choix masqué');
 await page.click('.pf-rang [data-pf-chg]');
