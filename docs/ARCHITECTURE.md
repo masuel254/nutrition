@@ -875,3 +875,8 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Appli : `bulleMenu` groupe par rubrique dans l'ordre de la carte (titres `tr.mn-sec` dès qu'il y a 2 rubriques), le tri se fait dans chaque rubrique.
 - `conseilMenu(plats)` : parmi les plats principaux (sinon hors desserts et boissons), ceux à 300 mg de purines au plus s'il en reste ; score = 2 × purines + kcal − protéines (normalisés de 0 à 1 sur les candidats) ; 2 plats au plus, plus les plats au-delà de 300 mg à éviter. Phrase « Mon conseil : » en tête, lignes surlignées et numérotées (`tr.mn-top`, `.mn-rg`). Calculé dans l'appli, sans appel IA.
 - Tests : n8n `t_menu.js`, e2e « Coach : menu de 14 plats en 3 rubriques » (carte réelle transcrite) et « Coach : photo d'un menu ».
+
+## 60. Menu du Coach : un bloc par rubrique (29/10, appli v107)
+
+- Carte en rubriques (2 ou plus) : `bulleMenu` rend un bloc `.mn-grp` par rubrique, dans l'ordre de la carte, avec son titre et son nombre de plats (`.mn-grp-t`) et son propre tableau (en-tête de colonnes répété). Sans rubriques : un seul tableau comme avant. Les titres en ligne `tr.mn-sec` de la v106 sont retirés.
+- Tests e2e « Coach : menu de 14 plats en 3 rubriques » : 3 blocs et leurs effectifs, chaque tableau tient dans son bloc, tri dans chaque bloc.

@@ -720,14 +720,15 @@ await page.evaluate(() => {
   rendre();
 });
 const mn14 = page.locator('.mn-b').last();
-ok(await mn14.evaluate(b => { const t = b.querySelector('table.mn'); return getComputedStyle(t).display === 'table' && [...t.querySelectorAll('tbody tr:not(.mn-sec)')].every(tr => tr.cells.length === 7 && tr.cells[0].getBoundingClientRect().width > 120); }), 'menu 14 plats : chaque ligne a ses 7 colonnes, le nom du plat garde sa largeur');
-ok(JSON.stringify(await mn14.locator('tr.mn-sec').allTextContents()) === JSON.stringify(['Salades', 'Pâtes & risotto', 'Plats']), 'menu 14 plats : rubriques de la carte dans l ordre');
+ok(await mn14.evaluate(b => { const T = [...b.querySelectorAll('table.mn')]; return T.length === 3 && T.every(t => getComputedStyle(t).display === 'table' && t.tHead) && [...b.querySelectorAll('table.mn tbody tr')].every(tr => tr.cells.length === 7 && tr.cells[0].getBoundingClientRect().width > 110); }), 'menu 14 plats : chaque ligne a ses 7 colonnes, le nom du plat garde sa largeur');
+ok(JSON.stringify(await mn14.locator('.mn-grp-t').allTextContents()) === JSON.stringify(['Salades3 plats', 'Pâtes & risotto7 plats', 'Plats4 plats']), 'menu 14 plats : un bloc par rubrique, dans l ordre de la carte, avec son nombre de plats');
+ok(await mn14.evaluate(b => [...b.querySelectorAll('.mn-grp')].every(g => g.getBoundingClientRect().right <= b.getBoundingClientRect().right && g.querySelector('table').getBoundingClientRect().right <= g.getBoundingClientRect().right)), 'menu 14 plats : chaque tableau tient dans son bloc');
 ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - document.getElementById('defile').clientWidth) <= 0, 'menu 14 plats : pas de débordement horizontal');
 const cs14 = await mn14.locator('.mn-cs').textContent();
 console.log('    ' + cs14);
 ok(/^Mon conseil : \S.* ou \S.*\)\./.test(cs14) && /Évite SAUMON VERDURE \(320 mg\)\./.test(cs14), 'menu 14 plats : conseil de 2 plats et plat à éviter');
 await mn14.locator('[data-mtri$=":kcal"]').click();
-ok(JSON.stringify(await page.locator('.mn-b').last().locator('tbody tr').evaluateAll(l => l.map(tr => tr.classList.contains('mn-sec') ? '#' + tr.textContent : tr.cells[1].textContent))) === JSON.stringify(['#Salades', '690', '780', '820', '#Pâtes & risotto', '720', '760', '780', '850', '870', '880', '950', '#Plats', '760', '820', '880', '900']), 'menu 14 plats : le tri se fait dans chaque rubrique');
+ok(JSON.stringify(await page.locator('.mn-b').last().locator('.mn-grp').evaluateAll(l => l.flatMap(g => ['#' + g.querySelector('.mn-grp-t').firstChild.textContent].concat([...g.querySelectorAll('tbody tr')].map(tr => tr.cells[1].textContent))))) === JSON.stringify(['#Salades', '690', '780', '820', '#Pâtes & risotto', '720', '760', '780', '850', '870', '880', '950', '#Plats', '760', '820', '880', '900']), 'menu 14 plats : le tri se fait dans chaque rubrique');
 await mn14.locator('[data-mtri$=":menu"]').click();
 if (process.env.CAPTURE) { await page.evaluate(() => { const b = document.querySelectorAll('.mn-b'); b[b.length - 1].scrollIntoView(); }); await page.screenshot({ path: 'maquettes/v106_menu14.png' }); }
 await page.evaluate(() => { S.coach.fil = []; rendre(); });
@@ -754,7 +755,7 @@ ok(await page.evaluate(() => getComputedStyle(document.querySelector('table.mn')
 ok(/^Mon conseil : Salade chèvre chaud \(40 mg de purines, 640 kcal, 24 g de protéines\)\. Évite Burger du chef \(320 mg\)\.$/.test(await texte('.mn-cs')), 'menu : conseil parmi les plats (pas le dessert), le plat à plus de 300 mg écarté et cité');
 ok(await page.locator('tr.mn-top').count() === 1 && /Salade chèvre chaud/.test(await texte('tr.mn-top')) && await texte('tr.mn-top .mn-rg') === '1', 'menu : le plat conseillé surligné et numéroté');
 ok(await page.evaluate(() => { const c = conseilMenu([{ nom: 'A', type: 'plat', kcal: 900, prot: 50, purines_risque: 500 }, { nom: 'B', type: 'plat', kcal: 600, prot: 30, purines_risque: 400 }, { nom: 'T', type: 'dessert', kcal: 300, prot: 3, purines_risque: 0 }]); return c.top.map(p => p.nom).join() === 'B,A' && c.evite.length === 0; }), 'menu : tous les plats au-dessus de 300 mg, le moins chargé conseillé quand même (jamais le dessert)');
-ok(await page.locator('tr.mn-sec').count() === 0, 'menu sans rubriques : pas de titres de rubrique');
+ok(await page.locator('.mn-b .mn-grp').count() === 0 && await page.locator('.mn-b table.mn').count() === 1, 'menu sans rubriques : un seul tableau, pas de blocs');
 ok(await page.evaluate(() => { const h = bulleMenu({ texte: 'x', menu: { plats: [{ nom: 'A', kcal: 1, prot: 1, lip: 1, gluc: 1 }] } }, 0); return !/Pur\.|:pur"|mn-pu/.test(h) && /<th><\/th>/.test(h); }), 'menu lu par un ancien workflow (sans purines) : ni colonne ni tri des purines');
 ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - document.getElementById('defile').clientWidth) <= 0, 'menu : pas de débordement horizontal');
 ok((await page.evaluate(() => localStorage.getItem('suivi.chat'))).includes('Burger du chef'), 'menu : gardé dans la conversation');

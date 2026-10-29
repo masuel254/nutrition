@@ -107,7 +107,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## État au 21/10/2026
 
-- Appli v106, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 59.
+- Appli v107, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 60.
 - Workflow v67 (449 nœuds, menu du Coach : purines, rubrique et type par plat), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 

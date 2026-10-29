@@ -940,7 +940,10 @@ table.mn th{font-size:12px;font-weight:600;color:var(--soft);text-align:right;pa
 table.mn th:first-child,table.mn td.mn-n{text-align:left}
 table.mn th:nth-child(2){width:46px}table.mn th:nth-child(3),table.mn th:nth-child(4),table.mn th:nth-child(5){width:30px}table.mn th:last-child{width:40px}
 table.mn.mn-pur th:nth-child(2){width:40px}table.mn.mn-pur th:nth-child(3),table.mn.mn-pur th:nth-child(4),table.mn.mn-pur th:nth-child(5){width:26px}table.mn.mn-pur th:nth-child(6){width:38px}
-table.mn tr.mn-sec td{text-align:left;font-size:12.5px;font-weight:700;color:var(--under);text-transform:uppercase;letter-spacing:.04em;padding-top:14px}
+.mn-grp{border:1px solid var(--rule);border-radius:10px;margin:10px 0;overflow:hidden;background:var(--paper)}
+.mn-grp-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 10px;background:color-mix(in srgb,var(--under) 14%,var(--card));font-weight:700;font-size:14px;color:var(--under);text-transform:uppercase;letter-spacing:.04em}
+.mn-grp-t small{font-weight:400;font-size:12px;color:var(--soft);text-transform:none;letter-spacing:0;white-space:nowrap}
+.mn-grp table.mn th:first-child,.mn-grp table.mn td:first-child{padding-left:9px}.mn-grp table.mn th:last-child,.mn-grp table.mn td:last-child{padding-right:5px}
 table.mn tr.mn-top td{background:color-mix(in srgb,var(--under) 10%,transparent)}
 .mn-rg{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--under);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-right:5px;vertical-align:1px}
 .mn-cs{font-size:13.5px;line-height:1.45;margin:8px 0 4px}.mn-cs>b:first-child{color:var(--under)}
@@ -1051,8 +1054,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=106; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='29/10/2026 09h57';
+const APP_NUM=107; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='29/10/2026 12h23';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4192,17 +4195,18 @@ function bulleMenu(m,i){
   if(cs)h+='<div class="mn-cs"><b>Mon conseil :</b> <b>'+esc(cs.top[0].nom)+'</b>'+inf(cs.top[0])+(cs.top[1]?' ou <b>'+esc(cs.top[1].nom)+'</b>'+inf(cs.top[1]):'')+'.'+
     (cs.evite.length?' Évite '+cs.evite.map(p=>'<b>'+esc(p.nom)+'</b> ('+nb(p.purines_risque)+' mg)').join(' et ')+'.':'')+'</div>';
   if(l.length){
-    const nc=pur?7:6;
     h+='<div class="mn-tri">Trier :'+[['menu','Ordre du menu'],['kcal','Moins de kcal'],['prot','Plus de protéines']].concat(pur?[['pur','Moins de purines']]:[]).map(t=>'<button data-mtri="'+i+':'+t[0]+'"'+(tri===t[0]?' class="on"':'')+'>'+t[1]+'</button>').join('')+'</div>';
-    h+='<table class="mn'+(pur?' mn-pur':'')+'"><thead><tr><th>Plat</th><th>kcal</th><th>P</th><th>L</th><th>G</th>'+(pur?'<th>Pur.</th>':'')+'<th></th></tr></thead><tbody>';
-    let sec=null;
-    l.forEach(x=>{const p=x.p,k=rang(p);
-      if(secs.length>1&&(p.section||'')!==sec){sec=p.section||'';h+='<tr class="mn-sec"><td colspan="'+nc+'">'+esc(sec||'Autres')+'</td></tr>';}
-      h+='<tr'+(k?' class="mn-top"':'')+'><td class="mn-n">'+(k?'<span class="mn-rg">'+k+'</span>':'')+esc(p.nom)+(p.description||p.confiance==='faible'?'<small>'+esc(p.description)+(p.description&&p.confiance==='faible'?' · ':'')+(p.confiance==='faible'?'confiance faible':'')+'</small>':'')+'</td>'+
+    const tete='<table class="mn'+(pur?' mn-pur':'')+'"><thead><tr><th>Plat</th><th>kcal</th><th>P</th><th>L</th><th>G</th>'+(pur?'<th>Pur.</th>':'')+'<th></th></tr></thead><tbody>';
+    const ligne=x=>{const p=x.p,k=rang(p);
+      return '<tr'+(k?' class="mn-top"':'')+'><td class="mn-n">'+(k?'<span class="mn-rg">'+k+'</span>':'')+esc(p.nom)+(p.description||p.confiance==='faible'?'<small>'+esc(p.description)+(p.description&&p.confiance==='faible'?' · ':'')+(p.confiance==='faible'?'confiance faible':'')+'</small>':'')+'</td>'+
         '<td><b>'+nb(p.kcal)+'</b></td><td>'+nb(p.prot)+'</td><td>'+nb(p.lip)+'</td><td>'+nb(p.gluc)+'</td>'+
         (pur?'<td class="mn-pu" style="color:'+coulPurPlat(p.purines_risque||0)+'">'+nb(p.purines_risque||0)+'</td>':'')+
-        '<td><button class="mn-add" data-mplat="'+i+':'+x.j+'" aria-label="Ajouter '+esc(p.nom)+' au repas">+</button></td></tr>';});
-    h+='</tbody></table><div class="mn-leg">'+(pur?'P protéines, L lipides, G glucides en g, Pur. purines à risque en mg, pour une portion.</div><div class="mn-leg">Purines : vert moins de 150 mg, orange 150 à 300, rouge au-delà. Ton plafond du jour : '+nb(purMax(S.data))+' mg.':'P protéines, L lipides, G glucides, en g pour une portion.')+'</div>';
+        '<td><button class="mn-add" data-mplat="'+i+':'+x.j+'" aria-label="Ajouter '+esc(p.nom)+' au repas">+</button></td></tr>';};
+    // une carte en rubriques : un bloc par rubrique, avec son titre, son nombre de plats et ses colonnes
+    if(secs.length>1)secs.forEach(sc=>{const g=l.filter(x=>(x.p.section||'')===sc);
+      h+='<div class="mn-grp"><div class="mn-grp-t">'+esc(sc||'Autres')+'<small>'+g.length+' plat'+(g.length>1?'s':'')+'</small></div>'+tete+g.map(ligne).join('')+'</tbody></table></div>';});
+    else h+=tete+l.map(ligne).join('')+'</tbody></table>';
+    h+='<div class="mn-leg">'+(pur?'P protéines, L lipides, G glucides en g, Pur. purines à risque en mg, pour une portion.</div><div class="mn-leg">Purines : vert moins de 150 mg, orange 150 à 300, rouge au-delà. Ton plafond du jour : '+nb(purMax(S.data))+' mg.':'P protéines, L lipides, G glucides, en g pour une portion.')+'</div>';
   }
   if((d.illisible||[]).length)h+='<div class="mn-ill">Non lus ou douteux : '+d.illisible.map(esc).join(' ; ')+'</div>';
   if(d.note)h+='<div class="mn-leg">'+esc(d.note)+'</div>';
