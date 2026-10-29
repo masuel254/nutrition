@@ -939,7 +939,11 @@ table.mn{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 table.mn th{font-size:12px;font-weight:600;color:var(--soft);text-align:right;padding:4px 3px}
 table.mn th:first-child,table.mn td.mn-n{text-align:left}
 table.mn th:nth-child(2){width:46px}table.mn th:nth-child(3),table.mn th:nth-child(4),table.mn th:nth-child(5){width:30px}table.mn th:last-child{width:40px}
-table.mn.pur th:nth-child(2){width:40px}table.mn.pur th:nth-child(3),table.mn.pur th:nth-child(4),table.mn.pur th:nth-child(5){width:26px}table.mn.pur th:nth-child(6){width:38px}
+table.mn.mn-pur th:nth-child(2){width:40px}table.mn.mn-pur th:nth-child(3),table.mn.mn-pur th:nth-child(4),table.mn.mn-pur th:nth-child(5){width:26px}table.mn.mn-pur th:nth-child(6){width:38px}
+table.mn tr.mn-sec td{text-align:left;font-size:12.5px;font-weight:700;color:var(--under);text-transform:uppercase;letter-spacing:.04em;padding-top:14px}
+table.mn tr.mn-top td{background:color-mix(in srgb,var(--under) 10%,transparent)}
+.mn-rg{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--under);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-right:5px;vertical-align:1px}
+.mn-cs{font-size:13.5px;line-height:1.45;margin:8px 0 4px}.mn-cs>b:first-child{color:var(--under)}
 table.mn td.mn-pu{font-weight:700}
 table.mn td{padding:7px 3px;border-top:1px solid var(--rule);text-align:right;vertical-align:top}
 table.mn td.mn-n{overflow-wrap:anywhere;font-size:13.5px}
@@ -1047,8 +1051,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=105; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='29/10/2026 09h41';
+const APP_NUM=106; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='29/10/2026 09h57';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4162,18 +4166,39 @@ function suggestionsAffichees(d){
 }
 // Réponse de l'action « menu » : tableau des plats lus (tri par kcal ou protéines), « + » ajoute un plat au repas.
 function coulPurPlat(v){return v<150?'var(--under)':v<=300?'var(--over)':'var(--rouge)';}
+// Conseil sur un menu : 2 plats au plus, purines d'abord (poids 2), puis moins de kcal et plus de protéines.
+// Parmi les plats principaux (type « plat ») s'il y en a, jamais au-delà de 300 mg de purines s'il en reste un en dessous.
+function conseilMenu(plats){
+  let c=plats.filter(p=>p.type==='plat');if(!c.length)c=plats.filter(p=>p.type!=='dessert'&&p.type!=='boisson');if(!c.length)return null;
+  const tous=c,bas=c.filter(p=>(p.purines_risque||0)<=300);if(bas.length)c=bas;
+  const norm=k=>{const v=c.map(p=>Number(p[k])||0),a=Math.min.apply(null,v),b=Math.max.apply(null,v);return p=>b>a?((Number(p[k])||0)-a)/(b-a):0;};
+  const np=norm('purines_risque'),nk=norm('kcal'),nr=norm('prot');
+  const t=c.slice().sort((a,b)=>(2*np(a)+nk(a)-nr(a))-(2*np(b)+nk(b)-nr(b)));
+  const top=t.slice(0,2);
+  return {top:top,evite:tous.filter(p=>(p.purines_risque||0)>300&&top.indexOf(p)<0).sort((a,b)=>b.purines_risque-a.purines_risque).slice(0,2)};
+}
+// Réponse de l'action « menu » : plats lus par rubrique de la carte (tri dans chaque rubrique), conseil de 2 plats, « + » ajoute un plat au repas.
 function bulleMenu(m,i){
-  const d=m.menu,tri=d.tri||'menu';
-  let l=(d.plats||[]).map((p,j)=>({p:p,j:j}));
+  const d=m.menu,tri=d.tri||'menu',P=d.plats||[];
+  let l=P.map((p,j)=>({p:p,j:j}));
   // purines à risque par plat : absentes des menus lus par un workflow d'avant v66
   const pur=l.some(x=>x.p.purines_risque!==undefined);
-  if(tri==='kcal')l.sort((a,b)=>a.p.kcal-b.p.kcal);else if(tri==='prot')l.sort((a,b)=>b.p.prot-a.p.prot);else if(tri==='pur')l.sort((a,b)=>(a.p.purines_risque||0)-(b.p.purines_risque||0));
+  const secs=[];l.forEach(x=>{const k=x.p.section||'';if(secs.indexOf(k)<0)secs.push(k);});
+  const cmp=tri==='kcal'?(a,b)=>a.p.kcal-b.p.kcal:tri==='prot'?(a,b)=>b.p.prot-a.p.prot:tri==='pur'?(a,b)=>(a.p.purines_risque||0)-(b.p.purines_risque||0):(a,b)=>a.j-b.j;
+  l.sort((a,b)=>secs.indexOf(a.p.section||'')-secs.indexOf(b.p.section||'')||cmp(a,b));
+  const cs=pur?conseilMenu(P):null,rang=p=>cs?cs.top.indexOf(p)+1:0;
+  const inf=p=>' ('+nb(p.purines_risque||0)+' mg de purines, '+nb(p.kcal)+' kcal, '+nb(p.prot)+' g de protéines)';
   let h='<div class="bulle coach mn-b"><div>'+esc(m.texte)+'</div>';
+  if(cs)h+='<div class="mn-cs"><b>Mon conseil :</b> <b>'+esc(cs.top[0].nom)+'</b>'+inf(cs.top[0])+(cs.top[1]?' ou <b>'+esc(cs.top[1].nom)+'</b>'+inf(cs.top[1]):'')+'.'+
+    (cs.evite.length?' Évite '+cs.evite.map(p=>'<b>'+esc(p.nom)+'</b> ('+nb(p.purines_risque)+' mg)').join(' et ')+'.':'')+'</div>';
   if(l.length){
+    const nc=pur?7:6;
     h+='<div class="mn-tri">Trier :'+[['menu','Ordre du menu'],['kcal','Moins de kcal'],['prot','Plus de protéines']].concat(pur?[['pur','Moins de purines']]:[]).map(t=>'<button data-mtri="'+i+':'+t[0]+'"'+(tri===t[0]?' class="on"':'')+'>'+t[1]+'</button>').join('')+'</div>';
-    h+='<table class="mn'+(pur?' pur':'')+'"><thead><tr><th>Plat</th><th>kcal</th><th>P</th><th>L</th><th>G</th>'+(pur?'<th>Pur.</th>':'')+'<th></th></tr></thead><tbody>';
-    l.forEach(x=>{const p=x.p;
-      h+='<tr><td class="mn-n">'+esc(p.nom)+(p.description||p.confiance==='faible'?'<small>'+esc(p.description)+(p.description&&p.confiance==='faible'?' · ':'')+(p.confiance==='faible'?'confiance faible':'')+'</small>':'')+'</td>'+
+    h+='<table class="mn'+(pur?' mn-pur':'')+'"><thead><tr><th>Plat</th><th>kcal</th><th>P</th><th>L</th><th>G</th>'+(pur?'<th>Pur.</th>':'')+'<th></th></tr></thead><tbody>';
+    let sec=null;
+    l.forEach(x=>{const p=x.p,k=rang(p);
+      if(secs.length>1&&(p.section||'')!==sec){sec=p.section||'';h+='<tr class="mn-sec"><td colspan="'+nc+'">'+esc(sec||'Autres')+'</td></tr>';}
+      h+='<tr'+(k?' class="mn-top"':'')+'><td class="mn-n">'+(k?'<span class="mn-rg">'+k+'</span>':'')+esc(p.nom)+(p.description||p.confiance==='faible'?'<small>'+esc(p.description)+(p.description&&p.confiance==='faible'?' · ':'')+(p.confiance==='faible'?'confiance faible':'')+'</small>':'')+'</td>'+
         '<td><b>'+nb(p.kcal)+'</b></td><td>'+nb(p.prot)+'</td><td>'+nb(p.lip)+'</td><td>'+nb(p.gluc)+'</td>'+
         (pur?'<td class="mn-pu" style="color:'+coulPurPlat(p.purines_risque||0)+'">'+nb(p.purines_risque||0)+'</td>':'')+
         '<td><button class="mn-add" data-mplat="'+i+':'+x.j+'" aria-label="Ajouter '+esc(p.nom)+' au repas">+</button></td></tr>';});

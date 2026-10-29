@@ -867,3 +867,11 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Appli : `bulleMenu` ajoute la colonne « Pur. » (mg, `coulPurPlat` : vert < 150, orange 150 à 300, rouge au-delà), le tri « Moins de purines » et le plafond du jour dans la légende. Sans `purines_risque` (ancien workflow), ni colonne ni tri.
 - `platVersRepas` reporte les purines du plat sur l'aliment : elles sont enregistrées avec le repas.
 - Tests : n8n `t_menu.js` (4 vérifications de plus), e2e dans « Coach : photo d'un menu ».
+
+## 59. Menu du Coach : rubriques de la carte, conseil de 2 plats, correctif d'affichage (29/10, appli v106, workflow v67)
+
+- Correctif : la classe `pur` du tableau (v105) entrait en conflit avec la pastille `.pur` (inline-flex) : tout le tableau était écrasé. Renommée `mn-pur`, test e2e sur `display:table` et la largeur des colonnes.
+- Workflow v67 (v66 archivé) : le prompt de menu demande `section` (rubrique telle qu'écrite) et `type` (entree, plat, dessert, boisson) ; `Parse IA API` les nettoie.
+- Appli : `bulleMenu` groupe par rubrique dans l'ordre de la carte (titres `tr.mn-sec` dès qu'il y a 2 rubriques), le tri se fait dans chaque rubrique.
+- `conseilMenu(plats)` : parmi les plats principaux (sinon hors desserts et boissons), ceux à 300 mg de purines au plus s'il en reste ; score = 2 × purines + kcal − protéines (normalisés de 0 à 1 sur les candidats) ; 2 plats au plus, plus les plats au-delà de 300 mg à éviter. Phrase « Mon conseil : » en tête, lignes surlignées et numérotées (`tr.mn-top`, `.mn-rg`). Calculé dans l'appli, sans appel IA.
+- Tests : n8n `t_menu.js`, e2e « Coach : menu de 14 plats en 3 rubriques » (carte réelle transcrite) et « Coach : photo d'un menu ».

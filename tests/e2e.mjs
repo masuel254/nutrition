@@ -82,9 +82,9 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'menu') return menuKO ? json({ ok: false, ia: true, erreur: 'Menu trop flou pour être lu.' }, 503)
     : json({ ok: true, menu: true, ia: 'flash', note: 'Portions standard de restaurant.', illisible: ['Plat du jour (ligne coupée)'],
-      plats: [{ nom: 'Burger du chef', description: 'boeuf, cheddar, frites', kcal: 1020, prot: 42, lip: 58, gluc: 75, confiance: 'moyenne', purines_risque: 320 },
-        { nom: 'Salade chèvre chaud', description: '', kcal: 640, prot: 24, lip: 41, gluc: 38, confiance: 'haute', purines_risque: 40 },
-        { nom: 'Tarte aux pommes', description: '', kcal: 420, prot: 5, lip: 18, gluc: 60, confiance: 'faible', purines_risque: 0 }] });
+      plats: [{ nom: 'Burger du chef', description: 'boeuf, cheddar, frites', kcal: 1020, prot: 42, lip: 58, gluc: 75, confiance: 'moyenne', purines_risque: 320, type: 'plat' },
+        { nom: 'Salade chèvre chaud', description: '', kcal: 640, prot: 24, lip: 41, gluc: 38, confiance: 'haute', purines_risque: 40, type: 'plat' },
+        { nom: 'Tarte aux pommes', description: '', kcal: 420, prot: 5, lip: 18, gluc: 60, confiance: 'faible', purines_risque: 0, type: 'dessert' }] });
   if (q.action === 'conseil') return json({ ok: true, texte: 'Bien vu, prends la salade.' });
   if (q.action === 'barcode') return json(PRODUITS[q.code] ? { ok: true, trouve: true, produit: PRODUITS[q.code] } : { ok: true, trouve: false, message: 'Produit introuvable.' });
   if (q.action === 'suppr') return json({ ok: true });
@@ -698,6 +698,40 @@ await page.click('#k-pdt [data-pdt=""]'); await page.waitForTimeout(150); ok(awa
 await page.click('nav button[data-vue="jour"]'); await page.click('nav button[data-vue="courbes"]'); await page.waitForTimeout(150);
 ok(await page.locator('#k-une').count() === 1 && /Profil/.test(await texte('#k-cmp-type .on')), 'Photos : au retour sur la page, dernière photo seule (de face, sinon de profil s il n y a pas de face)');
 
+console.log('Coach : menu de 14 plats en 3 rubriques');
+await vaCoach();
+await page.evaluate(() => {
+  const P = (nom, description, section, kcal, prot, lip, gluc, pu) => ({ nom, description, section, type: 'plat', kcal, prot, lip, gluc, purines_risque: pu, confiance: 'moyenne' });
+  S.coach.fil.push({ role: 'coach', texte: 'Menu analysé : 14 plats lus.', menu: { tri: 'menu', ia: 'flash', note: '', illisible: [], plats: [
+    P('FORMAGGIO CALDO', 'Pizzetta au chèvre chaud fondant, noisettes, carottes rôties, crumble Parmesan pesto', 'Salades', 780, 28, 48, 58, 30),
+    P('BURRATINA & FREGOLA SARDA', 'Burratina, fregola sarda assaisonnée aux herbes, artichauts à la romaine', 'Salades', 690, 26, 40, 55, 20),
+    P('CÉSAR BY VOLFONI', 'Poulet mariné au pesto et pané, gnocchis frits, Parmesan, salade romaine', 'Salades', 820, 45, 46, 55, 210),
+    P('RIGATONI 3 TOMATES', 'Stracciatella, tomates cerise confites, tomates séchées', 'Pâtes & risotto', 720, 24, 28, 92, 25),
+    P('SPAGHETTI ALLA CARBONARA TRADITIONNELLE', 'Guanciale (charcuterie italienne), Pecorino, jaune d\'œuf', 'Pâtes & risotto', 880, 34, 42, 90, 90),
+    P('MAFALDINE AL TARTUFO', 'Sauce crémeuse aux champignons et à la truffe d\'été', 'Pâtes & risotto', 850, 22, 44, 90, 45),
+    P('LASAGNE TRADITIONNELLE', 'Stracciatella, sauce al ragù (bolognaise), béchamel, Parmesan', 'Pâtes & risotto', 760, 38, 38, 66, 160),
+    P('SPAGHETTI ALFREDO', 'Poulet mariné au pesto et pané, Parmesan, sauce crémeuse', 'Pâtes & risotto', 950, 46, 48, 85, 200),
+    P('MAFALDINE SALMONE', 'Saumon, sauce crémeuse au citron, saumon fumé, citron confit, roquette', 'Pâtes & risotto', 870, 38, 42, 84, 250),
+    P('RISOTTO CHAMPIGNONS & BURRATINA', 'Burratina, poêlée de pleurotes et champignons, sauce crémeuse au Parmesan', 'Pâtes & risotto', 780, 24, 38, 85, 50),
+    P('POULET AL TARTUFO', 'Filet de poulet mariné thym et ail, sauce crémeuse aux champignons, purée de pomme de terre', 'Plats', 820, 52, 44, 52, 260),
+    P('SAUMON VERDURE', 'Pavé de saumon mariné au pesto, sauce crémeuse au citron, poivrons grillés', 'Plats', 760, 44, 46, 40, 320),
+    P('ESCALOPE MILANAISE', 'Escalope de veau panée, spaghetti à la sauce tomate, Parmesan', 'Plats', 900, 50, 40, 80, 200),
+    P('TAGLIATA DE BŒUF', 'Bœuf Angus, sauce crémeuse au Parmesan, pommes de terre rôties', 'Plats', 880, 55, 50, 45, 300)] } });
+  rendre();
+});
+const mn14 = page.locator('.mn-b').last();
+ok(await mn14.evaluate(b => { const t = b.querySelector('table.mn'); return getComputedStyle(t).display === 'table' && [...t.querySelectorAll('tbody tr:not(.mn-sec)')].every(tr => tr.cells.length === 7 && tr.cells[0].getBoundingClientRect().width > 120); }), 'menu 14 plats : chaque ligne a ses 7 colonnes, le nom du plat garde sa largeur');
+ok(JSON.stringify(await mn14.locator('tr.mn-sec').allTextContents()) === JSON.stringify(['Salades', 'Pâtes & risotto', 'Plats']), 'menu 14 plats : rubriques de la carte dans l ordre');
+ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - document.getElementById('defile').clientWidth) <= 0, 'menu 14 plats : pas de débordement horizontal');
+const cs14 = await mn14.locator('.mn-cs').textContent();
+console.log('    ' + cs14);
+ok(/^Mon conseil : \S.* ou \S.*\)\./.test(cs14) && /Évite SAUMON VERDURE \(320 mg\)\./.test(cs14), 'menu 14 plats : conseil de 2 plats et plat à éviter');
+await mn14.locator('[data-mtri$=":kcal"]').click();
+ok(JSON.stringify(await page.locator('.mn-b').last().locator('tbody tr').evaluateAll(l => l.map(tr => tr.classList.contains('mn-sec') ? '#' + tr.textContent : tr.cells[1].textContent))) === JSON.stringify(['#Salades', '690', '780', '820', '#Pâtes & risotto', '720', '760', '780', '850', '870', '880', '950', '#Plats', '760', '820', '880', '900']), 'menu 14 plats : le tri se fait dans chaque rubrique');
+await mn14.locator('[data-mtri$=":menu"]').click();
+if (process.env.CAPTURE) { await page.evaluate(() => { const b = document.querySelectorAll('.mn-b'); b[b.length - 1].scrollIntoView(); }); await page.screenshot({ path: 'maquettes/v106_menu14.png' }); }
+await page.evaluate(() => { S.coach.fil = []; rendre(); });
+
 console.log('Coach : photo d\'un menu');
 await vaCoach();
 ok(await page.locator('#c-cam').count() === 1 && await page.locator('#c-gal').count() === 1, 'Coach : boutons appareil photo et galerie');
@@ -715,7 +749,12 @@ ok(/Pur\./.test(await texte('table.mn thead')) && await page.locator('td.mn-pu')
 ok(await page.evaluate(() => [...document.querySelectorAll('td.mn-pu')].map(t => t.getAttribute('style')).join()) === 'color:var(--rouge),color:var(--under),color:var(--under)', 'menu : purines en couleur (320 mg rouge, 40 et 0 vert)');
 ok(await page.evaluate(() => [149, 150, 300, 301].map(coulPurPlat).join()) === 'var(--under),var(--over),var(--over),var(--rouge)', 'menu : seuils 150 et 300 mg');
 await page.click('[data-mtri$=":pur"]');
-ok(await page.evaluate(() => [...document.querySelectorAll('table.mn tbody .mn-n')].map(t => t.firstChild.textContent).join()) === 'Tarte aux pommes,Salade chèvre chaud,Burger du chef', 'menu : tri par moins de purines');
+ok(await page.evaluate(() => [...document.querySelectorAll('table.mn tbody .mn-n')].map(t => [...t.childNodes].find(n => n.nodeType === 3).textContent).join()) === 'Tarte aux pommes,Salade chèvre chaud,Burger du chef', 'menu : tri par moins de purines');
+ok(await page.evaluate(() => getComputedStyle(document.querySelector('table.mn')).display === 'table' && document.querySelector('table.mn th').getBoundingClientRect().width > 100), 'menu : le tableau garde sa mise en page (pas de conflit de classe avec la pastille des purines)');
+ok(/^Mon conseil : Salade chèvre chaud \(40 mg de purines, 640 kcal, 24 g de protéines\)\. Évite Burger du chef \(320 mg\)\.$/.test(await texte('.mn-cs')), 'menu : conseil parmi les plats (pas le dessert), le plat à plus de 300 mg écarté et cité');
+ok(await page.locator('tr.mn-top').count() === 1 && /Salade chèvre chaud/.test(await texte('tr.mn-top')) && await texte('tr.mn-top .mn-rg') === '1', 'menu : le plat conseillé surligné et numéroté');
+ok(await page.evaluate(() => { const c = conseilMenu([{ nom: 'A', type: 'plat', kcal: 900, prot: 50, purines_risque: 500 }, { nom: 'B', type: 'plat', kcal: 600, prot: 30, purines_risque: 400 }, { nom: 'T', type: 'dessert', kcal: 300, prot: 3, purines_risque: 0 }]); return c.top.map(p => p.nom).join() === 'B,A' && c.evite.length === 0; }), 'menu : tous les plats au-dessus de 300 mg, le moins chargé conseillé quand même (jamais le dessert)');
+ok(await page.locator('tr.mn-sec').count() === 0, 'menu sans rubriques : pas de titres de rubrique');
 ok(await page.evaluate(() => { const h = bulleMenu({ texte: 'x', menu: { plats: [{ nom: 'A', kcal: 1, prot: 1, lip: 1, gluc: 1 }] } }, 0); return !/Pur\.|:pur"|mn-pu/.test(h) && /<th><\/th>/.test(h); }), 'menu lu par un ancien workflow (sans purines) : ni colonne ni tri des purines');
 ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - document.getElementById('defile').clientWidth) <= 0, 'menu : pas de débordement horizontal');
 ok((await page.evaluate(() => localStorage.getItem('suivi.chat'))).includes('Burger du chef'), 'menu : gardé dans la conversation');
