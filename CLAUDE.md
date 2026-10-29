@@ -107,8 +107,8 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 
 ## État au 21/10/2026
 
-- Appli v104, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 57.
-- Workflow v65 (449 nœuds, Nutri-Score par produit scanné dans `aliments`), tests n8n au vert.
+- Appli v105, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 58.
+- Workflow v66 (449 nœuds, purines à risque par plat dans le menu du Coach), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
 ## Hors sujet

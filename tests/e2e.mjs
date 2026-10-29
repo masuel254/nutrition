@@ -82,9 +82,9 @@ await page.route('https://api.test/**', async r => {
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
   if (q.action === 'menu') return menuKO ? json({ ok: false, ia: true, erreur: 'Menu trop flou pour être lu.' }, 503)
     : json({ ok: true, menu: true, ia: 'flash', note: 'Portions standard de restaurant.', illisible: ['Plat du jour (ligne coupée)'],
-      plats: [{ nom: 'Burger du chef', description: 'boeuf, cheddar, frites', kcal: 1020, prot: 42, lip: 58, gluc: 75, confiance: 'moyenne' },
-        { nom: 'Salade chèvre chaud', description: '', kcal: 640, prot: 24, lip: 41, gluc: 38, confiance: 'haute' },
-        { nom: 'Tarte aux pommes', description: '', kcal: 420, prot: 5, lip: 18, gluc: 60, confiance: 'faible' }] });
+      plats: [{ nom: 'Burger du chef', description: 'boeuf, cheddar, frites', kcal: 1020, prot: 42, lip: 58, gluc: 75, confiance: 'moyenne', purines_risque: 320 },
+        { nom: 'Salade chèvre chaud', description: '', kcal: 640, prot: 24, lip: 41, gluc: 38, confiance: 'haute', purines_risque: 40 },
+        { nom: 'Tarte aux pommes', description: '', kcal: 420, prot: 5, lip: 18, gluc: 60, confiance: 'faible', purines_risque: 0 }] });
   if (q.action === 'conseil') return json({ ok: true, texte: 'Bien vu, prends la salade.' });
   if (q.action === 'barcode') return json(PRODUITS[q.code] ? { ok: true, trouve: true, produit: PRODUITS[q.code] } : { ok: true, trouve: false, message: 'Produit introuvable.' });
   if (q.action === 'suppr') return json({ ok: true });
@@ -711,6 +711,12 @@ await page.click('[data-mtri$=":kcal"]');
 ok(/Tarte aux pommes/.test(await texte('table.mn tbody tr')), 'menu : tri par moins de kcal');
 await page.click('[data-mtri$=":prot"]');
 ok(/Burger du chef/.test(await texte('table.mn tbody tr')), 'menu : tri par plus de protéines');
+ok(/Pur\./.test(await texte('table.mn thead')) && await page.locator('td.mn-pu').count() === 3 && /plafond du jour : \d+ mg/.test(await texte('.mn-b')), 'menu : colonne des purines à risque (mg) et légende avec le plafond');
+ok(await page.evaluate(() => [...document.querySelectorAll('td.mn-pu')].map(t => t.getAttribute('style')).join()) === 'color:var(--rouge),color:var(--under),color:var(--under)', 'menu : purines en couleur (320 mg rouge, 40 et 0 vert)');
+ok(await page.evaluate(() => [149, 150, 300, 301].map(coulPurPlat).join()) === 'var(--under),var(--over),var(--over),var(--rouge)', 'menu : seuils 150 et 300 mg');
+await page.click('[data-mtri$=":pur"]');
+ok(await page.evaluate(() => [...document.querySelectorAll('table.mn tbody .mn-n')].map(t => t.firstChild.textContent).join()) === 'Tarte aux pommes,Salade chèvre chaud,Burger du chef', 'menu : tri par moins de purines');
+ok(await page.evaluate(() => { const h = bulleMenu({ texte: 'x', menu: { plats: [{ nom: 'A', kcal: 1, prot: 1, lip: 1, gluc: 1 }] } }, 0); return !/Pur\.|:pur"|mn-pu/.test(h) && /<th><\/th>/.test(h); }), 'menu lu par un ancien workflow (sans purines) : ni colonne ni tri des purines');
 ok(await page.evaluate(() => document.getElementById('defile').scrollWidth - document.getElementById('defile').clientWidth) <= 0, 'menu : pas de débordement horizontal');
 ok((await page.evaluate(() => localStorage.getItem('suivi.chat'))).includes('Burger du chef'), 'menu : gardé dans la conversation');
 await page.click('[data-mplat$=":1"]');
@@ -723,6 +729,7 @@ await page.click('#e-auj');
 await page.waitForTimeout(300);
 const enrMenu = appels.filter(a => a.action === 'enregistrer').slice(avant).pop();
 ok(enrMenu && enrMenu.kcal === 1060 && /Salade chèvre chaud/.test(enrMenu.detail) && /Tarte aux pommes/.test(enrMenu.detail) && enrMenu.ia === 'flash', 'menu : enregistrement habituel (kcal cumulées, IA)');
+ok(enrMenu && enrMenu.purines_risque === 40, 'menu : purines à risque des plats enregistrées avec le repas (40 + 0 mg)');
 await vaCoach();
 await page.fill('#c-q', 'Je prends quoi ?'); await page.click('#c-envoi');
 await page.waitForFunction(() => /prends la salade/.test(document.body.innerText));

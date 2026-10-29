@@ -860,3 +860,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 ## 57. Jour : carte « repas proposé » retirée (28/10, appli v104)
 
 - La carte `.sug` (`suggestionJour`, bouton `#j-sug`) qui proposait, pour un créneau encore vide, le préféré de ce créneau ou le dernier repas pris à cette heure sur 7 jours est supprimée (jugée inutile par Samuel). Les préférés restent en tête d'Ajouter.
+
+## 58. Menu du Coach : purines à risque par plat, tri (29/10, appli v105, workflow v66)
+
+- Workflow v66 (v65 archivé) : le prompt de menu (`Build Vision API`) demande pour chaque plat `sources` (au plus 5 composants `{famille, grammes}`) ; `Parse IA API` en tire `purines_risque` avec la même table `PURINES` / `purinesAliment` que les repas.
+- Appli : `bulleMenu` ajoute la colonne « Pur. » (mg, `coulPurPlat` : vert < 150, orange 150 à 300, rouge au-delà), le tri « Moins de purines » et le plafond du jour dans la légende. Sans `purines_risque` (ancien workflow), ni colonne ni tri.
+- `platVersRepas` reporte les purines du plat sur l'aliment : elles sont enregistrées avec le repas.
+- Tests : n8n `t_menu.js` (4 vérifications de plus), e2e dans « Coach : photo d'un menu ».
