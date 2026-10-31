@@ -1073,7 +1073,7 @@ console.log('IA : estimation incertaine, portions habituelles');
 
 console.log('Pièces avec leur poids : nombre et grammes');
 { ok(await page.evaluate(() => { const p = qtePieces('1 pièce (environ 180g)'), o = qtePieces('2 oeufs (120 g)');
-    return p.n === 1 && p.g === 180 && p.u === '1 pièce' && o.n === 2 && o.g === 120 && qtePieces('200 g') === null && qtePieces('150 g (2 tranches)') === null && qtePieces('1 bol de 250 ml') === null
+    return p.n === 1 && p.g === 180 && p.u === '1 pièce' && o.n === 2 && o.g === 120 && qtePieces('200 g') === null && qtePieces('1 bol de 250 ml') === null
       && qtePiecesTexte('1 pièce (environ 180g)', 2, 440) === '2 pièce (environ 440g)'; }), 'Pièces : nombre et poids lus dans la quantité, rien pour une quantité en grammes seuls');
   iaRep = { ok: true, enregistre: false, repas: 'Midi', date: jour(0), ia: 'flash-lite', incertitude: 'faible', note: '', aliments: [{ nom: 'Steak de boeuf grillé', quantite: '1 pièce (environ 180g)', kcal: 396, prot: 47, lip: 23, gluc: 0 }, { nom: 'Purée', quantite: 'environ 200g', kcal: 218, prot: 4, lip: 9, gluc: 30 }],
     total: { kcal: 614, prot: 51, lip: 32, gluc: 30 }, ligne: { repas: 'Midi', detail: 'Steak purée', kcal: 614, prot: 51, lip: 32, gluc: 30 } };
@@ -1091,6 +1091,30 @@ console.log('Pièces avec leur poids : nombre et grammes');
   for (let n = 0; n < 30; n++) await page.locator(li + ' [data-g="1"][data-d="-1"]').click();
   ok(/^10 g$/.test((await page.locator(li + ' .al-q').nth(1).innerText()).trim()) && /22 kcal/.test(await texte(li + ' .al-kc')), 'Pièces : le poids ne descend pas sous 10 g');
   ok(await page.evaluate(() => document.getElementById('defile').scrollWidth <= document.getElementById('defile').clientWidth), 'Pièces : aucun débordement horizontal');
+  await page.click('#a-abandon'); if (await page.locator('#modale-hote [data-mod="oui"]').count()) await page.click('#modale-hote [data-mod="oui"]');
+  iaRep = null; await page.click('nav button[data-vue="jour"]'); }
+
+console.log('Pièces, ordre inverse « 13g (1 pièce) »');
+{ ok(await page.evaluate(() => { const p = qtePieces('13g (1 pièce)'), q = qtePieces('39 g (3 pièces)');
+    return p.n === 1 && p.g === 13 && p.u === '1 pièce' && q.n === 3 && q.g === 39 && q.u === '3 pièces'
+      && qtePiecesTexte('13g (1 pièce)', 3, 39) === '39g (3 pièces)' && qtePiecesTexte('39 g (3 pièces)', 1, 13) === '13 g (1 pièce)'
+      && qtePiecesTexte('1 pièce (environ 180g)', 2, 440) === '2 pièce (environ 440g)'
+      && qtePieces('150 g (2 tranches)').n === 2 && qtePiecesTexte('150 g (2 tranches)', 1, 75) === '75 g (1 tranche)' && qtePiecesTexte('20g (1 biscuit)', 2, 40) === '40g (2 biscuits)'
+      && qtePiecesTexte('60 g (3 morceaux)', 1, 20) === '20 g (1 morceau)' && qtePiecesTexte('20 g (1 morceau)', 2, 40) === '40 g (2 morceaux)'
+      && qtePiecesTexte('environ 30g (2 tranches fines)', 3, 45) === 'environ 45g (3 tranches fines)'
+      && qtePieces('250 g (25 cl)') === null && qtePieces('100 g (2 g)') === null; }),
+    'Pièces : les deux ordres lus, « X g (N mot) » réécrit dans le même ordre avec le pluriel (pièce, tranche, biscuit, morceau), pas pour une unité, l ancien format inchangé');
+  iaRep = { ok: true, enregistre: false, repas: 'Soir', date: jour(0), ia: 'flash-lite', incertitude: 'faible', note: '', aliments: [{ nom: 'Krisprolls', quantite: '13g (1 pièce)', kcal: 51, prot: 2, lip: 1, gluc: 9 }],
+    total: { kcal: 51, prot: 2, lip: 1, gluc: 9 }, ligne: { repas: 'Soir', detail: 'Krisprolls', kcal: 51, prot: 2, lip: 1, gluc: 9 } };
+  await page.click('nav button[data-vue="ajout"]'); if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+  await page.fill('#a-desc', 'krisprolls'); await page.click('#a-envoi'); await page.waitForSelector('.resu');
+  const li = '.resu .resu-al li:first-child';
+  ok(await page.locator(li + ' .al-mm').count() === 4 && /1 pièce/.test(await texte(li + ' .al-ctrl')) && /13 g/.test(await texte(li + ' .al-ctrl')), 'Pièces inverse : deux réglages, nombre (1 pièce) et poids (13 g)');
+  await page.locator(li + ' [data-ai="0"][data-d="1"]:not([data-g])').click();
+  await page.locator(li + ' [data-ai="0"][data-d="1"]:not([data-g])').click();
+  ok(await page.evaluate(() => S.ajout.resultat.aliments[0].quantite === '39g (3 pièces)') && /153 kcal/.test(await texte(li + ' .al-kc')) && /3 pièces de 13 g, 39 g en tout/.test(await texte(li + ' .al-pp')), 'Pièces inverse : 3 pièces → « 39g (3 pièces) », 153 kcal');
+  await page.locator(li + ' [data-g="1"][data-d="1"]').click();
+  ok(await page.evaluate(() => S.ajout.resultat.aliments[0].quantite === '60g (3 pièces)') && /235 kcal/.test(await texte(li + ' .al-kc')), 'Pièces inverse : poids d une pièce 13 → 20 g, « 60g (3 pièces) »');
   await page.click('#a-abandon'); if (await page.locator('#modale-hote [data-mod="oui"]').count()) await page.click('#modale-hote [data-mod="oui"]');
   iaRep = null; await page.click('nav button[data-vue="jour"]'); }
 

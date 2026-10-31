@@ -880,3 +880,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 
 - Carte en rubriques (2 ou plus) : `bulleMenu` rend un bloc `.mn-grp` par rubrique, dans l'ordre de la carte, avec son titre et son nombre de plats (`.mn-grp-t`) et son propre tableau (en-tête de colonnes répété). Sans rubriques : un seul tableau comme avant. Les titres en ligne `tr.mn-sec` de la v106 sont retirés.
 - Tests e2e « Coach : menu de 14 plats en 3 rubriques » : 3 blocs et leurs effectifs, chaque tableau tient dans son bloc, tri dans chaque bloc.
+
+## 61. Pièces dans l'ordre inverse « 13g (1 pièce) » (31/10, appli v108) ; aussi tranches, biscuits, morceaux
+
+- `qtePieces` reconnaît aussi « X g (N pièce(s)) » (préfixe « environ » ou « ~ » accepté) et renvoie `inv` (le découpage du texte) ; `qtePiecesTexte` le réécrit dans le même ordre avec le pluriel (« 39g (3 pièces) »). Le format « 1 pièce (environ 180g) » est inchangé (pas de pluriel ajouté).
+- Réglage du nombre : en ordre inverse, le nombre courant vient de `qtePieces` (le premier nombre du texte est le poids), pas de 1.
+- Tout mot de compte entre parenthèses (pièce, tranche, biscuit, morceau…) sauf une unité (g, kg, mg, ml, cl, dl, l) : « 150 g (2 tranches) » a ses deux réglages. `pluriel(t,n0,n)` accorde le premier mot (s, eau → eaux).
+- Test e2e « Pièces, ordre inverse « 13g (1 pièce) » ».

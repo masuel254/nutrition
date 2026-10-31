@@ -1054,8 +1054,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=107; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='29/10/2026 12h23';
+const APP_NUM=108; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='31/10/2026 20h26';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -2431,15 +2431,24 @@ function qtePas(q){
 // Pièces avec leur poids : "1 pièce (environ 180g)" -> {n:1,g:180,u:'1 pièce',i,l} (g = poids total des pièces).
 // null si la quantité n'a pas un nombre de pièces suivi d'un poids en grammes.
 function qtePieces(q){
-  const s=String(q||''),N=[...s.matchAll(/\d+(?:[.,]\d+)?/g)];
+  const s=String(q||'');
+  // ordre inverse : « 13g (1 pièce) », « 50 g (2 tranches) » : le poids total d'abord, le nombre et son mot entre parenthèses (pas une unité)
+  const I=s.match(/^(\s*(?:environ\s*|~\s*)?)(\d+(?:[.,]\d+)?)(\s*g\s*\(\s*)(\d+(?:[.,]\d+)?)(\s*(?!(?:k?g|mg|m?l|cl|dl)\b)[a-zà-ÿœ][^()]*?)(\s*\).*)$/i);
+  if(I){const g=parseFloat(I[2].replace(',','.')),n=parseFloat(I[4].replace(',','.'));return n>0&&g>0?{n:n,g:g,inv:I,u:(I[4]+I[5]).trim()}:null;}
+  const N=[...s.matchAll(/\d+(?:[.,]\d+)?/g)];
   if(N.length<2||/^\s*(k?g|mg|m?l|cl|dl)\b/i.test(s.slice(N[0].index+N[0][0].length))||!/^\s*g\b/i.test(s.slice(N[1].index+N[1][0].length)))return null;
   const n=parseFloat(N[0][0].replace(',','.')),g=parseFloat(N[1][0].replace(',','.'));
   if(!(n>0&&g>0))return null;
   return {n:n,g:g,i:N[1].index,l:N[1][0].length,u:s.slice(0,N[1].index).replace(/[\s(,~≈]*(environ|env\.?|soit)?[\s(~≈]*$/i,'').trim()};
 }
+// Accorde le premier mot (« tranche », « biscuit », « morceau ») au nombre n ; n0 : nombre d'origine (mot au pluriel si n0 ≥ 2).
+// shortcut: règle simple (s, eau → eaux), un mot singulier en s écrit au pluriel (« 2 radis ») perd son s à 1, à revoir si ça gêne.
+function pluriel(t,n0,n){return t.replace(/^(\s*)([a-zà-ÿœ]+)/i,(x,e,w)=>{const sg=n0>=2?w.replace(/(eau)x$/i,'$1').replace(/([^s])s$/i,'$1'):w;
+  return e+(n>=2?(/eau$/i.test(sg)?sg+'x':/[sxz]$/i.test(sg)?sg:sg+'s'):sg);});}
 // Réécrit la quantité en pièces avec un nouveau nombre et un nouveau poids total.
 function qtePiecesTexte(q,n,g){
   const s=String(q||''),P=qtePieces(s);if(!P)return qteRemplace(s,n);
+  if(P.inv){const m=P.inv;return m[1]+Math.round(g)+m[3]+nb(n)+pluriel(m[5],parseFloat(m[4].replace(',','.')),n)+m[6];}
   return qteRemplace(s.slice(0,P.i),n)+String(Math.round(g))+s.slice(P.i+P.l);
 }
 // Portions habituelles : une quantité corrigée (− / +) sur un aliment estimé par l'IA est retenue par nom d'aliment
@@ -6111,8 +6120,9 @@ function brancher(){
         const w=P.g/P.n,nw=Math.max(10,dir>0?Math.floor(w/10)*10+10:Math.ceil(w/10)*10-10);
         r.aliments[i]=ajusteAliment(al,P.n,nw*P.n);recalculeTotal(r);ecrireRepasCache();rendre();return;
       }
-      const cur=qteNombre(al.quantite);if(cur===null)return;
-      const pas=qtePas(al.quantite);
+      // « 13g (1 pièce) » : le premier nombre est le poids, le nombre de pièces vient de qtePieces
+      const inv=P&&P.inv,cur=inv?P.n:qteNombre(al.quantite);if(cur===null)return;
+      const pas=inv?1:qtePas(al.quantite);
       const nv=Math.max(pas,Math.round((cur+dir*pas)*100)/100);
       r.aliments[i]=ajusteAliment(al,nv);
       recalculeTotal(r);
