@@ -887,3 +887,11 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Réglage du nombre : en ordre inverse, le nombre courant vient de `qtePieces` (le premier nombre du texte est le poids), pas de 1.
 - Tout mot de compte entre parenthèses (pièce, tranche, biscuit, morceau…) sauf une unité (g, kg, mg, ml, cl, dl, l) : « 150 g (2 tranches) » a ses deux réglages. `pluriel(t,n0,n)` accorde le premier mot (s, eau → eaux).
 - Test e2e « Pièces, ordre inverse « 13g (1 pièce) » ».
+
+## 62. Coach : réponses en graphiques, ponts et Sankey (31/10, appli v109)
+
+- Bloc « En graphiques » sous les 4 questions toutes prêtes (`.coach-gr`, `data-cgr`), liste `GRAPHES` : poids du mois (`grPoids`), week-end (`grWeekend`), mois contre mois dernier (`grMois`), purines de la semaine (`grPurSemaine`), avant les crises (`grCrises`, affichée seulement s'il y a des crises), ce que je mange le plus (`grMangePlus`).
+- Même principe que le bilan du mois : l'appli calcule le graphique et les chiffres, joints à la question (`[Chiffres calculés par l’appli…]` + `GR_FIN`) ; l'IA n'écrit que l'explication. Réponse `{role:'coach', texte, graphe}` gardée dans la conversation, rendue par `carteGraphe`. Données manquantes : message `vide` sans appel à l'IA. Journal chargé au besoin (`grJournal` → `nrCharger`).
+- Ponts (`svgPont`) : poids = pesée de début + écart cumulé aux besoins ÷ 7 000 (convention de l'appli) + reste mesuré = pesée de fin ; week-end = marge sous la cible lun–ven + samedi + dimanche (week-end d'avant si celui en cours n'a pas de repas) ; mois = kcal moyennes par journée complète, variation de chaque repas.
+- Sankey (`svgSankey`, rubans pleins, nœuds de 24 px minimum) : familles d'aliments (`aliments[].famille`, 5 + « Le reste », libellés courts `famLib`) vers les repas, les crises (3 jours avant), ou la part des calories et des purines (%). Seuls les repas avec le détail des aliments comptent.
+- Tests e2e « Coach : réponses en graphiques (ponts et Sankey) ».

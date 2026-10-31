@@ -483,6 +483,39 @@ ok(/Coach/.test(await texte('.bandeau h1')) && await page.locator('nav button[da
   ok(fin.length === 4 && new Set(fin).size === 4, 'Coach : toujours 4 questions différentes, même quand tout a été posé');
   await page.click('#c-vider');
   ok(JSON.stringify(await qs()) === JSON.stringify(avant), 'Coach : « Vider » remet les questions de départ'); }
+
+console.log('Coach : réponses en graphiques (ponts et Sankey)');
+{ const grs = await page.locator('.vue.on .coach-gr button').allInnerTexts();
+  ok(grs.length === 6 && /poids ce mois-ci/.test(grs[0]) && /week-end/.test(grs[1]) && /mois dernier/.test(grs[2]) && /purines cette semaine/.test(grs[3]) && /crises de goutte/.test(grs[4]) && /mange le plus/.test(grs[5]), 'Coach › graphiques : 6 questions « En graphiques », en plus des 4 questions toutes prêtes');
+  ok(await page.locator('.vue.on .coach-sug button').count() === 4, 'Coach › graphiques : les 4 questions toutes prêtes ne changent pas');
+  // calculs de l'appli, sur les données fictives (2 repas par jour, poulet = volaille 225 mg le midi)
+  ok(await page.evaluate(async () => { const r = await grPoids(S.data); if (r.vide) return /deux pesées/.test(r.vide);
+    const it = r.g.items, v = x => x[1]; return it.length === 4 && Math.abs(v(it[0]) + v(it[1]) + v(it[2]) - v(it[3])) < 0.11 && /Écart cumulé aux besoins : −\d/.test(r.txt) && /7 000 kcal = 1 kg/.test(r.txt); }), 'Coach › pont du poids : début + calories (écart aux besoins ÷ 7 000) + reste = poids de fin');
+  ok(await page.evaluate(async () => { const r = await grWeekend(S.data); if (r.vide) return false;
+    const it = r.g.items, last = it[it.length - 1], somme = it.slice(0, -1).reduce((t, x) => t + x[1], 0); return last[0] === 'Semaine' && last[1] === somme && it.some(x => x[0] === 'Samedi') && /Lundi au vendredi/.test(r.txt); }), 'Coach › pont du week-end : lundi-vendredi + samedi + dimanche = semaine (week-end d avant si celui-ci n a pas encore de repas)');
+  ok(await page.evaluate(async () => { const r = await grMois(S.data); if (r.vide) return /3 journées complètes/.test(r.vide);
+    const it = r.g.items, run = it.slice(0, -1).reduce((t, x) => t + x[1], 0); return it[it.length - 1][1] === run && it.slice(1, -1).every(x => ['Matin', 'Midi', 'En-cas', 'Soir', 'Autre'].includes(x[0])); }), 'Coach › pont mois contre mois dernier : variations par repas qui s additionnent');
+  ok(await page.evaluate(async () => { const r = await grPurSemaine(S.data); return !r.vide && r.g.L[0][0] === 'Volaille' && r.g.R.map(x => x[0]).join() === 'Midi' && r.g.F.length === 1 && r.g.F[0][2] % 225 === 0 && /Par famille : Volaille \d/.test(r.txt); }), 'Coach › Sankey purines : volaille → midi, en mg');
+  ok(await page.evaluate(async () => { const r = await grCrises(S.data); return !r.vide && r.g.R.length === 1 && /^Crise du \d\d\/\d\d$/.test(r.g.R[0][0]) && r.g.L[0][0] === 'Volaille' && /3 jours avant/.test(r.txt); }), 'Coach › Sankey avant les crises : familles des 3 jours avant → la crise');
+  ok(await page.evaluate(async () => { const r = await grMangePlus(S.data); const v = r.g.L.find(x => x[0] === 'Volaille');
+    return !r.vide && r.g.R.map(x => x[0]).join() === 'Calories,Purines' && v && /· 100 %$/.test(v[2]) && r.g.L.some(x => x[0] === 'Laitages'); }), 'Coach › Sankey ce que je mange : part des calories et des purines par famille (volaille 100 % des purines)');
+  ok(await page.evaluate(async () => { const d = JSON.parse(JSON.stringify(S.data)); d.journal.forEach(l => { l.aliments = []; }); d.journal_depuis = ''; return /Aucune purine/.test((await grPurSemaine(d)).vide) && /Aucune crise/.test((await grCrises(Object.assign(d, { crises: [] }))).vide); }), 'Coach › graphiques : message clair quand les données manquent (pas d appel à l IA)');
+  ok(await page.evaluate(() => { const h = svgSankey({ u: 'mg', L: [['A', 'red'], ['B', 'blue'], ['C', 'green']], R: [['X', 'red']], F: [[0, 0, 1000], [1, 0, 5], [2, 0, 3]] }), t = document.createElement('div'); t.innerHTML = h;
+    const r = [...t.querySelectorAll('rect')].slice(0, 3).map(x => [+x.getAttribute('y'), +x.getAttribute('height')]); return r.every(x => x[1] >= 24) && r[1][0] >= r[0][0] + r[0][1] && r[2][0] >= r[1][0] + r[1][1]; }), 'Coach › Sankey : un petit nœud garde une hauteur lisible, sans chevauchement');
+  // parcours : la question part avec les chiffres, la réponse montre le graphique puis le texte du coach
+  const nC = appels.filter(a => a.action === 'conseil').length;
+  await page.locator('.vue.on [data-cgr^="D’où viennent mes purines"]').click(); await page.waitForSelector('.vue.on .bulle.bm-b .gr-sankey');
+  const qG = appels.filter(a => a.action === 'conseil').pop().question;
+  ok(appels.filter(a => a.action === 'conseil').length === nC + 1 && /^D’où viennent mes purines cette semaine \?\n\n\[Chiffres calculés par l’appli/.test(qG) && /Purines à risque des 7 derniers jours : \d/.test(qG) && /UN conseil concret/.test(qG), 'Coach › graphiques : question envoyée avec les chiffres calculés et la consigne');
+  ok(/Purines à risque, 7 jours/.test(await texte('.vue.on .bulle.bm-b .bm h3')) && /Bien vu/.test(await texte('.vue.on .bulle.bm-b .bm-txt')) && !/Chiffres calculés/.test(await page.locator('.vue.on .bulle.moi').last().innerText()), 'Coach › graphiques : graphique en tête de la réponse, puis le texte du coach ; la bulle n affiche que la question');
+  ok(await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.chat') || '[]').some(m => m.graphe && m.graphe.t === 'sankey')), 'Coach › graphiques : graphique gardé avec la conversation');
+  const ordre = [['Mon poids', 'poids'], ['Combien', 'weekend'], ['Ce mois-ci', 'mois'], ['Avant mes crises', 'crises'], ['Qu’est-ce que je mange', 'mange']];
+  for (const [q, nom] of ordre) {
+    await page.locator('.vue.on [data-cgr^="' + q + '"]').click(); await page.waitForSelector('.vue.on #c-envoi:not([disabled])');
+    if (process.env.CAPTURE) await page.locator('.vue.on .bulle.coach').last().screenshot({ path: 'maquettes/v109_gr_' + nom + '.png' }); }
+  ok(await page.locator('.vue.on .bulle.bm-b .gr-pont').count() + await page.locator('.vue.on .bulle.bm-b .gr-sankey').count() >= 4, 'Coach › graphiques : ponts et Sankey affichés dans la conversation');
+  ok(await page.evaluate(() => [...document.querySelectorAll('.vue.on .bulle.bm-b')].every(e => e.scrollWidth <= e.clientWidth + 1) && document.getElementById('defile').scrollWidth <= document.getElementById('defile').clientWidth), 'Coach › graphiques : aucun débordement horizontal');
+  await page.click('#c-vider'); }
 ok(await page.evaluate(async () => { const d = JSON.parse(JSON.stringify(S.data)), m0 = auj().slice(0, 8) + '01'; d.journal_depuis = ''; d.crises = [{ id: 'x', date: m0, articulation: 'gros orteil', intensite: 4, duree: 3 }, { id: 'y', date: auj(), articulation: 'cheville', intensite: 2, duree: null }]; d.poids = [{ date: plusJours(m0, -2), poids: 102 }, { date: auj(), poids: 100.4 }];
   const b = await bilanMois(d), t = b.txt, h = carteBilan(b.g), nC = (h.match(/<div class="cr">/g) || []).length, n = b.g.n;
   if (!(b.g.cr[0][1] === 3 && b.g.po.length === 2 && b.g.po[0][0] === 1 && nC === new Set([1, 2, 3].filter(i => i <= n).concat([n])).size)) return false; return /Poids : début du mois 102 kg \(pesée du \d\d\/\d\d\), maintenant 100,4 kg \(pesée du \d\d\/\d\d\), écart -1,6 kg\./.test(t) && /Crises de goutte : 2 \(le 01\/\d\d, gros orteil, intensité 4\/5, 3 jours ; le \d\d\/\d\d, cheville, intensité 2\/5, durée non renseignée\), 3 jours de crise au total\./.test(t); }), 'Coach › bilan du mois : écart de poids depuis la pesée du début du mois, crises avec leur durée');
