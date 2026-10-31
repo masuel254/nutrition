@@ -902,3 +902,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Provenance générique `grProv(d, k)` (`GR_PROV`) : purines à risque (plafond), sodium, sucres ajoutés, saturées (repères de `seuilsQualite`), familles → repas sur 7 jours, moyenne par jour dans le titre. `grPurSemaine` en devient un raccourci ; la question est « D’où viennent mes purines ? ».
 - `grLien` : 90 jours, chaque jour avec l'alcool suivi classé « Alcool + purines », « Alcool seul », « Purines hautes » (au-dessus du plafond), « Ni l’un ni l’autre », relié à « Crise dans les 3 j » ou « Pas de crise ». Affichée seulement s'il y a des crises ; consigne à l'IA de parler de tendance.
 - Tests e2e dans « Coach : réponses en graphiques (ponts et Sankey) ».
+
+## 64. Coach : treemaps par aliment (31/10, appli v111)
+
+- `htmlTreemap(g)` (algorithme « squarified » `squarify`) : un bloc par famille, un rectangle par aliment ; noms coupés à la largeur, petits rectangles cités sous le graphique (« Aussi : »). `grParAliment(d, k, n)` regroupe les aliments du journal par nom normalisé et compte les jours détaillés (`nj`, base des moyennes par jour) ; `grBlocs` garde les 12 plus gros, le reste dans « Autres ».
+- « Qu’est-ce que je mange le plus ? » passe du Sankey en % au treemap : surface = calories des 30 jours, couleur selon les purines de la famille (`grCoulPur` : gris peu, orange à limiter, rouge abats, petits poissons, charcuterie, bière, levure).
+- Nouvelle question « Quels aliments m’apportent le plus de purines ? » (`grTopAliments`) : treemap des purines à risque sur 30 jours, sélecteur Purines / Sel / Sucres ajoutés dans la réponse (`data-gtm`, `graphe.sel` gardé dans la conversation). `carteGraphe(g, i)` reçoit la position du message.
+- Tests e2e dans « Coach : réponses en graphiques ».

@@ -926,6 +926,7 @@ nav button .ico-b{position:relative;display:inline-block;line-height:0}
 .coach-gr{display:flex;flex-wrap:wrap;gap:6px}
 .coach-gr button{text-align:left;border:1px solid var(--rule);border-left:3px solid var(--under);border-radius:10px;background:var(--paper);padding:8px 10px;font-size:13.5px;color:var(--ink)}
 .coach-gr.gtt button{border-left-color:var(--rouge)}
+.tm-lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--soft);margin:6px 0 2px}.tm-lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 /* coach : analyse d'un menu */
 .bulle.mn-b{max-width:100%;white-space:normal}
 /* bilan du mois : graphiques en tête de la réponse */
@@ -1062,8 +1063,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=110; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='31/10/2026 21h31';
+const APP_NUM=111; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='31/10/2026 21h41';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4334,17 +4335,79 @@ async function grCrises(d){
   const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\n'+L.join('\n')+'\nFamilles sur l’ensemble : '+g.top.join(', ')+'.\nPlafond habituel : '+nb(purMax(d))+' mg/j. Avec peu de crises, reste prudent dans tes conclusions.'+GR_FIN;
   delete g.top;return {g:g,txt:txt};
 }
+// Treemap « squarified » : items [{v}] posés dans le rectangle (x, y, w, h), du plus gros au plus petit.
+function squarify(items,x,y,w,h){
+  const out=[];let rest=items.filter(i=>i.v>0).sort((a,b)=>b.v-a.v),S=rest.reduce((t,i)=>t+i.v,0);
+  while(rest.length&&w>0&&h>0){
+    const c=Math.min(w,h),k=w*h/S;let row=[],best=Infinity;
+    for(const it of rest){const r=row.concat(it),a=r.map(i=>i.v*k),s2=a.reduce((t,v)=>t+v,0)**2,pire=Math.max(c*c*Math.max(...a)/s2,s2/(c*c*Math.min(...a)));
+      if(pire<=best){best=pire;row=r;}else break;}
+    const sv=row.reduce((t,i)=>t+i.v,0),ep=sv*k/c;let o=0;
+    row.forEach(it=>{const l=it.v*k/ep;out.push(Object.assign({},it,w>=h?{x:x,y:y+o,w:ep,h:l}:{x:x+o,y:y,w:l,h:ep}));o+=l;});
+    if(w>=h){x+=ep;w-=ep;}else{y+=ep;h-=ep;}
+    S-=sv;rest=rest.slice(row.length);
+  }
+  return out;
+}
+// g.F = familles [{nom, al:[{nom, v, c (couleur), t (texte de la valeur)}]}] ; un bloc par famille, un rectangle par aliment.
+// Un rectangle trop petit n'a pas d'étiquette : il est cité sous le graphique (« Aussi : »).
+function htmlTreemap(g){
+  const W=334,H=g.H||240,F=g.F.map(f=>Object.assign({},f,{v:f.al.reduce((t,a)=>t+a.v,0)})),sans=[];
+  let h='<svg viewBox="0 0 '+W+' '+H+'" class="bm-svg gr-treemap" role="img" aria-label="'+esc(g.titre||'')+'">';
+  squarify(F,0,0,W,H).forEach(f=>{
+    squarify(f.al,f.x+1.5,f.y+1.5,f.w-3,f.h-3).forEach(a=>{
+      const clair=a.c==='var(--creux)',tc=clair?'var(--ink)':'#fff';
+      h+='<rect x="'+(a.x+0.5).toFixed(1)+'" y="'+(a.y+0.5).toFixed(1)+'" width="'+Math.max(0,a.w-1).toFixed(1)+'" height="'+Math.max(0,a.h-1).toFixed(1)+'" rx="3" fill="'+a.c+'"'+(clair?'':' fill-opacity=".92"')+'/>';
+      if(a.w>44&&a.h>30){const fs=a.w>90&&a.h>44?12:10.5,max=n=>Math.max(3,Math.floor((a.w-9)/(n*0.56))),cp=(t,n)=>t.length>max(n)?t.slice(0,max(n)-1)+'…':t;
+        h+='<text x="'+(a.x+5).toFixed(1)+'" y="'+(a.y+fs+3).toFixed(1)+'" font-size="'+fs+'" font-weight="600" fill="'+tc+'">'+esc(cp(a.nom,fs))+'</text>'+
+          '<text x="'+(a.x+5).toFixed(1)+'" y="'+(a.y+2*fs+6).toFixed(1)+'" font-size="'+(fs-1)+'" fill="'+tc+'" fill-opacity=".85">'+esc(cp(a.t,fs-1))+'</text>';}
+      else sans.push(a.nom+' '+a.t);});
+    h+='<rect x="'+f.x.toFixed(1)+'" y="'+f.y.toFixed(1)+'" width="'+f.w.toFixed(1)+'" height="'+f.h.toFixed(1)+'" fill="none" stroke="var(--paper)" stroke-width="3"/>';});
+  return h+'</svg>'+(sans.length?'<div class="bm-lg gr-aussi">Aussi : '+esc(sans.join(', '))+'</div>':'');
+}
+// Couleur d'un aliment selon ses purines (table PUR_FAM) : gris peu, orange à limiter, rouge très riche.
+const GR_PUR_ROUGE=['abats','petits_poissons','charcuterie','biere','levure'];
+const grCoulPur=f=>GR_PUR_ROUGE.indexOf(f)>=0?'var(--rouge)':(PUR_FAM[f]||[0,0])[1]?'var(--over)':'var(--creux)';
+const GR_LG_PUR='<div class="tm-lg"><span><i style="background:var(--creux)"></i>peu de purines</span><span><i style="background:var(--over)"></i>à limiter</span><span><i style="background:var(--rouge)"></i>très riche (abats, petits poissons, charcuterie, bière)</span></div>';
+// Aliments du journal sur n jours, regroupés par nom (normalisé), avec la somme d'un champ k.
+async function grParAliment(d,k,n){
+  const a0=auj(),deb=plusJours(a0,-(n-1)),A={},J={};
+  (await grJournal(d,deb)).filter(l=>l.date>=deb&&l.date<=a0).forEach(l=>grAlims(l).forEach(a=>{const c=normNom(a&&a.nom),v=Number(a[k])||0;if(!c||v<=0)return;
+    const o=A[c]=A[c]||{nom:a.nom,fam:a.famille||'autre',v:0,n:0};o.v+=v;o.n++;J[l.date]=1;}));
+  // nj : jours qui ont au moins un aliment compté (moyenne par jour juste quand des jours n'ont pas de détail)
+  const L=Object.values(A).sort((x,y)=>y.v-x.v);L.nj=Object.keys(J).length;return L;
+}
+// Les 12 plus gros aliments, groupés par famille, le reste dans « Autres ».
+function grBlocs(L,tot,u,coul,pct){
+  const T=L.slice(0,12),R=L.slice(12),F={},t=a=>nb(a.v)+' '+u+(pct?' · '+nb(a.v/tot*100)+' %':'');
+  T.forEach(a=>{(F[a.fam]=F[a.fam]||{nom:famLib(a.fam),al:[]}).al.push({nom:a.nom,v:a.v,c:coul(a.fam),t:t(a)});});
+  const out=Object.values(F);if(R.length){const v=R.reduce((s,a)=>s+a.v,0);out.push({nom:'Autres',al:[{nom:'Autres ('+R.length+')',v:v,c:'var(--creux)',t:t({v:v})}]});}
+  return out;
+}
 async function grMangePlus(d){
-  const a0=auj(),deb=plusJours(a0,-29),K={},P={};let tk=0,tp=0;
-  (await grJournal(d,deb)).filter(l=>l.date>=deb&&l.date<=a0).forEach(l=>grAlims(l).forEach(a=>{const f=a.famille;if(!f)return;
-    const k=Number(a.kcal)||0,p=Number(a.purines_risque)||0;K[f]=(K[f]||0)+k;P[f]=(P[f]||0)+p;tk+=k;tp+=p;}));
+  const L=await grParAliment(d,'kcal',30),tk=L.reduce((t,a)=>t+a.v,0);
   if(!tk)return {vide:'Pas assez de repas analysés avec le détail des aliments sur les 30 derniers jours.'};
-  const M={};Object.keys(K).forEach(f=>{M[f]={k:K[f]/tk*100};if(tp)M[f].p=P[f]/tp*100;});
-  const g=Object.assign(grSankey(M,[['k','Calories','var(--c-midi)'],['p','Purines','var(--rouge)']],'%'),{titre:'Tes aliments, 30 jours',sous:['','',''],
-    leg:'À gauche, chaque famille avec sa part de tes calories · de tes purines à risque ; à droite, le total de chacun (100 %).'});
-  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nSur les 30 derniers jours, part de chaque famille d’aliments :\n'+
-    Object.keys(K).sort((a,b)=>K[b]-K[a]).slice(0,8).map(f=>famLib(f)+' : '+nb(K[f]/tk*100)+' % des calories'+(tp?', '+nb(P[f]/tp*100)+' % des purines à risque':'')).join('\n')+GR_FIN;
-  g.R=g.R.map(x=>[x[0],x[1],'100 %']);delete g.top;return {g:g,txt:txt};
+  const FS={};L.forEach(a=>{FS[a.fam]=(FS[a.fam]||0)+a.v;});
+  const g={t:'treemap',H:250,titre:'Tes aliments, 30 jours',sous:[nb(tk/L.nj)+' kcal/j','var(--ink)','par surface'],F:grBlocs(L,tk,'kcal',grCoulPur,false),lg:'pur',
+    leg:'Surface = calories du mois. Les aliments sont regroupés par famille (blocs séparés) ; la couleur dit leur richesse en purines.'};
+  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nSur les 30 derniers jours ('+nb(tk)+' kcal d’aliments détaillés sur '+L.nj+' jours) :\n'+
+    'Familles : '+Object.keys(FS).sort((a,b)=>FS[b]-FS[a]).slice(0,6).map(f=>famLib(f)+' '+nb(FS[f]/tk*100)+' %').join(', ')+'.\n'+
+    'Aliments : '+L.slice(0,12).map(a=>a.nom+' '+nb(a.v)+' kcal ('+nb(a.v/tk*100)+' %, '+a.n+' fois'+(GR_PUR_ROUGE.indexOf(a.fam)>=0?', très riche en purines':(PUR_FAM[a.fam]||[0,0])[1]?', purines à limiter':'')+')').join(', ')+'.'+GR_FIN;
+  return {g:g,txt:txt};
+}
+// Quels aliments apportent le plus de purines (sel, sucres ajoutés au choix dans la réponse), 30 jours.
+const GR_TOP=[['purines_risque','Purines'],['sodium','Sel'],['sucres_ajoutes','Sucres ajoutés']];
+async function grTopAliments(d){
+  const V={};let txt='';
+  for(const [k,lib] of GR_TOP){const P=GR_PROV[k],L=await grParAliment(d,k,30),tot=L.reduce((t,a)=>t+a.v,0);if(!tot)continue;
+    const mx=Number(P.max(d))||0,pj=tot/L.nj,fi={};L.forEach(a=>{if(!(a.fam in fi))fi[a.fam]=Object.keys(fi).length;});
+    V[k]={lib:lib,titre:P.lib+', 30 jours',sous:[nb(pj)+' '+P.u+'/j',!mx?'var(--ink)':pj>mx*1.1?'var(--rouge)':pj>mx?'var(--over)':'var(--under)',mx?P.rep+' '+nb(mx):''],
+      F:grBlocs(L,tot,P.u,k==='purines_risque'?grCoulPur:f=>GR_COUL[fi[f]%GR_COUL.length],true),lg:k==='purines_risque'?'pur':'',
+      leg:'Surface = part de '+(k==='sodium'?'ton sel':'tes '+P.lib.toLowerCase())+' du mois, aliment par aliment.'};
+    if(k==='purines_risque')txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nPurines à risque des 30 derniers jours : '+nb(tot)+' mg, soit '+nb(pj)+' mg/j sur '+L.nj+' jours détaillés (plafond '+nb(mx)+' mg/j).\n'+
+      'Aliments : '+L.slice(0,12).map(a=>a.nom+' '+nb(a.v)+' mg ('+nb(a.v/tot*100)+' %, '+a.n+' fois)').join(', ')+'.'+GR_FIN;}
+  if(!V.purines_risque)return {vide:'Aucune purine à risque relevée sur les 30 derniers jours. Seuls les repas analysés avec le détail des aliments comptent.'};
+  return {g:{t:'treemap',H:230,sel:'purines_risque',V:V},txt:txt};
 }
 const GRAPHES=[
   {g:0,q:'Mon poids ce mois-ci : qu’est-ce qui l’explique ?',f:grPoids},
@@ -4354,14 +4417,17 @@ const GRAPHES=[
   {g:1,q:'D’où vient mon sel ?',f:d=>grProv(d,'sodium')},
   {g:1,q:'D’où viennent mes sucres ajoutés ?',f:d=>grProv(d,'sucres_ajoutes')},
   {g:1,q:'D’où viennent mes graisses saturées ?',f:d=>grProv(d,'satures')},
+  {g:1,q:'Quels aliments m’apportent le plus de purines ?',f:grTopAliments},
   {g:1,q:'Qu’est-ce que je mange le plus ?',f:grMangePlus},
   {g:2,q:'Alcool, purines et crises : quel lien ?',f:grLien,si:d=>(d.crises||[]).length>0},
   {g:2,q:'Avant mes crises de goutte, qu’avais-je mangé ?',f:grCrises,si:d=>(d.crises||[]).length>0}];
 const GR_GROUPES=['Comprendre un écart','D’où ça vient','Goutte'];
-function carteGraphe(g){
-  const s=g.sous||[];
+// i : position du message dans la conversation (sélecteur du treemap à plusieurs nutriments)
+function carteGraphe(g0,i){
+  const g=g0.V?Object.assign({t:'treemap',H:g0.H},g0.V[g0.sel]||Object.values(g0.V)[0]):g0,s=g.sous||[];
   return '<div class="bm"><h3>'+esc(g.titre||'')+' <small>'+(s[0]?'<b style="color:'+s[1]+'">'+esc(s[0])+'</b>'+(s[2]?' · ':''):'')+esc(s[2]||'')+'</small></h3>'+
-    (g.t==='pont'?svgPont(g):svgSankey(g))+(g.leg?'<div class="bm-lg">'+esc(g.leg)+'</div>':'')+'</div>';
+    (g0.V&&Object.keys(g0.V).length>1?'<div class="mn-tri">'+GR_TOP.filter(x=>g0.V[x[0]]).map(x=>'<button data-gtm="'+i+':'+x[0]+'"'+(g0.sel===x[0]?' class="on"':'')+'>'+x[1]+'</button>').join('')+'</div>':'')+
+    (g.t==='pont'?svgPont(g):g.t==='treemap'?htmlTreemap(g)+(g.lg==='pur'?GR_LG_PUR:''):svgSankey(g))+(g.leg?'<div class="bm-lg">'+esc(g.leg)+'</div>':'')+'</div>';
 }
 function suggestionsCoach(d){
   if(!d)return [];
@@ -4438,7 +4504,7 @@ function vueCoach(){
   if(!S.coach.fil.length)h+='<p class="vide">Pose une question sur un aliment, une habitude, ta journée. Le coach connaît tes chiffres et ne s\'en sert que si la question le justifie.</p>';
   // #c-der : repère du dernier message (ou de l'attente), pour y caler la page après une réponse
   const env=S.coach.etat==='envoi',n=S.coach.fil.length,F=S.coach.fil,der=(n>1&&F[n-2].role==='moi'&&F[n-1].role!=='moi')?n-2:n-1;
-  S.coach.fil.forEach((m,i)=>{h+=(!env&&i===der?'<span id="c-der"></span>':'')+(m.menu?bulleMenu(m,i):m.graphe?'<div class="bulle coach bm-b">'+carteGraphe(m.graphe)+'<div class="bm-txt">'+esc(m.texte)+'</div></div>':m.bilan?'<div class="bulle coach bm-b">'+carteBilan(m.bilan)+'<div class="bm-txt">'+esc(m.texte)+'</div></div>':'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>');});
+  S.coach.fil.forEach((m,i)=>{h+=(!env&&i===der?'<span id="c-der"></span>':'')+(m.menu?bulleMenu(m,i):m.graphe?'<div class="bulle coach bm-b">'+carteGraphe(m.graphe,i)+'<div class="bm-txt">'+esc(m.texte)+'</div></div>':m.bilan?'<div class="bulle coach bm-b">'+carteBilan(m.bilan)+'<div class="bm-txt">'+esc(m.texte)+'</div></div>':'<div class="bulle '+(m.role==='moi'?'moi':'coach')+'">'+esc(m.texte)+'</div>');});
   if(env)h+='<span id="c-der"></span><div class="bulle coach"><span class="attente"></span><span id="c-etape">'+etapeCoach()+'</span></div>';
   h+='</section><section><textarea id="c-q" placeholder="Ta question"></textarea>'+
      '<button class="primaire" id="c-envoi"'+(env?' disabled':'')+'>Envoyer</button>';
@@ -6740,6 +6806,8 @@ function brancher(){
   document.querySelectorAll('[data-mplat]').forEach(b=>b.addEventListener('click',()=>{const [i,j]=b.dataset.mplat.split(':').map(Number);const m=S.coach.fil[i],p=m&&m.menu&&m.menu.plats[j];
     if(!p)return;platVersRepas(p,m.menu.ia);S.vue='ajout';rendre();hautPage();}));
   on('#c-gr','click',()=>{S.coach.grOuv=!S.coach.grOuv;rendre();});
+  document.querySelectorAll('[data-gtm]').forEach(b=>b.addEventListener('click',()=>{const [i,k]=b.dataset.gtm.split(':'),m=S.coach.fil[Number(i)];
+    if(m&&m.graphe&&m.graphe.V&&m.graphe.V[k]){m.graphe.sel=k;try{localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));}catch(e){}rendre();}}));
   document.querySelectorAll('[data-cgr]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){t.value=b.dataset.cgr;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){S.coach.posees=(S.coach.posees||[]).filter(i=>i!==Number(b.dataset.csi)).concat(Number(b.dataset.csi));t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));
