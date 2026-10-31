@@ -909,3 +909,12 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - « Qu’est-ce que je mange le plus ? » passe du Sankey en % au treemap : surface = calories des 30 jours, couleur selon les purines de la famille (`grCoulPur` : gris peu, orange à limiter, rouge abats, petits poissons, charcuterie, bière, levure).
 - Nouvelle question « Quels aliments m’apportent le plus de purines ? » (`grTopAliments`) : treemap des purines à risque sur 30 jours, sélecteur Purines / Sel / Sucres ajoutés dans la réponse (`data-gtm`, `graphe.sel` gardé dans la conversation). `carteGraphe(g, i)` reçoit la position du message.
 - Tests e2e dans « Coach : réponses en graphiques ».
+
+## 65. Progrès › Qualité › Alcool : détail de ce qui a été bu (31/10, appli v112)
+
+- Dans la grille « Verres d’alcool par jour », les jours avec de l'alcool deviennent des boutons (`data-alj`, `S.alcSel`) : le jour touché est entouré (`.alc-sel`), le détail s'affiche sous toute la grille (`detailAlcool`), toucher à nouveau le referme.
+- Détail : date, verres et grammes du jour, chaque boisson (aliments du journal avec `alcool` > 0) avec son repas et sa quantité, triées par repas ; un ancien repas sans détail par boisson apparaît en « Alcool du repas » avec son total ; purines de la bière s'il y en a. Semaine plus ancienne que le journal chargé : `nrCharger` au toucher.
+- Tests e2e après « Courbes : alcool jour par jour ».
+- Coach : l'accordéon « En graphiques » se referme dès qu'on quitte le Coach (`rendre()` remet `S.coach.grOuv` à faux hors de la vue Coach ou dans les Réglages) ; test e2e.
+- Provenance (`grProv` : purines, sel, sucres ajoutés, saturées, 7 jours) : le Sankey famille → repas est remplacé par un treemap aliment par aliment (`grParAliment`, `grBlocs`), à la demande de Samuel (« je préfère connaître l’aliment plutôt que le repas »). Moyenne par jour sur les jours détaillés.
+- Treemaps rendus lisibles (version B choisie sur maquette) : un bloc par famille seulement (8 au plus, puis « Le reste »), libellé et « part · moyenne/j » ; toucher une famille (`data-gtf`, `graphe.fsel`) l'entoure et liste ses aliments dessous (8 au plus puis « Autres (n) »), barres et nombre de fois. Fin du bloc « Autres (302) » et de la liste « Aussi ». Couleur « peu de purines » `--peu` (gris-bleu visible en sombre).

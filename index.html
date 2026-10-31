@@ -757,6 +757,13 @@ details.aide summary{font-size:13px;color:var(--soft);cursor:pointer}
 .alc-ns{background:repeating-linear-gradient(45deg,var(--rule) 0 3px,transparent 3px 6px);color:var(--soft);border:1px solid var(--rule)}
 .alc-f{background:transparent;border:1px dashed var(--rule)}
 .alc-auj{outline:2px dashed var(--soft);outline-offset:1px}
+button.alc-c{border:0;padding:0;font-family:inherit;cursor:pointer}
+.alc-c.alc-sel{outline:2.5px solid var(--ink);outline-offset:1.5px}
+.alc-det{border:1px solid var(--rule);border-left:4px solid var(--over);border-radius:10px;background:var(--paper);padding:9px 11px;margin:10px 0 8px}
+.alc-det-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:700;font-size:14px}.alc-det-t small{font-weight:400;color:var(--soft);font-size:12px;text-align:right}
+.alc-det ul{list-style:none;margin:6px 0 0;padding:0}
+.alc-det li{display:flex;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--rule);font-size:14px}.alc-det li:first-child{border-top:0}
+.alc-det li span{flex:1;min-width:0}.alc-det li small{display:block;color:var(--soft);font-size:12px}.alc-det li b{white-space:nowrap}
 .alc-s{text-align:right;font-size:13px}
 .alc-r{font-size:11px;color:var(--soft);margin:2px 0 8px 68px;line-height:1.3}
 .alc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--soft);margin:2px 0 6px}
@@ -926,6 +933,13 @@ nav button .ico-b{position:relative;display:inline-block;line-height:0}
 .coach-gr{display:flex;flex-wrap:wrap;gap:6px}
 .coach-gr button{text-align:left;border:1px solid var(--rule);border-left:3px solid var(--under);border-radius:10px;background:var(--paper);padding:8px 10px;font-size:13.5px;color:var(--ink)}
 .coach-gr.gtt button{border-left-color:var(--rouge)}
+:root{--peu:#7E9AA0}
+@media (prefers-color-scheme: dark){:root{--peu:#56717A}}
+.gr-treemap g{cursor:pointer}
+.tm-fl{margin-top:8px;border-top:1px solid var(--rule);padding-top:6px}
+.tm-fl-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:700;font-size:13.5px;margin-bottom:4px}.tm-fl-t small{font-weight:400;color:var(--soft);font-size:12px;text-align:right}
+.tm-fl-r{display:grid;grid-template-columns:minmax(0,1fr) 70px 78px;gap:8px;align-items:center;font-size:13px;padding:3px 0}
+.tm-fl-r span:first-child{overflow-wrap:anywhere}.tm-fl-r small{color:var(--soft);font-size:11.5px}.tm-fl-r i{height:8px;border-radius:4px}.tm-fl-r span:last-child{text-align:right;color:var(--soft);font-size:12px;white-space:nowrap}
 .tm-lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--soft);margin:6px 0 2px}.tm-lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 /* coach : analyse d'un menu */
 .bulle.mn-b{max-width:100%;white-space:normal}
@@ -1063,8 +1077,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=111; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='31/10/2026 21h41';
+const APP_NUM=112; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='31/10/2026 22h10';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -3919,6 +3933,21 @@ function blocAlcool(d){
     p.avec+' jour'+(p.avec>1?'s':'')+' avec, '+p.sans+' sans'+(inc?' (semaine incomplète)':'')+' · '+cours+'</span></div>';
 }
 // Grille jour par jour : une ligne par semaine, la plus récente en haut.
+// Ce qui a été bu un jour : boissons des repas du journal (alcool par aliment) ; un ancien repas sans détail par boisson
+// apparaît avec son total. Le journal d'une semaine ancienne est chargé au toucher (voir data-alj).
+function detailAlcool(d,x){
+  const L=(d.journal||[]).filter(l=>l.date===x),B=[];let pu=0;
+  L.forEach(l=>{const al=(Array.isArray(l.aliments)?l.aliments:[]).filter(a=>Number(a.alcool)>0);
+    al.forEach(a=>{B.push({nom:a.nom,q:a.quantite||'',r:l.repas,g:Number(a.alcool)});if(a.famille==='biere')pu+=Number(a.purines_risque)||0;});
+    if(!al.length&&Number(l.alcool)>0)B.push({nom:'Alcool du repas',q:'',r:l.repas,g:Number(l.alcool),anc:true});});
+  const ord=['matin','midi','encas','soir','autre'];B.sort((u,v)=>ord.indexOf(repasCle(u.r))-ord.indexOf(repasCle(v.r)));
+  const j=(d.jours||[]).find(y=>y.date===x)||(x===auj()?d.aujourdhui:null),g=j?Number(j.alcool)||0:B.reduce((t,b)=>t+b.g,0),js=jourSemaine(x);
+  let h='<div class="alc-det"><div class="alc-det-t">'+esc(js.charAt(0).toUpperCase()+js.slice(1)+' '+jjmm(x))+'<small>'+verresTxt(g)+' · '+nb(g)+' g d’alcool</small></div>';
+  if(!B.length)h+='<p class="micro">'+(S.nrCharge?'Chargement du détail…':(nrManque(d,x)?'Détail indisponible pour l’instant (réseau ?). Touche à nouveau le jour pour réessayer.':'Pas de boisson détaillée dans les repas de ce jour.'))+'</p>';
+  else h+='<ul>'+B.map(b=>'<li>'+ico('vin','x')+'<span>'+esc(b.nom)+'<small>'+esc(b.r||'')+(b.q?' · '+esc(b.q):'')+(b.anc?' · total du repas':'')+'</small></span><b>'+verresTxt(b.g)+'</b></li>').join('')+'</ul>';
+  if(pu>0)h+='<div class="micro">Bière : '+nb(pu)+' mg de purines en plus ce jour-là.</div>';
+  return h+'</div>';
+}
 function graphiqueAlcool(d,n){
   const nbS=Math.max(2,Math.min(6,Math.ceil(n/7)+1)),W=semainesAlcool(d,nbS),deb=alcDebut(d);
   let h='<div class="alc"><div class="alc-t">Verres d’alcool par jour</div><div class="alc-l alc-tete"><span></span>'+['L','M','M','J','V','S','D'].map(x=>'<i>'+x+'</i>').join('')+'<span></span></div>';
@@ -3929,16 +3958,20 @@ function graphiqueAlcool(d,n){
       if(e.futur)h+='<i class="alc-c alc-f"></i>';
       else if(e.st==='vide')h+='<i class="alc-c alc-v" title="'+t+' : pas de repas">–</i>';
       else if(e.st==='ns')h+='<i class="alc-c alc-ns" title="'+t+' : non suivi">?</i>';
-      else{const v=verresNb(e.g),peu=!v&&e.g>0;
-        h+='<i class="alc-c'+(e.auj?' alc-auj':'')+'" title="'+t+' : '+verresTxt(e.g)+'" style="'+(e.auj&&!e.g?'background:transparent;color:var(--soft)':'background:'+coulVerres(e.g))+'">'+(v?v:(peu?'<1':(e.auj?'·':'0')))+'</i>';}
+      else{const v=verresNb(e.g),peu=!v&&e.g>0,st=e.auj&&!e.g?'background:transparent;color:var(--soft)':'background:'+coulVerres(e.g),lib=v?v:(peu?'<1':(e.auj?'·':'0'));
+        // un jour avec de l'alcool se touche : le détail de ce qui a été bu s'affiche sous la grille
+        if(e.g>0)h+='<button class="alc-c'+(e.auj?' alc-auj':'')+(S.alcSel===e.date?' alc-sel':'')+'" data-alj="'+e.date+'" aria-label="'+t+' : '+verresTxt(e.g)+', voir le détail" aria-pressed="'+(S.alcSel===e.date)+'" style="'+st+'">'+lib+'</button>';
+        else h+='<i class="alc-c'+(e.auj?' alc-auj':'')+'" title="'+t+' : '+verresTxt(e.g)+'" style="'+st+'">'+lib+'</i>';}
     });
     const v=verresNb(s.g),tot=s.suivis?'<b style="color:'+(v<=10?'var(--under)':'var(--over)')+'">'+vTxt(v)+'</b>':'<b>–</b>';
     h+='<span class="alc-s">'+tot+'</span></div>';
     h+='<div class="alc-r">'+(s.suivis?(s.cours?'En cours : ':'')+verresTxt(s.g)+(s.cours?' pour l’instant':'')+' · '+s.avec+' jour'+(s.avec>1?'s':'')+' avec, '+s.sans+' sans'+(s.exces?' · '+s.exces+' à plus de 2 verres':'')+(s.ns?' · '+s.ns+' non suivi'+(s.ns>1?'s':''):''):(s.ns?'Non suivi':'Pas de repas notés'))+'</div>';
   });
+  if(S.alcSel&&W.some(s=>s.jours.some(e=>e.date===S.alcSel)))h+=detailAlcool(d,S.alcSel);
   h+='<div class="alc-leg"><span><i style="background:var(--under)"></i>aucun</span><span><i style="background:var(--jaune)"></i>1 à 2 verres</span><span><i style="background:var(--over)"></i>plus de 2</span><span><i class="alc-ns"></i>non suivi</span></div>';
   // moyenne sur les semaines passées suivies au moins 5 jours
   const pl=W.slice(1).filter(s=>s.suivis>=5&&!s.ns);
+  if(W.some(s=>s.g>0))h+='<div class="micro">Touche un jour avec de l’alcool pour voir ce que tu as bu.</div>';
   if(pl.length>1)h+='<div class="micro">Moyenne '+Math.round(pl.reduce((t,s)=>t+s.g,0)/pl.length/10)+' verres par semaine sur '+pl.length+' semaines complètes.</div>';
   if(deb&&W.some(s=>s.ns))h+='<div class="micro">Alcool suivi depuis le '+jjmm(deb)+' : les jours d’avant (?) ne comptent dans aucune moyenne.</div>';
   else if(!deb)h+='<div class="micro">Pas encore de repas avec le suivi de l’alcool.</div>';
@@ -4290,17 +4323,19 @@ async function grMois(d){
 // Provenance d'un nutriment sur 7 jours : familles d'aliments → repas, avec le repère du jour dans le titre.
 const GR_PROV={purines_risque:{lib:'Purines à risque',u:'mg',max:d=>purMax(d),rep:'plafond'},sodium:{lib:'Sodium',u:'mg',max:d=>seuilsQualite(d).sodium.max,rep:'repère'},
   sucres_ajoutes:{lib:'Sucres ajoutés',u:'g',max:d=>seuilsQualite(d).sucres_ajoutes.max,rep:'repère'},satures:{lib:'Graisses saturées',u:'g',max:d=>seuilsQualite(d).satures.max,rep:'repère'}};
+// Provenance d'un nutriment sur 7 jours : treemap aliment par aliment (groupés par famille), repère du jour dans le titre.
 async function grProv(d,k){
-  const P=GR_PROV[k],a0=auj(),deb=plusJours(a0,-6),M={};let tot=0;
-  (await grJournal(d,deb)).filter(l=>l.date>=deb&&l.date<=a0).forEach(l=>{const cr=repasCle(l.repas);
-    grAlims(l).forEach(a=>{const v=Number(a[k])||0;if(v<=0)return;const f=a.famille||'autre';(M[f]=M[f]||{})[cr]=(M[f][cr]||0)+v;tot+=v;});});
+  const P=GR_PROV[k],L=await grParAliment(d,k,7),tot=L.reduce((t,a)=>t+a.v,0);
   if(!tot)return {vide:P.lib+' : rien de relevé dans tes repas des 7 derniers jours. Seuls les repas analysés avec le détail des aliments comptent.'};
-  const mx=Number(P.max(d))||0,pj=tot/7,g=Object.assign(grSankey(M,GR_CR,P.u),{titre:P.lib+', 7 jours',
-    sous:[nb(pj)+' '+P.u+'/j',!mx?'var(--ink)':pj>mx*1.1?'var(--rouge)':pj>mx?'var(--over)':'var(--under)',mx?P.rep+' '+nb(mx):''],
-    leg:'À gauche, la famille d’aliments ; à droite, le repas où tu l’as mangée.'});
-  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\n'+P.lib+' des 7 derniers jours : '+nb(tot)+' '+P.u+', soit '+nb(pj)+' '+P.u+'/j'+(mx?' ('+P.rep+' '+nb(mx)+' '+P.u+'/j)':'')+'.\n'+
-    'Par famille : '+g.top.join(', ')+'.\nPar repas : '+g.R.map((x,j)=>x[0]+' '+nb(g.F.filter(f=>f[1]===j).reduce((t,f)=>t+f[2],0))+' '+P.u).join(', ')+'.'+GR_FIN;
-  delete g.top;return {g:g,txt:txt};
+  const mx=Number(P.max(d))||0,pj=tot/L.nj,fi={};L.forEach(a=>{if(!(a.fam in fi))fi[a.fam]=Object.keys(fi).length;});
+  const g={t:'treemap',H:230,titre:P.lib+', 7 jours',sous:[nb(pj)+' '+P.u+'/j',!mx?'var(--ink)':pj>mx*1.1?'var(--rouge)':pj>mx?'var(--over)':'var(--under)',mx?P.rep+' '+nb(mx):''],
+    u:P.u,F:grBlocs(L,tot,P.u,k==='purines_risque'?grCoulPur:f=>GR_COUL[fi[f]%GR_COUL.length]),lg:k==='purines_risque'?'pur':'',
+    leg:'Surface = part de '+(k==='sodium'?'ton sel':'tes '+P.lib.toLowerCase())+' des 7 derniers jours, par famille d’aliments.'};
+  const FS={};L.forEach(a=>{FS[a.fam]=(FS[a.fam]||0)+a.v;});
+  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\n'+P.lib+' des 7 derniers jours : '+nb(tot)+' '+P.u+', soit '+nb(pj)+' '+P.u+'/j sur '+L.nj+' jours détaillés'+(mx?' ('+P.rep+' '+nb(mx)+' '+P.u+'/j)':'')+'.\n'+
+    'Par aliment : '+L.slice(0,12).map(a=>a.nom+' '+nb(a.v)+' '+P.u+' ('+nb(a.v/tot*100)+' %, '+a.n+' fois)').join(', ')+'.\n'+
+    'Par famille : '+Object.keys(FS).sort((a,b)=>FS[b]-FS[a]).slice(0,6).map(f=>famLib(f)+' '+nb(FS[f]/tot*100)+' %').join(', ')+'.'+GR_FIN;
+  return {g:g,txt:txt};
 }
 const grPurSemaine=d=>grProv(d,'purines_risque');
 // Alcool, purines et crises sur 90 jours : chaque jour classé (alcool, purines au-dessus du plafond), suivi ou non d'une crise dans les 3 jours.
@@ -4349,26 +4384,27 @@ function squarify(items,x,y,w,h){
   }
   return out;
 }
-// g.F = familles [{nom, al:[{nom, v, c (couleur), t (texte de la valeur)}]}] ; un bloc par famille, un rectangle par aliment.
-// Un rectangle trop petit n'a pas d'étiquette : il est cité sous le graphique (« Aussi : »).
-function htmlTreemap(g){
-  const W=334,H=g.H||240,F=g.F.map(f=>Object.assign({},f,{v:f.al.reduce((t,a)=>t+a.v,0)})),sans=[];
+// Treemap des familles : g.F = [{nom, c (couleur), v, t (part et moyenne par jour), al:[[aliment, valeur, fois]]}], g.u unité.
+// Un bloc par famille (lisible sur iPhone) ; la famille touchée (fs, gardée dans le message i) détaille ses aliments en liste dessous.
+function htmlTreemap(g,i,fs){
+  const W=334,H=g.H||240,cp=(t,w,n)=>{const m=Math.max(2,Math.floor((w-12)/(n*0.57)));return t.length>m?t.slice(0,m-1)+'…':t;};
   let h='<svg viewBox="0 0 '+W+' '+H+'" class="bm-svg gr-treemap" role="img" aria-label="'+esc(g.titre||'')+'">';
-  squarify(F,0,0,W,H).forEach(f=>{
-    squarify(f.al,f.x+1.5,f.y+1.5,f.w-3,f.h-3).forEach(a=>{
-      const clair=a.c==='var(--creux)',tc=clair?'var(--ink)':'#fff';
-      h+='<rect x="'+(a.x+0.5).toFixed(1)+'" y="'+(a.y+0.5).toFixed(1)+'" width="'+Math.max(0,a.w-1).toFixed(1)+'" height="'+Math.max(0,a.h-1).toFixed(1)+'" rx="3" fill="'+a.c+'"'+(clair?'':' fill-opacity=".92"')+'/>';
-      if(a.w>44&&a.h>30){const fs=a.w>90&&a.h>44?12:10.5,max=n=>Math.max(3,Math.floor((a.w-9)/(n*0.56))),cp=(t,n)=>t.length>max(n)?t.slice(0,max(n)-1)+'…':t;
-        h+='<text x="'+(a.x+5).toFixed(1)+'" y="'+(a.y+fs+3).toFixed(1)+'" font-size="'+fs+'" font-weight="600" fill="'+tc+'">'+esc(cp(a.nom,fs))+'</text>'+
-          '<text x="'+(a.x+5).toFixed(1)+'" y="'+(a.y+2*fs+6).toFixed(1)+'" font-size="'+(fs-1)+'" fill="'+tc+'" fill-opacity=".85">'+esc(cp(a.t,fs-1))+'</text>';}
-      else sans.push(a.nom+' '+a.t);});
-    h+='<rect x="'+f.x.toFixed(1)+'" y="'+f.y.toFixed(1)+'" width="'+f.w.toFixed(1)+'" height="'+f.h.toFixed(1)+'" fill="none" stroke="var(--paper)" stroke-width="3"/>';});
-  return h+'</svg>'+(sans.length?'<div class="bm-lg gr-aussi">Aussi : '+esc(sans.join(', '))+'</div>':'');
+  squarify(g.F.map((f,k)=>Object.assign({k:k},f)),0,0,W,H).forEach(f=>{const on=fs===f.k,n=f.w>90&&f.h>50?13:11;
+    h+='<g data-gtf="'+i+':'+f.k+'" role="button" tabindex="0" aria-label="'+esc(f.nom+', '+f.t)+'"><rect x="'+(f.x+1.5).toFixed(1)+'" y="'+(f.y+1.5).toFixed(1)+'" width="'+Math.max(0,f.w-3).toFixed(1)+'" height="'+Math.max(0,f.h-3).toFixed(1)+'" rx="6" fill="'+f.c+'"'+(on?' stroke="var(--ink)" stroke-width="3"':'')+'/>';
+    if(f.w>34&&f.h>22){h+='<text x="'+(f.x+7).toFixed(1)+'" y="'+(f.y+n+5).toFixed(1)+'" font-size="'+n+'" font-weight="700" fill="#fff">'+esc(cp(f.nom,f.w,n))+'</text>';
+      if(f.h>40)h+='<text x="'+(f.x+7).toFixed(1)+'" y="'+(f.y+2*n+8).toFixed(1)+'" font-size="'+(n-1)+'" fill="#fff" fill-opacity=".9">'+esc(cp(f.w>110?f.t:f.t.split(' · ')[0],f.w,n-1))+'</text>';}
+    h+='</g>';});
+  h+='</svg>';
+  const f=g.F[fs];
+  if(!f)return h+'<div class="bm-lg">Touche une famille pour voir ses aliments.</div>';
+  const mx=Math.max(...f.al.map(a=>a[1]));
+  return h+'<div class="tm-fl"><div class="tm-fl-t">'+esc(f.nom)+'<small>'+esc(f.t)+'</small></div>'+
+    f.al.map(a=>'<div class="tm-fl-r"><span>'+esc(a[0])+(a[2]>1?' <small>'+a[2]+' fois</small>':'')+'</span><i style="width:'+Math.max(4,Math.round(a[1]/mx*70))+'px;background:'+f.c+'"></i><span>'+nb(a[1])+' '+esc(g.u||'')+'</span></div>').join('')+'</div>';
 }
 // Couleur d'un aliment selon ses purines (table PUR_FAM) : gris peu, orange à limiter, rouge très riche.
 const GR_PUR_ROUGE=['abats','petits_poissons','charcuterie','biere','levure'];
-const grCoulPur=f=>GR_PUR_ROUGE.indexOf(f)>=0?'var(--rouge)':(PUR_FAM[f]||[0,0])[1]?'var(--over)':'var(--creux)';
-const GR_LG_PUR='<div class="tm-lg"><span><i style="background:var(--creux)"></i>peu de purines</span><span><i style="background:var(--over)"></i>à limiter</span><span><i style="background:var(--rouge)"></i>très riche (abats, petits poissons, charcuterie, bière)</span></div>';
+const grCoulPur=f=>GR_PUR_ROUGE.indexOf(f)>=0?'var(--rouge)':(PUR_FAM[f]||[0,0])[1]?'var(--over)':'var(--peu)';
+const GR_LG_PUR='<div class="tm-lg"><span><i style="background:var(--peu)"></i>peu de purines</span><span><i style="background:var(--over)"></i>à limiter</span><span><i style="background:var(--rouge)"></i>très riche (abats, petits poissons, charcuterie, bière)</span></div>';
 // Aliments du journal sur n jours, regroupés par nom (normalisé), avec la somme d'un champ k.
 async function grParAliment(d,k,n){
   const a0=auj(),deb=plusJours(a0,-(n-1)),A={},J={};
@@ -4378,18 +4414,21 @@ async function grParAliment(d,k,n){
   const L=Object.values(A).sort((x,y)=>y.v-x.v);L.nj=Object.keys(J).length;return L;
 }
 // Les 12 plus gros aliments, groupés par famille, le reste dans « Autres ».
-function grBlocs(L,tot,u,coul,pct){
-  const T=L.slice(0,12),R=L.slice(12),F={},t=a=>nb(a.v)+' '+u+(pct?' · '+nb(a.v/tot*100)+' %':'');
-  T.forEach(a=>{(F[a.fam]=F[a.fam]||{nom:famLib(a.fam),al:[]}).al.push({nom:a.nom,v:a.v,c:coul(a.fam),t:t(a)});});
-  const out=Object.values(F);if(R.length){const v=R.reduce((s,a)=>s+a.v,0);out.push({nom:'Autres',al:[{nom:'Autres ('+R.length+')',v:v,c:'var(--creux)',t:t({v:v})}]});}
-  return out;
+// Familles du treemap : 8 familles au plus (les suivantes réunies dans « Le reste »), 8 aliments par famille (la suite en « Autres »).
+function grBlocs(L,tot,u,coul){
+  const M={};L.forEach(a=>{const o=M[a.fam]=M[a.fam]||{fam:a.fam,v:0,al:[]};o.v+=a.v;o.al.push(a);});
+  let F=Object.values(M).sort((a,b)=>b.v-a.v);
+  if(F.length>9){const R=F.slice(8);F=F.slice(0,8).concat([{fam:'',v:R.reduce((t,f)=>t+f.v,0),al:R.flatMap(f=>f.al).sort((a,b)=>b.v-a.v)}]);}
+  return F.map(f=>{const al=f.al.slice(0,8),rest=f.al.slice(8);
+    return {nom:f.fam?famLib(f.fam):'Le reste',c:f.fam?coul(f.fam):'var(--peu)',v:f.v,t:nb(f.v/tot*100)+' % · '+nb(f.v/(L.nj||1))+' '+u+'/j',
+      al:al.map(a=>[a.nom,Math.round(a.v),a.n]).concat(rest.length?[['Autres ('+rest.length+')',Math.round(rest.reduce((t,a)=>t+a.v,0)),0]]:[])};});
 }
 async function grMangePlus(d){
   const L=await grParAliment(d,'kcal',30),tk=L.reduce((t,a)=>t+a.v,0);
   if(!tk)return {vide:'Pas assez de repas analysés avec le détail des aliments sur les 30 derniers jours.'};
   const FS={};L.forEach(a=>{FS[a.fam]=(FS[a.fam]||0)+a.v;});
-  const g={t:'treemap',H:250,titre:'Tes aliments, 30 jours',sous:[nb(tk/L.nj)+' kcal/j','var(--ink)','par surface'],F:grBlocs(L,tk,'kcal',grCoulPur,false),lg:'pur',
-    leg:'Surface = calories du mois. Les aliments sont regroupés par famille (blocs séparés) ; la couleur dit leur richesse en purines.'};
+  const g={t:'treemap',H:250,titre:'Tes aliments, 30 jours',sous:[nb(tk/L.nj)+' kcal/j','var(--ink)','par surface'],u:'kcal',F:grBlocs(L,tk,'kcal',grCoulPur),lg:'pur',
+    leg:'Surface = part de tes calories du mois, par famille d’aliments ; la couleur dit leur richesse en purines.'};
   const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nSur les 30 derniers jours ('+nb(tk)+' kcal d’aliments détaillés sur '+L.nj+' jours) :\n'+
     'Familles : '+Object.keys(FS).sort((a,b)=>FS[b]-FS[a]).slice(0,6).map(f=>famLib(f)+' '+nb(FS[f]/tk*100)+' %').join(', ')+'.\n'+
     'Aliments : '+L.slice(0,12).map(a=>a.nom+' '+nb(a.v)+' kcal ('+nb(a.v/tk*100)+' %, '+a.n+' fois'+(GR_PUR_ROUGE.indexOf(a.fam)>=0?', très riche en purines':(PUR_FAM[a.fam]||[0,0])[1]?', purines à limiter':'')+')').join(', ')+'.'+GR_FIN;
@@ -4402,8 +4441,8 @@ async function grTopAliments(d){
   for(const [k,lib] of GR_TOP){const P=GR_PROV[k],L=await grParAliment(d,k,30),tot=L.reduce((t,a)=>t+a.v,0);if(!tot)continue;
     const mx=Number(P.max(d))||0,pj=tot/L.nj,fi={};L.forEach(a=>{if(!(a.fam in fi))fi[a.fam]=Object.keys(fi).length;});
     V[k]={lib:lib,titre:P.lib+', 30 jours',sous:[nb(pj)+' '+P.u+'/j',!mx?'var(--ink)':pj>mx*1.1?'var(--rouge)':pj>mx?'var(--over)':'var(--under)',mx?P.rep+' '+nb(mx):''],
-      F:grBlocs(L,tot,P.u,k==='purines_risque'?grCoulPur:f=>GR_COUL[fi[f]%GR_COUL.length],true),lg:k==='purines_risque'?'pur':'',
-      leg:'Surface = part de '+(k==='sodium'?'ton sel':'tes '+P.lib.toLowerCase())+' du mois, aliment par aliment.'};
+      u:P.u,F:grBlocs(L,tot,P.u,k==='purines_risque'?grCoulPur:f=>GR_COUL[fi[f]%GR_COUL.length]),lg:k==='purines_risque'?'pur':'',
+      leg:'Surface = part de '+(k==='sodium'?'ton sel':'tes '+P.lib.toLowerCase())+' du mois, par famille d’aliments.'};
     if(k==='purines_risque')txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nPurines à risque des 30 derniers jours : '+nb(tot)+' mg, soit '+nb(pj)+' mg/j sur '+L.nj+' jours détaillés (plafond '+nb(mx)+' mg/j).\n'+
       'Aliments : '+L.slice(0,12).map(a=>a.nom+' '+nb(a.v)+' mg ('+nb(a.v/tot*100)+' %, '+a.n+' fois)').join(', ')+'.'+GR_FIN;}
   if(!V.purines_risque)return {vide:'Aucune purine à risque relevée sur les 30 derniers jours. Seuls les repas analysés avec le détail des aliments comptent.'};
@@ -4427,7 +4466,7 @@ function carteGraphe(g0,i){
   const g=g0.V?Object.assign({t:'treemap',H:g0.H},g0.V[g0.sel]||Object.values(g0.V)[0]):g0,s=g.sous||[];
   return '<div class="bm"><h3>'+esc(g.titre||'')+' <small>'+(s[0]?'<b style="color:'+s[1]+'">'+esc(s[0])+'</b>'+(s[2]?' · ':''):'')+esc(s[2]||'')+'</small></h3>'+
     (g0.V&&Object.keys(g0.V).length>1?'<div class="mn-tri">'+GR_TOP.filter(x=>g0.V[x[0]]).map(x=>'<button data-gtm="'+i+':'+x[0]+'"'+(g0.sel===x[0]?' class="on"':'')+'>'+x[1]+'</button>').join('')+'</div>':'')+
-    (g.t==='pont'?svgPont(g):g.t==='treemap'?htmlTreemap(g)+(g.lg==='pur'?GR_LG_PUR:''):svgSankey(g))+(g.leg?'<div class="bm-lg">'+esc(g.leg)+'</div>':'')+'</div>';
+    (g.t==='pont'?svgPont(g):g.t==='treemap'?htmlTreemap(g,i,g0.fsel)+(g.lg==='pur'?GR_LG_PUR:''):svgSankey(g))+(g.leg?'<div class="bm-lg">'+esc(g.leg)+'</div>':'')+'</div>';
 }
 function suggestionsCoach(d){
   if(!d)return [];
@@ -5893,6 +5932,8 @@ function rendreSiLibre(){
 document.addEventListener('focusout',()=>setTimeout(()=>{if(S.rendreDiffere&&!saisieActive())rendreSiLibre();},400));
 function rendre(){
   if(S.vue!=='ajout'||S.reglages){S.pia=null;S.piaOuv=false;}
+  // l'accordéon « En graphiques » se referme dès qu'on quitte le Coach (Réglages compris)
+  if((S.vue!=='coach'||S.reglages)&&S.coach)S.coach.grOuv=false;
   const d=S.data,r=$('#racine');
   const ancien=$('#defile'),y=ancien?ancien.scrollTop:0;
   // champ du Coach : le texte tapé survit à une reconstruction (le DOM est régénéré en entier)
@@ -6806,8 +6847,12 @@ function brancher(){
   document.querySelectorAll('[data-mplat]').forEach(b=>b.addEventListener('click',()=>{const [i,j]=b.dataset.mplat.split(':').map(Number);const m=S.coach.fil[i],p=m&&m.menu&&m.menu.plats[j];
     if(!p)return;platVersRepas(p,m.menu.ia);S.vue='ajout';rendre();hautPage();}));
   on('#c-gr','click',()=>{S.coach.grOuv=!S.coach.grOuv;rendre();});
+  document.querySelectorAll('[data-alj]').forEach(b=>b.addEventListener('click',async()=>{const x=b.dataset.alj;S.alcSel=S.alcSel===x?null:x;rendre();
+    const d=S.data;if(S.alcSel&&d&&nrManque(d,x)&&!S.nrCharge){await nrCharger(d,x);rendre();}}));
+  document.querySelectorAll('[data-gtf]').forEach(b=>b.addEventListener('click',()=>{const [i,k]=b.dataset.gtf.split(':').map(Number),m=S.coach.fil[i];
+    if(m&&m.graphe){m.graphe.fsel=m.graphe.fsel===k?undefined:k;try{localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));}catch(e){}rendre();}}));
   document.querySelectorAll('[data-gtm]').forEach(b=>b.addEventListener('click',()=>{const [i,k]=b.dataset.gtm.split(':'),m=S.coach.fil[Number(i)];
-    if(m&&m.graphe&&m.graphe.V&&m.graphe.V[k]){m.graphe.sel=k;try{localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));}catch(e){}rendre();}}));
+    if(m&&m.graphe&&m.graphe.V&&m.graphe.V[k]){m.graphe.sel=k;delete m.graphe.fsel;try{localStorage.setItem(S.chat,JSON.stringify(S.coach.fil.slice(-20)));}catch(e){}rendre();}}));
   document.querySelectorAll('[data-cgr]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){t.value=b.dataset.cgr;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){S.coach.posees=(S.coach.posees||[]).filter(i=>i!==Number(b.dataset.csi)).concat(Number(b.dataset.csi));t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));
