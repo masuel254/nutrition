@@ -895,3 +895,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Ponts (`svgPont`) : poids = pesée de début + écart cumulé aux besoins ÷ 7 000 (convention de l'appli) + reste mesuré = pesée de fin ; week-end = marge sous la cible lun–ven + samedi + dimanche (week-end d'avant si celui en cours n'a pas de repas) ; mois = kcal moyennes par journée complète, variation de chaque repas.
 - Sankey (`svgSankey`, rubans pleins, nœuds de 24 px minimum) : familles d'aliments (`aliments[].famille`, 5 + « Le reste », libellés courts `famLib`) vers les repas, les crises (3 jours avant), ou la part des calories et des purines (%). Seuls les repas avec le détail des aliments comptent.
 - Tests e2e « Coach : réponses en graphiques (ponts et Sankey) ».
+
+## 63. Coach : graphiques en accordéon, provenance du sel, des sucres et des saturées, lien alcool-purines-crises (31/10, appli v110)
+
+- Les questions en graphiques passent dans un accordéon « En graphiques » fermé par défaut (`#c-gr`, `S.coach.grOuv`, `.coach-acc`), rangées en 3 groupes `GR_GROUPES` (champ `g` de `GRAPHES`) : Comprendre un écart, D'où ça vient, Goutte (bordure rouge).
+- Provenance générique `grProv(d, k)` (`GR_PROV`) : purines à risque (plafond), sodium, sucres ajoutés, saturées (repères de `seuilsQualite`), familles → repas sur 7 jours, moyenne par jour dans le titre. `grPurSemaine` en devient un raccourci ; la question est « D’où viennent mes purines ? ».
+- `grLien` : 90 jours, chaque jour avec l'alcool suivi classé « Alcool + purines », « Alcool seul », « Purines hautes » (au-dessus du plafond), « Ni l’un ni l’autre », relié à « Crise dans les 3 j » ou « Pas de crise ». Affichée seulement s'il y a des crises ; consigne à l'IA de parler de tendance.
+- Tests e2e dans « Coach : réponses en graphiques (ponts et Sankey) ».

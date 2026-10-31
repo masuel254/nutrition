@@ -918,9 +918,14 @@ nav button .ico-b{position:relative;display:inline-block;line-height:0}
 /* coach : questions toutes prêtes */
 .coach-sug{display:flex;flex-direction:column;gap:8px;margin:12px 0 14px}
 .coach-sug button{text-align:left;border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:10px 12px;font-size:14.5px;color:var(--ink)}
-.coach-gr-t{font-size:12.5px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:4px 0 6px}
-.coach-gr{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
-.coach-gr button{text-align:left;border:1px solid var(--rule);border-left:3px solid var(--under);border-radius:10px;background:var(--card);padding:8px 10px;font-size:13.5px;color:var(--ink)}
+.coach-acc{border:1px solid var(--rule);border-radius:12px;background:var(--card);margin:0 0 14px}
+.coach-acc-t{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;text-align:left;font-size:15px;font-weight:600;color:var(--ink)}
+.coach-acc-t small{display:block;font-weight:400;font-size:12.5px;color:var(--soft)}.coach-acc-t b{margin-left:auto;color:var(--soft);font-size:13px}
+.coach-acc-c{padding:0 12px 12px}
+.coach-gr-t{font-size:12px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 6px}
+.coach-gr{display:flex;flex-wrap:wrap;gap:6px}
+.coach-gr button{text-align:left;border:1px solid var(--rule);border-left:3px solid var(--under);border-radius:10px;background:var(--paper);padding:8px 10px;font-size:13.5px;color:var(--ink)}
+.coach-gr.gtt button{border-left-color:var(--rouge)}
 /* coach : analyse d'un menu */
 .bulle.mn-b{max-width:100%;white-space:normal}
 /* bilan du mois : graphiques en tête de la réponse */
@@ -1057,8 +1062,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=109; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='31/10/2026 20h52';
+const APP_NUM=110; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='31/10/2026 21h31';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4281,16 +4286,39 @@ async function grMois(d){
     'Par repas ('+mp+' → '+mc+') : '+GR_CR.filter(x=>C.o[x[0]]||P.o[x[0]]).map(x=>x[1]+' '+nb(P.o[x[0]]||0)+' → '+nb(C.o[x[0]]||0)+' kcal/j').join(', ')+'.'+GR_FIN;
   return {g:g,txt:txt};
 }
-async function grPurSemaine(d){
-  const a0=auj(),deb=plusJours(a0,-6),M={};let tot=0;
+// Provenance d'un nutriment sur 7 jours : familles d'aliments → repas, avec le repère du jour dans le titre.
+const GR_PROV={purines_risque:{lib:'Purines à risque',u:'mg',max:d=>purMax(d),rep:'plafond'},sodium:{lib:'Sodium',u:'mg',max:d=>seuilsQualite(d).sodium.max,rep:'repère'},
+  sucres_ajoutes:{lib:'Sucres ajoutés',u:'g',max:d=>seuilsQualite(d).sucres_ajoutes.max,rep:'repère'},satures:{lib:'Graisses saturées',u:'g',max:d=>seuilsQualite(d).satures.max,rep:'repère'}};
+async function grProv(d,k){
+  const P=GR_PROV[k],a0=auj(),deb=plusJours(a0,-6),M={};let tot=0;
   (await grJournal(d,deb)).filter(l=>l.date>=deb&&l.date<=a0).forEach(l=>{const cr=repasCle(l.repas);
-    grAlims(l).forEach(a=>{const v=Number(a.purines_risque)||0;if(v<=0)return;const f=a.famille||'autre';(M[f]=M[f]||{})[cr]=(M[f][cr]||0)+v;tot+=v;});});
-  if(!tot)return {vide:'Aucune purine à risque dans tes repas des 7 derniers jours. Seuls les repas analysés avec le détail des aliments comptent.'};
-  const mx=purMax(d)*7,g=Object.assign(grSankey(M,GR_CR,'mg'),{titre:'Purines à risque, 7 jours',sous:[nb(tot)+' mg',tot>mx?'var(--rouge)':tot>mx*0.75?'var(--over)':'var(--under)','plafond '+nb(mx)],
+    grAlims(l).forEach(a=>{const v=Number(a[k])||0;if(v<=0)return;const f=a.famille||'autre';(M[f]=M[f]||{})[cr]=(M[f][cr]||0)+v;tot+=v;});});
+  if(!tot)return {vide:P.lib+' : rien de relevé dans tes repas des 7 derniers jours. Seuls les repas analysés avec le détail des aliments comptent.'};
+  const mx=Number(P.max(d))||0,pj=tot/7,g=Object.assign(grSankey(M,GR_CR,P.u),{titre:P.lib+', 7 jours',
+    sous:[nb(pj)+' '+P.u+'/j',!mx?'var(--ink)':pj>mx*1.1?'var(--rouge)':pj>mx?'var(--over)':'var(--under)',mx?P.rep+' '+nb(mx):''],
     leg:'À gauche, la famille d’aliments ; à droite, le repas où tu l’as mangée.'});
-  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nPurines à risque des 7 derniers jours : '+nb(tot)+' mg (plafond '+nb(purMax(d))+' mg/j, soit '+nb(mx)+' mg sur 7 jours).\n'+
-    'Par famille : '+g.top.join(', ')+'.\nPar repas : '+g.R.map((x,j)=>x[0]+' '+nb(g.F.filter(f=>f[1]===j).reduce((t,f)=>t+f[2],0))+' mg').join(', ')+'.'+GR_FIN;
+  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\n'+P.lib+' des 7 derniers jours : '+nb(tot)+' '+P.u+', soit '+nb(pj)+' '+P.u+'/j'+(mx?' ('+P.rep+' '+nb(mx)+' '+P.u+'/j)':'')+'.\n'+
+    'Par famille : '+g.top.join(', ')+'.\nPar repas : '+g.R.map((x,j)=>x[0]+' '+nb(g.F.filter(f=>f[1]===j).reduce((t,f)=>t+f[2],0))+' '+P.u).join(', ')+'.'+GR_FIN;
   delete g.top;return {g:g,txt:txt};
+}
+const grPurSemaine=d=>grProv(d,'purines_risque');
+// Alcool, purines et crises sur 90 jours : chaque jour classé (alcool, purines au-dessus du plafond), suivi ou non d'une crise dans les 3 jours.
+async function grLien(d){
+  const a0=auj(),deb=plusJours(a0,-90),mx=purMax(d),C=(d.crises||[]).filter(c=>c&&c.date>deb).map(c=>c.date);
+  if(!C.length)return {vide:'Aucune crise de goutte sur les 90 derniers jours : pas de lien à chercher.'};
+  const V=(d.jours||[]).filter(j=>j.date>=deb&&j.date<a0&&j.repas>0&&j.alcool!==null&&j.alcool!==undefined&&j.alcool!=='');
+  if(!V.length)return {vide:'L’alcool n’est pas suivi sur les 90 derniers jours : impossible de comparer.'};
+  const G=[['ap','Alcool + purines','var(--vin)'],['a','Alcool seul','var(--ambre)'],['p','Purines hautes','var(--over)'],['n','Ni l’un ni l’autre','var(--soft)']],N={};
+  V.forEach(j=>{const al=Number(j.alcool)>0,pu=(Number(j.purines_risque)||0)>mx,k=al&&pu?'ap':al?'a':pu?'p':'n',cr=C.some(c=>c>j.date&&c<=plusJours(j.date,3))?'c':'s';
+    N[k]=N[k]||{c:0,s:0};N[k][cr]++;});
+  const L=G.filter(x=>N[x[0]]),R=[['Crise dans les 3 j','var(--rouge)'],['Pas de crise','var(--under)']].filter((x,i)=>L.some(l=>N[l[0]][i?'s':'c']>0)),F=[];
+  L.forEach((x,i)=>R.forEach((y,jj)=>{const v=N[x[0]][y[0]==='Pas de crise'?'s':'c'];if(v)F.push([i,jj,v]);}));
+  const g={t:'sankey',u:'j',L:L.map(x=>[x[1],x[2]]),R:R,F:F,titre:'Tes 90 derniers jours',sous:[C.length+' crise'+(C.length>1?'s':''),'var(--rouge)',V.length+' jours suivis'],
+    leg:'Chaque jour est classé selon l’alcool et les purines (au-dessus de ton plafond de '+nb(mx)+' mg) ; à droite, s’il a été suivi d’une crise dans les 3 jours.'};
+  const txt='[Chiffres calculés par l’appli. Utilise-les tels quels, ne les recalcule pas.]\nSur les 90 derniers jours : '+C.length+' crise(s) de goutte, '+V.length+' jours avec l’alcool suivi, plafond de purines '+nb(mx)+' mg/j.\n'+
+    L.map(x=>{const o=N[x[0]],n=o.c+o.s;return x[1]+' : '+n+' jour'+(n>1?'s':'')+', dont '+o.c+' suivi'+(o.c>1?'s':'')+' d’une crise dans les 3 jours ('+nb(o.c/n*100)+' %).';}).join('\n')+
+    '\nAvec si peu de crises, parle de tendance, pas de preuve.'+GR_FIN;
+  return {g:g,txt:txt};
 }
 async function grCrises(d){
   const C=(d.crises||[]).filter(c=>c&&c.date).slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-4);
@@ -4319,12 +4347,17 @@ async function grMangePlus(d){
   g.R=g.R.map(x=>[x[0],x[1],'100 %']);delete g.top;return {g:g,txt:txt};
 }
 const GRAPHES=[
-  {q:'Mon poids ce mois-ci : qu’est-ce qui l’explique ?',f:grPoids},
-  {q:'Combien m’a coûté le week-end ?',f:grWeekend},
-  {q:'Ce mois-ci par rapport au mois dernier ?',f:grMois},
-  {q:'D’où viennent mes purines cette semaine ?',f:grPurSemaine},
-  {q:'Avant mes crises de goutte, qu’avais-je mangé ?',f:grCrises,si:d=>(d.crises||[]).length>0},
-  {q:'Qu’est-ce que je mange le plus ?',f:grMangePlus}];
+  {g:0,q:'Mon poids ce mois-ci : qu’est-ce qui l’explique ?',f:grPoids},
+  {g:0,q:'Combien m’a coûté le week-end ?',f:grWeekend},
+  {g:0,q:'Ce mois-ci par rapport au mois dernier ?',f:grMois},
+  {g:1,q:'D’où viennent mes purines ?',f:grPurSemaine},
+  {g:1,q:'D’où vient mon sel ?',f:d=>grProv(d,'sodium')},
+  {g:1,q:'D’où viennent mes sucres ajoutés ?',f:d=>grProv(d,'sucres_ajoutes')},
+  {g:1,q:'D’où viennent mes graisses saturées ?',f:d=>grProv(d,'satures')},
+  {g:1,q:'Qu’est-ce que je mange le plus ?',f:grMangePlus},
+  {g:2,q:'Alcool, purines et crises : quel lien ?',f:grLien,si:d=>(d.crises||[]).length>0},
+  {g:2,q:'Avant mes crises de goutte, qu’avais-je mangé ?',f:grCrises,si:d=>(d.crises||[]).length>0}];
+const GR_GROUPES=['Comprendre un écart','D’où ça vient','Goutte'];
 function carteGraphe(g){
   const s=g.sous||[];
   return '<div class="bm"><h3>'+esc(g.titre||'')+' <small>'+(s[0]?'<b style="color:'+s[1]+'">'+esc(s[0])+'</b>'+(s[2]?' · ':''):'')+esc(s[2]||'')+'</small></h3>'+
@@ -4411,7 +4444,11 @@ function vueCoach(){
      '<button class="primaire" id="c-envoi"'+(env?' disabled':'')+'>Envoyer</button>';
   // questions toutes prêtes sous la saisie : elles ne poussent plus la réponse hors de l'écran
   if(!env){const sg=suggestionsAffichees(S.data);if(sg.length)h+='<div class="coach-sug">'+sg.map(x=>'<button data-csug="'+esc(x.q)+'" data-csi="'+x.i+'">'+esc(x.q)+'</button>').join('')+'</div>';}
-  if(!env&&S.data)h+='<h3 class="coach-gr-t">En graphiques</h3><div class="coach-gr">'+GRAPHES.filter(x=>!x.si||x.si(S.data)).map(x=>'<button data-cgr="'+esc(x.q)+'">'+esc(x.q)+'</button>').join('')+'</div>';
+  // questions en graphiques : un accordéon fermé par défaut, les questions rangées par groupe
+  if(!env&&S.data){const G=GRAPHES.filter(x=>!x.si||x.si(S.data)),o=!!S.coach.grOuv;
+    h+='<div class="coach-acc"><button class="coach-acc-t" id="c-gr" aria-expanded="'+o+'">'+ico('courbes','x')+'<span>En graphiques<small>'+G.length+' questions : écarts, provenance'+(G.some(x=>x.g===2)?', goutte':'')+'</small></span><b aria-hidden="true">'+(o?'▾':'▸')+'</b></button>';
+    if(o)h+='<div class="coach-acc-c">'+GR_GROUPES.map((t,k)=>{const q=G.filter(x=>x.g===k);return q.length?'<h3 class="coach-gr-t">'+t+'</h3><div class="coach-gr'+(k===2?' gtt':'')+'">'+q.map(x=>'<button data-cgr="'+esc(x.q)+'">'+esc(x.q)+'</button>').join('')+'</div>':'';}).join('')+'</div>';
+    h+='</div>';}
   h+=
      '<h2>Photo d’un menu</h2><p class="vide">Le coach lit les plats et estime calories et macros de chacun.</p>'+
      '<input id="c-photo" type="file" accept="image/*" capture="environment" style="display:none"><input id="c-galerie" type="file" accept="image/*" style="display:none">'+
@@ -6702,6 +6739,7 @@ function brancher(){
   document.querySelectorAll('[data-mtri]').forEach(b=>b.addEventListener('click',()=>{const [i,t]=b.dataset.mtri.split(':');const m=S.coach.fil[Number(i)];if(m&&m.menu){m.menu.tri=t;rendre();}}));
   document.querySelectorAll('[data-mplat]').forEach(b=>b.addEventListener('click',()=>{const [i,j]=b.dataset.mplat.split(':').map(Number);const m=S.coach.fil[i],p=m&&m.menu&&m.menu.plats[j];
     if(!p)return;platVersRepas(p,m.menu.ia);S.vue='ajout';rendre();hautPage();}));
+  on('#c-gr','click',()=>{S.coach.grOuv=!S.coach.grOuv;rendre();});
   document.querySelectorAll('[data-cgr]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){t.value=b.dataset.cgr;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-csug]').forEach(b=>b.addEventListener('click',()=>{const t=$('#c-q');if(t){S.coach.posees=(S.coach.posees||[]).filter(i=>i!==Number(b.dataset.csi)).concat(Number(b.dataset.csi));t.value=b.dataset.csug;const e=$('#c-envoi');if(e)e.click();}}));
   document.querySelectorAll('[data-jev]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.jn.ev=S.jn.ev||{};const k=b.dataset.jev;S.jn.ev[k]=!S.jn.ev[k];rendre();}));

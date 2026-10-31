@@ -485,8 +485,12 @@ ok(/Coach/.test(await texte('.bandeau h1')) && await page.locator('nav button[da
   ok(JSON.stringify(await qs()) === JSON.stringify(avant), 'Coach : « Vider » remet les questions de départ'); }
 
 console.log('Coach : réponses en graphiques (ponts et Sankey)');
-{ const grs = await page.locator('.vue.on .coach-gr button').allInnerTexts();
-  ok(grs.length === 6 && /poids ce mois-ci/.test(grs[0]) && /week-end/.test(grs[1]) && /mois dernier/.test(grs[2]) && /purines cette semaine/.test(grs[3]) && /crises de goutte/.test(grs[4]) && /mange le plus/.test(grs[5]), 'Coach › graphiques : 6 questions « En graphiques », en plus des 4 questions toutes prêtes');
+{ ok(await page.locator('.vue.on #c-gr[aria-expanded="false"]').count() === 1 && await page.locator('.vue.on [data-cgr]').count() === 0 && /10 questions : écarts, provenance, goutte/.test(await texte('.vue.on #c-gr')), 'Coach › graphiques : accordéon « En graphiques » fermé par défaut (10 questions)');
+  await page.click('.vue.on #c-gr');
+  const grs = await page.locator('.vue.on .coach-gr button').allInnerTexts();
+  ok(grs.length === 10 && /poids ce mois-ci/.test(grs[0]) && /week-end/.test(grs[1]) && /mois dernier/.test(grs[2]) && /^D’où viennent mes purines \?$/.test(grs[3]) && /mon sel/.test(grs[4]) && /sucres ajoutés/.test(grs[5]) && /graisses saturées/.test(grs[6]) && /mange le plus/.test(grs[7]) && /Alcool, purines et crises/.test(grs[8]) && /crises de goutte/.test(grs[9]), 'Coach › graphiques : une fois ouvert, 10 questions dans l ordre');
+  ok(JSON.stringify(await page.locator('.vue.on .coach-gr-t').allInnerTexts()) === JSON.stringify(['COMPRENDRE UN ÉCART', 'D’OÙ ÇA VIENT', 'GOUTTE']) && await page.locator('.vue.on .coach-gr.gtt button').count() === 2, 'Coach › graphiques : 3 groupes (écarts, provenance, goutte)');
+  await page.click('.vue.on #c-gr'); ok(await page.locator('.vue.on [data-cgr]').count() === 0, 'Coach › graphiques : l accordéon se referme'); await page.click('.vue.on #c-gr');
   ok(await page.locator('.vue.on .coach-sug button').count() === 4, 'Coach › graphiques : les 4 questions toutes prêtes ne changent pas');
   // calculs de l'appli, sur les données fictives (2 repas par jour, poulet = volaille 225 mg le midi)
   ok(await page.evaluate(async () => { const r = await grPoids(S.data); if (r.vide) return /deux pesées/.test(r.vide);
@@ -499,17 +503,23 @@ console.log('Coach : réponses en graphiques (ponts et Sankey)');
   ok(await page.evaluate(async () => { const r = await grCrises(S.data); return !r.vide && r.g.R.length === 1 && /^Crise du \d\d\/\d\d$/.test(r.g.R[0][0]) && r.g.L[0][0] === 'Volaille' && /3 jours avant/.test(r.txt); }), 'Coach › Sankey avant les crises : familles des 3 jours avant → la crise');
   ok(await page.evaluate(async () => { const r = await grMangePlus(S.data); const v = r.g.L.find(x => x[0] === 'Volaille');
     return !r.vide && r.g.R.map(x => x[0]).join() === 'Calories,Purines' && v && /· 100 %$/.test(v[2]) && r.g.L.some(x => x[0] === 'Laitages'); }), 'Coach › Sankey ce que je mange : part des calories et des purines par famille (volaille 100 % des purines)');
-  ok(await page.evaluate(async () => { const d = JSON.parse(JSON.stringify(S.data)); d.journal.forEach(l => { l.aliments = []; }); d.journal_depuis = ''; return /Aucune purine/.test((await grPurSemaine(d)).vide) && /Aucune crise/.test((await grCrises(Object.assign(d, { crises: [] }))).vide); }), 'Coach › graphiques : message clair quand les données manquent (pas d appel à l IA)');
+  ok(await page.evaluate(async () => { const r = await grProv(S.data, 'sodium'), s = await grProv(S.data, 'satures');
+    return !r.vide && r.g.titre === 'Sodium, 7 jours' && r.g.u === 'mg' && r.g.R.map(x => x[0]).join() === 'Matin,Midi' && /repère \d/.test(r.g.sous[2]) && /Sodium des 7 derniers jours : \d/.test(r.txt) && /^Graisses saturées : rien de relevé/.test(s.vide); }), 'Coach › Sankey provenance : sel (mg) par famille vers les repas, avec le repère ; message si le nutriment manque (saturées)');
+  ok(await page.evaluate(async () => { const r = await grLien(S.data), a0 = auj(), c = S.data.crises[0].date;
+    const V = S.data.jours.filter(j => j.date >= plusJours(a0, -90) && j.date < a0 && j.repas > 0 && j.alcool !== null && j.alcool !== undefined && j.alcool !== '');
+    const nc = V.filter(j => c > j.date && c <= plusJours(j.date, 3)).length, sF = r.g.F.reduce((t, f) => t + f[2], 0), iC = r.g.R.findIndex(x => /Crise/.test(x[0]));
+    return !r.vide && r.g.u === 'j' && sF === V.length && r.g.F.filter(f => f[1] === iC).reduce((t, f) => t + f[2], 0) === nc && r.g.L.every(x => ['Alcool + purines', 'Alcool seul', 'Purines hautes', 'Ni l’un ni l’autre'].includes(x[0])) && /tendance, pas de preuve/.test(r.txt); }), 'Coach › Sankey alcool, purines et crises : chaque jour suivi classé, ceux suivis d une crise dans les 3 jours comptés');
+  ok(await page.evaluate(async () => { const d = JSON.parse(JSON.stringify(S.data)); d.journal.forEach(l => { l.aliments = []; }); d.journal_depuis = ''; return /rien de relevé/.test((await grPurSemaine(d)).vide) && /Aucune crise/.test((await grCrises(Object.assign(d, { crises: [] }))).vide) && /Aucune crise de goutte sur les 90/.test((await grLien(d)).vide); }), 'Coach › graphiques : message clair quand les données manquent (pas d appel à l IA)');
   ok(await page.evaluate(() => { const h = svgSankey({ u: 'mg', L: [['A', 'red'], ['B', 'blue'], ['C', 'green']], R: [['X', 'red']], F: [[0, 0, 1000], [1, 0, 5], [2, 0, 3]] }), t = document.createElement('div'); t.innerHTML = h;
     const r = [...t.querySelectorAll('rect')].slice(0, 3).map(x => [+x.getAttribute('y'), +x.getAttribute('height')]); return r.every(x => x[1] >= 24) && r[1][0] >= r[0][0] + r[0][1] && r[2][0] >= r[1][0] + r[1][1]; }), 'Coach › Sankey : un petit nœud garde une hauteur lisible, sans chevauchement');
   // parcours : la question part avec les chiffres, la réponse montre le graphique puis le texte du coach
   const nC = appels.filter(a => a.action === 'conseil').length;
-  await page.locator('.vue.on [data-cgr^="D’où viennent mes purines"]').click(); await page.waitForSelector('.vue.on .bulle.bm-b .gr-sankey');
+  await page.locator('.vue.on [data-cgr="D’où viennent mes purines ?"]').click(); await page.waitForSelector('.vue.on .bulle.bm-b .gr-sankey');
   const qG = appels.filter(a => a.action === 'conseil').pop().question;
-  ok(appels.filter(a => a.action === 'conseil').length === nC + 1 && /^D’où viennent mes purines cette semaine \?\n\n\[Chiffres calculés par l’appli/.test(qG) && /Purines à risque des 7 derniers jours : \d/.test(qG) && /UN conseil concret/.test(qG), 'Coach › graphiques : question envoyée avec les chiffres calculés et la consigne');
+  ok(appels.filter(a => a.action === 'conseil').length === nC + 1 && /^D’où viennent mes purines \?\n\n\[Chiffres calculés par l’appli/.test(qG) && /Purines à risque des 7 derniers jours : \d/.test(qG) && /UN conseil concret/.test(qG), 'Coach › graphiques : question envoyée avec les chiffres calculés et la consigne');
   ok(/Purines à risque, 7 jours/.test(await texte('.vue.on .bulle.bm-b .bm h3')) && /Bien vu/.test(await texte('.vue.on .bulle.bm-b .bm-txt')) && !/Chiffres calculés/.test(await page.locator('.vue.on .bulle.moi').last().innerText()), 'Coach › graphiques : graphique en tête de la réponse, puis le texte du coach ; la bulle n affiche que la question');
   ok(await page.evaluate(() => JSON.parse(localStorage.getItem('suivi.chat') || '[]').some(m => m.graphe && m.graphe.t === 'sankey')), 'Coach › graphiques : graphique gardé avec la conversation');
-  const ordre = [['Mon poids', 'poids'], ['Combien', 'weekend'], ['Ce mois-ci', 'mois'], ['Avant mes crises', 'crises'], ['Qu’est-ce que je mange', 'mange']];
+  const ordre = [['Mon poids', 'poids'], ['Combien', 'weekend'], ['Ce mois-ci', 'mois'], ['D’où vient mon sel', 'sel'], ['Alcool, purines', 'lien'], ['Avant mes crises', 'crises'], ['Qu’est-ce que je mange', 'mange']];
   for (const [q, nom] of ordre) {
     await page.locator('.vue.on [data-cgr^="' + q + '"]').click(); await page.waitForSelector('.vue.on #c-envoi:not([disabled])');
     if (process.env.CAPTURE) await page.locator('.vue.on .bulle.coach').last().screenshot({ path: 'maquettes/v109_gr_' + nom + '.png' }); }
