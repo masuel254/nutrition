@@ -62,7 +62,8 @@ const PHOTOS = {}; let nPhotos = 0;
 const PRODUITS = {
   111: { nom: 'Yaourt nature', marque: 'Danone', nutriscore: 'b', portion: 125, paquet: 500, per100: { kcal: 64, prot: 4, lip: 2.4, gluc: 6.4, fibres: 0, sucres: 6.4, sodium: 50, satures: 1.6 } },
   222: { nom: 'Pain complet', marque: '', nutriscore: 'a', portion: 0, paquet: 0, per100: { kcal: 250, prot: 9, lip: 3, gluc: 45, fibres: 7, sucres: 4, sodium: 400, satures: 0.6 } },
-  333: { nom: 'Jambon blanc', marque: '', nutriscore: '', portion: 0, paquet: 0, per100: { kcal: 120, prot: 20, lip: 4, gluc: 1, fibres: 0, sucres: 1, sodium: 900, satures: 1.5 } }
+  333: { nom: 'Jambon blanc', marque: '', nutriscore: '', portion: 0, paquet: 0, per100: { kcal: 120, prot: 20, lip: 4, gluc: 1, fibres: 0, sucres: 1, sodium: 900, satures: 1.5 } },
+  4006381333931: { nom: 'Biscuits test', marque: '', nutriscore: 'c', portion: 30, paquet: 0, per100: { kcal: 450, prot: 6, lip: 18, gluc: 65, fibres: 3, sucres: 25, sodium: 300, satures: 8 } }
 };
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
@@ -72,6 +73,8 @@ await page.route('https://app.test/**', r => {
   if (img) { try { return r.fulfill({ status: 200, contentType: 'image/webp', body: readFileSync(join(ICI, '..', img[1])) }); } catch { return r.fulfill({ status: 404, body: '' }); } }
   return r.fulfill({ status: 200, contentType: 'text/html', body: HTML });
 });
+// bibliothèque de scan : la vraie (node_modules), servie à la place du CDN
+await page.route(/cdn\.jsdelivr\.net\/.*zxing/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: readFileSync(join(ICI, '..', 'node_modules', '@zxing', 'browser', 'umd', 'zxing-browser.min.js')) }));
 await page.route('https://api.test/**', async r => {
   const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
@@ -893,12 +896,56 @@ await page.fill('#c-q', 'Autre question'); await page.click('#c-envoi');
 await page.waitForFunction(() => document.getElementById('c-envoi') && !document.getElementById('c-envoi').disabled);
 ok(await page.inputValue('#c-q') === '', 'Coach : le champ est vide après l\'envoi (pas de brouillon fantôme)');
 
+console.log('Scan par photo (appareil photo d\'iOS, aucune autorisation caméra)');
+{ // photo PNG d'un code EAN-13 dessiné dans la page (null : photo sans code)
+  const photoCode = code => page.evaluate(c => {
+    const L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+    const R = L.map(x => x.replace(/./g, b => b === '1' ? '0' : '1')), G = R.map(x => x.split('').reverse().join(''));
+    const PAR = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+    const cv = document.createElement('canvas'); cv.width = 1200; cv.height = 900; const x = cv.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 900);
+    if (c) { const d = c.split('').map(Number), p = PAR[d[0]]; let bits = '101';
+      for (let i = 1; i <= 6; i++) bits += (p[i - 1] === 'L' ? L : G)[d[i]];
+      bits += '01010'; for (let i = 7; i <= 12; i++) bits += R[d[i]]; bits += '101';
+      x.fillStyle = '#000'; const m = 6, x0 = (1200 - bits.length * m) / 2;
+      [...bits].forEach((b, i) => { if (b === '1') x.fillRect(x0 + i * m, 250, m, 400); }); }
+    return cv.toDataURL('image/png').split(',')[1];
+  }, code);
+  const photographie = async (sel, code) => {
+    const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.click(sel)]);
+    await fc.setFiles({ name: 'code.png', mimeType: 'image/png', buffer: Buffer.from(await photoCode(code), 'base64') });
+    return fc;
+  };
+  const lu = () => page.waitForFunction(() => S.ajout.scan.etat === 'pret' && !scanLecture, null, { timeout: 20000 });
+  await page.click('nav button[data-vue="ajout"]');
+  await page.evaluate(() => { S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; rendre();
+    window.__gum = 0; if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => { window.__gum++; return Promise.reject(new Error('NotAllowedError')); }; });
+  const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.click('#sc-ouvre')]);
+  ok(await fc.element().getAttribute('capture') === 'environment' && await page.locator('.scan-overlay').count() === 0,
+    'scan : « Code-barres » ouvre directement l appareil photo d iOS (champ capture), sans écran intermédiaire');
+  await fc.setFiles({ name: 'code.png', mimeType: 'image/png', buffer: Buffer.from(await photoCode('4006381333931'), 'base64') });
+  await page.waitForFunction(() => S.ajout.scan.lot.length === 1, null, { timeout: 20000 });
+  ok(/Ajouté : Biscuits test · 30 g · 135 kcal/.test(await texte('#scan-toast')) && await page.locator('.sc-photo .scan-apercu img').count() === 1 && /Produit suivant/.test(await texte('#scan-photo')),
+    'scan : code EAN-13 lu sur la photo, produit au panier, photo en fond, bouton « Produit suivant »');
+  await photographie('#scan-photo', null); await lu();
+  ok(await page.evaluate(() => S.ajout.scan.lot.length) === 1 && /illisible/.test(await texte('#scan-toast')) && await page.locator('.scan-overlay').count() === 1,
+    'scan : photo sans code lisible, message « reprends la photo », le panier est gardé');
+  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); });
+  ok(await page.evaluate(() => S.ajout.scan.ouvert && S.ajout.scan.lot.length === 1),
+    'scan : passer par une autre appli (ou l appareil photo) ne ferme pas le scan ni le panier');
+  ok(await page.evaluate(() => window.__gum) === 0, 'scan : aucune demande d accès à la caméra (getUserMedia jamais appelé)');
+  await page.click('#scan-fermer'); await page.click('#modale-hote [data-mod="oui"]');
+  ok(await page.locator('.scan-overlay').count() === 0 && await page.evaluate(() => !S.ajout.scan.ouvert && !S.ajout.scan.apercu), 'scan : « Annuler » puis « Abandonner » ferme et libère la photo');
+}
+
 console.log('Scan de plusieurs produits d\'affilée');
 { const lot = () => page.evaluate(() => S.ajout.scan.lot.length);
   const scanne = c => page.evaluate(x => onCodeScanne(x), c);
+  const ouvre = () => page.evaluate(() => { const SC = S.ajout.scan; SC.ouvert = true; SC.etat = 'pret'; SC.lot = []; SC.vus = {}; rendre(); }); // comme après une première photo
   await page.click('nav button[data-vue="ajout"]');
-  await page.evaluate(() => { scanEnCours = true; S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; rendre(); }); // scanEnCours : pas de vraie caméra en test
-  await page.click('#sc-ouvre');
+  await page.evaluate(() => { S.ajout.resultat = null; S.ajout.ajoutEnCours = false; S.ajout.confirm = null; rendre(); });
+  await ouvre();
   ok(await page.locator('.scan-overlay #scan-lot').count() === 1 && await page.locator('#scan-fin').isDisabled() && /Aucun produit/.test(await texte('#scan-lot')), 'scan à la chaîne : caméra ouverte, panier vide, « Terminer » désactivé');
   await scanne('111'); await scanne('222');
   ok(await lot() === 2 && /2 produits scannés/.test(await texte('#scan-lot')) && /330 kcal au total/.test(await texte('#scan-lot')) && /Terminer · 2 produits/.test(await texte('#scan-fin')) && /Annuler/.test(await texte('#scan-fermer')),'scan à la chaîne : 2 produits au panier (portion 125 g, sinon 100 g), total 330 kcal');
@@ -916,7 +963,7 @@ console.log('Scan de plusieurs produits d\'affilée');
   ok(await page.locator('.scan-overlay').count() === 0 && noms.length === 2 && /Yaourt nature Danone/.test(noms[0]) && /Pain complet/.test(noms[1]), 'scan à la chaîne : « Terminer » ouvre un repas avec un aliment par produit');
   ok(/330 kcal/.test(await texte('#e-total')) && /2 produits scannés/.test(await texte('.resu .note')) && /P 14|Protéines\s*14/.test(await texte('#e-plg')), 'scan à la chaîne : total du repas et macros calculés');
   // mode « Ajouter un aliment » : les produits scannés se greffent sur le repas existant
-  await page.click('#e-ajout-al'); await page.evaluate(() => { scanEnCours = true; }); await page.click('#sc-ouvre');
+  await page.click('#e-ajout-al'); await ouvre();
   await scanne('333');
   await page.click('#scan-fin'); await page.waitForSelector('.resu .al-nom');
   ok(await page.locator('.resu .al-nom').count() === 3 && /450 kcal/.test(await texte('#e-total')), 'scan à la chaîne : ajout d\'un produit scanné à un repas existant');

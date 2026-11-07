@@ -11,6 +11,7 @@
     "hooks": "node tools/installer_hook_git.mjs"
   },
   "devDependencies": {
+    "@zxing/browser": "0.2.1",
     "playwright": "1.56.0"
   }
 }

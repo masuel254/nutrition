@@ -272,7 +272,11 @@ input::placeholder,textarea::placeholder{color:var(--soft);font-weight:300}
 .scan-bas button.stop{background:#fff;color:#111;border-color:#fff}
 .scan-toast{position:absolute;left:16px;right:16px;top:calc(56px + env(safe-area-inset-top));z-index:3;background:#188040;color:#fff;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;text-align:center}
 .scan-toast.ko{background:#8a4a14}
-.scan-err.sc{bottom:210px}
+.scan-err.sc{bottom:250px}
+.sc-photo .scan-apercu{position:absolute;left:0;right:0;top:calc(52px + env(safe-area-inset-top));bottom:250px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sc-photo .scan-apercu img{max-width:100%;max-height:100%;object-fit:contain;opacity:.6}
+.scan-panier .scan-photo{display:block;width:100%;margin-top:12px;padding:13px;border-radius:8px;font-size:15px;font-weight:600;background:#188040;color:#fff;border:1px solid #188040}
+.scan-panier .scan-photo:disabled{opacity:.5}
 .scan-panier{position:absolute;left:0;right:0;bottom:0;z-index:3;background:rgba(14,20,22,.94);border-top:1px solid rgba(255,255,255,.2);border-radius:16px 16px 0 0;padding:12px 16px calc(20px + env(safe-area-inset-bottom));color:#fff}
 .scan-panier .tete{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:#b9c4c1}
 .scan-panier .tete b{color:#fff;font-size:16px}
@@ -1077,8 +1081,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=112; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='31/10/2026 22h10';
+const APP_NUM=113; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='07/11/2026 15h04';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1375,86 +1379,79 @@ function chargerZXing(){
   });
   return zxingPromise;
 }
-let scanControls=null;
-let scanEnCours=false;
+// Scan par photo : le bouton ouvre l'appareil photo d'iOS (champ fichier « capture »), l'appli lit le code-barres sur
+// la photo avec ZXing. Pas de getUserMedia, donc aucune demande d'autorisation : dans l'appli installée, iOS la
+// reposait à chaque lancement, et le flux vidéo pouvait rester noir.
+let scanPhotoT=0;        // heure d'ouverture de l'appareil photo d'iOS (ne pas recharger l'appli ni fermer le scan pendant)
+let scanLecture=false;
 function vibrer(ms){try{if(navigator.vibrate)navigator.vibrate(ms||60);}catch(e){}}
-async function demarrerScan(){
-  if(scanEnCours)return;
-  scanEnCours=true;
-  const SC=S.ajout.scan;
-  SC.message='';
-  // La camera exige un contexte securise (HTTPS) et l'API getUserMedia.
-  // On teste avant de charger ZXing (250 Ko) pour un message clair si c'est indisponible.
-  if(!navigator.mediaDevices||typeof navigator.mediaDevices.getUserMedia!=='function'){
-    SC.etat='ko';
-    SC.message=(location.protocol!=='https:'&&location.hostname!=='localhost')
-      ?'Le scan nécessite une connexion sécurisée (https). Ouvre l\'app depuis son adresse habituelle.'
-      :'Ton navigateur ne donne pas accès à la caméra. Saisis le produit à la main.';
-    scanEnCours=false;rendre();return;
+function scanPhotoActif(){return scanPhotoT&&Date.now()-scanPhotoT<180000;}
+function prendrePhotoScan(){
+  let f=document.getElementById('sc-fichier');
+  if(!f){
+    f=document.createElement('input');f.type='file';f.accept='image/*';f.setAttribute('capture','environment');
+    f.id='sc-fichier';f.style.display='none';
+    f.addEventListener('change',()=>{scanPhotoT=0;const x=f.files&&f.files[0];f.value='';if(x)lirePhotoScan(x);});
+    f.addEventListener('cancel',()=>{scanPhotoT=0;});
+    document.body.appendChild(f);   // hors de #racine : jamais détruit par rendre()
   }
-  let ZX;
-  try{ZX=await chargerZXing();}
-  catch(e){SC.etat='ko';SC.message=e.message;scanEnCours=false;rendre();return;}
-  const video=document.getElementById('scan-video');
-  if(!video){SC.etat=null;scanEnCours=false;return;}
+  f.value='';scanPhotoT=Date.now();f.click();
+  chargerZXing().catch(()=>{});     // la bibliothèque se charge pendant la prise de vue
+}
+function chargerImageScan(url){
+  return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Photo illisible, reprends-la.'));im.src=url;});
+}
+// Plusieurs essais sur la même photo : entière, centre agrandi, plus petite, tournée d'un quart (code vertical).
+async function lireCodeImage(file){
+  const ZX=await chargerZXing();
+  const url=URL.createObjectURL(file);
   try{
-    const hints=new Map();
-    const F=ZX.BarcodeFormat, H=ZX.DecodeHintType;
-    if(F&&H){
-      hints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128]);
-    }
+    const im=await chargerImageScan(url);
+    const hints=new Map(),F=ZX.BarcodeFormat,H=ZX.DecodeHintType;
+    if(F&&H){hints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128]);hints.set(H.TRY_HARDER,true);}
     const reader=new ZX.BrowserMultiFormatReader(hints);
-    const onResult=(result)=>{
-      if(result){
-        const code=result.getText?result.getText():String(result.text||result);
-        if(code)onCodeScanne(code);
-      }
-    };
-    // decodeFromConstraints permet de forcer la caméra arrière ; repli sur decodeFromVideoDevice
-    if(typeof reader.decodeFromConstraints==='function'){
-      scanControls=await reader.decodeFromConstraints(
-        {video:{facingMode:{ideal:'environment'}}},video,onResult);
-    }else{
-      scanControls=await reader.decodeFromVideoDevice(undefined,video,onResult);
+    const W=im.naturalWidth,Ht=im.naturalHeight,c=document.createElement('canvas'),x=c.getContext('2d',{willReadFrequently:true});
+    const essais=[[1,1600,0],[0.6,1600,0],[1,1000,0],[1,1600,90],[0.6,1600,90]];
+    for(const [part,taille,rot] of essais){
+      const sw=W*part,sh=Ht*part,sx=(W-sw)/2,sy=(Ht-sh)/2,k=Math.min(1,taille/Math.max(sw,sh));
+      const w=Math.max(1,Math.round(sw*k)),h=Math.max(1,Math.round(sh*k));
+      if(rot){c.width=h;c.height=w;x.setTransform(0,1,-1,0,h,0);}else{c.width=w;c.height=h;x.setTransform(1,0,0,1,0,0);}
+      x.drawImage(im,sx,sy,sw,sh,0,0,w,h);
+      try{const r=reader.decodeFromCanvas(c),t=r&&(r.getText?r.getText():r.text);if(t)return String(t);}catch(e){}
+      await new Promise(r=>setTimeout(r,0));
     }
-    // le flux est attaché à la vidéo : on ne re-rend PAS (cela détruirait l'élément).
-    // on met juste à jour le texte du bandeau haut à la main.
-    SC.etat='scan';
-    scanEnCours=false;
-    const haut=document.querySelector('.scan-haut');
-    if(haut)haut.textContent='Vise le code-barres, produit après produit';
-  }catch(e){
-    scanEnCours=false;
-    // si la camera s'est allumee avant l'echec, on coupe le flux tout de suite
-    try{
-      const v=document.getElementById('scan-video');
-      if(v&&v.srcObject&&v.srcObject.getTracks){
-        v.srcObject.getTracks().forEach(t=>{try{t.stop();}catch(_){}});
-        v.srcObject=null;
-      }
-    }catch(_){}
-    scanControls=null;
-    SC.etat='ko';
-    SC.message=/permission|denied|NotAllowed/i.test(e.name+e.message)
-      ?'Accès caméra refusé. Autorise la caméra dans les réglages Safari.'
-      :'Caméra indisponible. '+(e.message||'');
-    rendre();
-  }
+    return null;
+  }finally{URL.revokeObjectURL(url);}
+}
+function hautScan(t){const e=document.getElementById('scan-haut');if(e)e.textContent=t;}
+async function lirePhotoScan(file){
+  if(scanLecture)return;
+  scanLecture=true;
+  const SC=S.ajout.scan;
+  if(!SC.ouvert){SC.ouvert=true;SC.lot=[];SC.vus={};}
+  SC.etat='lecture';SC.message='';
+  if(SC.apercu){try{URL.revokeObjectURL(SC.apercu);}catch(e){}}
+  SC.apercu=URL.createObjectURL(file);
+  rendre();
+  let code=null,err='';
+  try{code=await lireCodeImage(file);}catch(e){err=e.message||'Lecture impossible.';}
+  scanLecture=false;
+  if(!SC.ouvert)return;
+  SC.etat='pret';rendre();
+  if(err){majPanierScan(err);return;}
+  if(!code){majPanierScan('Code-barres illisible. Reprends la photo plus près, net, le code en entier.');return;}
+  hautScan('Code '+code+' · recherche du produit…');
+  await onCodeScanne(code);
+  if(SC.ouvert)hautScan(texteHautScan());
+}
+function texteHautScan(){
+  const SC=S.ajout.scan;
+  return SC.etat==='lecture'?'Lecture du code-barres…':((SC.lot||[]).length?'Photographie le produit suivant ou termine':'Photographie le code-barres du produit');
 }
 function arreterScan(){
-  try{if(scanControls&&scanControls.stop)scanControls.stop();}catch(e){}
-  scanControls=null;
-  // Filet de securite : meme si scanControls n'a jamais ete assigne (erreur en
-  // cours de demarrage), le flux peut etre attache a la video. On coupe toutes
-  // ses pistes pour eteindre la camera (voyant) et liberer la ressource.
-  try{
-    const v=document.getElementById('scan-video');
-    if(v&&v.srcObject&&v.srcObject.getTracks){
-      v.srcObject.getTracks().forEach(t=>{try{t.stop();}catch(e){}});
-      v.srcObject=null;
-    }
-  }catch(e){}
-  scanEnCours=false;
+  const SC=S.ajout.scan;
+  if(SC&&SC.apercu){try{URL.revokeObjectURL(SC.apercu);}catch(e){}SC.apercu=null;}
+  scanLecture=false;scanPhotoT=0;
 }
 async function fermerScan(){
   const SC=S.ajout.scan,n=(SC.lot||[]).length;
@@ -1476,6 +1473,7 @@ function lotScanHtml(){
 function majPanierScan(msg,ok){
   const n=(S.ajout.scan.lot||[]).length,lot=document.getElementById('scan-lot'),fin=document.getElementById('scan-fin'),t=document.getElementById('scan-toast'),nul=document.getElementById('scan-fermer');
   if(nul)nul.textContent=n?'Annuler':'Fermer';
+  const ph=document.getElementById('scan-photo');if(ph&&!ph.disabled)ph.textContent='📷 '+(n?'Produit suivant':'Reprendre la photo');
   if(lot){lot.innerHTML=lotScanHtml();const p=lot.querySelector('.puces');if(p)p.scrollLeft=p.scrollWidth;}
   if(fin){fin.disabled=!n;fin.textContent=n?'Terminer · '+n+' produit'+(n>1?'s':''):'Terminer';}
   if(t&&msg){t.textContent=msg;t.className='scan-toast'+(ok?'':' ko');t.hidden=false;clearTimeout(toastScanT);toastScanT=setTimeout(()=>{t.hidden=true;},3000);}
@@ -1534,7 +1532,7 @@ function terminerScan(){
   const SC=S.ajout.scan,lot=SC.lot||[];
   if(!lot.length)return;
   arreterScan();
-  SC.ouvert=false;SC.lot=[];SC.vus={};
+  SC.ouvert=false;SC.etat=null;SC.lot=[];SC.vus={};
   utiliserProduits(lot);
 }
 // calcule kcal + macros pour la quantité choisie
@@ -2161,12 +2159,12 @@ function sectionScan(A){
 function overlayScan(){
   const SC=S.ajout.scan;
   if(!SC.ouvert)return '';
-  let h='<div class="scan-overlay"><video id="scan-video" class="scan-video" playsinline muted autoplay></video>'+
-    '<div class="scan-cadre"><div class="box"></div></div>'+
-    '<div class="scan-haut">'+(SC.etat==='demarrage'?'Démarrage de la caméra…':'Vise le code-barres, produit après produit')+'</div>';
+  const n=(SC.lot||[]).length,lect=SC.etat==='lecture';
+  let h='<div class="scan-overlay sc-photo"><div class="scan-apercu">'+(SC.apercu?'<img src="'+SC.apercu+'" alt="">':'')+'</div>'+
+    '<div class="scan-haut" id="scan-haut">'+texteHautScan()+'</div>';
   if(SC.etat==='ko')h+='<div class="scan-err sc">'+esc(SC.message)+'</div>';
-  const n=(SC.lot||[]).length;
   h+='<div class="scan-toast" id="scan-toast" hidden></div><div class="scan-panier"><div id="scan-lot">'+lotScanHtml()+'</div>'+
+    '<button class="scan-photo" id="scan-photo"'+(lect?' disabled':'')+'>📷 '+(lect?'Lecture…':(n?'Produit suivant':'Reprendre la photo'))+'</button>'+
     '<div class="btns"><button id="scan-fermer">'+(n?'Annuler':'Fermer')+'</button><button class="stop" id="scan-fin"'+(n?'':' disabled')+'>'+(n?'Terminer · '+n+' produit'+(n>1?'s':''):'Terminer')+'</button></div></div></div>';
   return h;
 }
@@ -6251,16 +6249,11 @@ function brancher(){
   on('#a-retire','click',()=>{S.ajout.photo=null;S.ajout.apercu=null;S.ajout.taille=0;rendre();});
 
   // --- scanner code-barres ---
-  on('#sc-ouvre','click',()=>{
-    const SC=S.ajout.scan;SC.ouvert=true;SC.etat='demarrage';SC.message='';SC.lot=[];SC.vus={};
-    rendre();
-  });
+  // l'appareil photo d'iOS s'ouvre directement (même toucher : sinon iOS bloque l'ouverture)
+  on('#sc-ouvre','click',prendrePhotoScan);
+  on('#scan-photo','click',prendrePhotoScan);
   on('#scan-fermer','click',fermerScan);
   on('#scan-fin','click',terminerScan);
-  // lance la caméra dès que l'overlay est dans le DOM
-  if(S.ajout.scan.ouvert&&document.getElementById('scan-video')&&!scanControls&&S.ajout.scan.etat!=='ko'){
-    demarrerScan();
-  }
 
   on('#a-nouveau','click',()=>{
     const A=S.ajout;
@@ -6990,11 +6983,12 @@ function jourChange(){
   return !!(S.data&&S.data.reference&&S.data.reference.date&&S.data.reference.date!==auj());
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden&&majPrete&&!(S.cam&&S.cam.ouvert)){window.location.reload();return;}
+  // appareil photo d'iOS ouvert pour un code-barres : la page peut passer « cachée », on ne touche à rien
+  if(document.hidden&&scanPhotoActif())return;
+  if(document.hidden&&majPrete&&!(S.cam&&S.cam.ouvert)&&!S.ajout.scan.ouvert){window.location.reload();return;}
   if(!document.hidden)controlerMaj(600000);
   if(document.hidden){
     if(S.cam.ouvert){if(S.cam.capture)camArreterFlux();else fermerCamera();}
-    if(S.ajout.scan.ouvert){arreterScan();S.ajout.scan.ouvert=false;S.ajout.scan.etat=null;rendre();}
     return;
   }
   if(!S.cfg||!S.data||S.reglages)return;
