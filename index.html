@@ -1081,8 +1081,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=114; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='08/11/2026 19h44';
+const APP_NUM=115; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='08/11/2026 19h52';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1323,6 +1323,26 @@ async function appel(corps){
   err.reseau=true;
   throw err;
 }
+// Repas ajouté tout de suite aux totaux du jour (simples sommes, provisoire) : les chiffres du serveur
+// le remplacent au rechargement qui suit l'envoi. Modification d'un repas du jour : l'ancienne version est retirée.
+const SOMMES_JOUR=['kcal','prot','lip','gluc','fibres','sucres','sodium','satures','sucres_ajoutes'];
+function repasProvisoire(p){
+  const d=S.data,a=d&&d.aujourdhui;
+  if(!a||!p||p.date!==(a.date||auj()))return;
+  d.journal=d.journal||[];a.parRepas=a.parRepas||{};
+  const app=(l,sg)=>{
+    const c=repasCle(l.repas),pr=a.parRepas[c]=a.parRepas[c]||{kcal:0,prot:0,lip:0,gluc:0,fibres:0,sucres:0,sodium:0,satures:0};
+    SOMMES_JOUR.forEach(k=>{const v=sg*(Number(l[k])||0);if(!v)return;
+      a[k]=Math.max(0,(Number(a[k])||0)+v);if(k in pr)pr[k]=Math.max(0,(Number(pr[k])||0)+v);});
+  };
+  const vieux=p.id&&d.journal.find(l=>l&&l.id===p.id&&l.date===p.date);
+  if(vieux){app(vieux,-1);d.journal=d.journal.filter(l=>l!==vieux);}
+  else a.repas=(Number(a.repas)||0)+1;
+  const ligne=Object.assign({},p);delete ligne.action;delete ligne.evaluation;
+  d.journal.unshift(ligne);app(ligne,1);
+}
+// refus du serveur : on reprend ses chiffres (le provisoire disparaît)
+function annulerProvisoire(){rafraichir().then(()=>{if(S.vue)rendreSiLibre();}).catch(()=>{});}
 async function rafraichir(){
   const d=await appel({action:'data'});
   dernierAppel=Date.now();
@@ -6298,11 +6318,12 @@ function brancher(){
     S.file=(S.file||[]).filter(x=>!(x&&x.payload&&x.payload.id===id));
     A.histo=(A.histo||[]).filter(x=>x!==it);
     A.msgHisto=nb(l.kcal)+' kcal enregistrées en '+l.repas+' le '+jjmm(date)+'.';A.msgHistoKo=false;
+    repasProvisoire(payload);
     ecrireRepasCache();rendre();
     empilerPending(payload,(etat,msg)=>{
       if(etat==='ok')return;
       if(etat==='attente'){A.msgHisto='Brouillon gardé, il sera enregistré dès que possible.';A.msgHistoKo=false;}
-      else{A.histo=[it].concat(A.histo||[]).slice(0,MAX_HISTO);A.msgHisto='Non enregistré : '+msg;A.msgHistoKo=true;}
+      else{A.histo=[it].concat(A.histo||[]).slice(0,MAX_HISTO);A.msgHisto='Non enregistré : '+msg;A.msgHistoKo=true;annulerProvisoire();}
       ecrireRepasCache();if(S.vue==='ajout')rendreSiLibre();
     });
     if(typeof navigator!=='undefined'&&navigator.onLine===false){A.msgHisto='Brouillon gardé, il sera enregistré dès que possible.';ecrireRepasCache();rendre();return;}
@@ -6392,6 +6413,7 @@ function brancher(){
     A.confirm='fait';
     A.message=nb(l.kcal)+' kcal enregistrées en '+l.repas+' le '+jjmm(date)+'.';
     A.enregistre={id:id,date:date,repas:l.repas,detail:l.detail,kcal:l.kcal};
+    repasProvisoire(payload);
     ecrireRepasCache();rendre();
     const ici=()=>S.ajout.resultat===res&&S.ajout.confirm==='fait';
     empilerPending(payload,(etat,msg)=>{
@@ -6401,6 +6423,7 @@ function brancher(){
         return;
       }
       if(etat!=='ko')return;
+      annulerProvisoire();
       if(ici()){A.confirm='ko';A.message='Non enregistré : '+msg;A.enregistre=ancien;}
       else{
         // un autre repas a pris sa place : celui-ci revient en brouillon

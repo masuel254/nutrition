@@ -937,3 +937,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - `rejouerPending` retire les entrées par identité (plus de `shift`), pour supporter un ré-enregistrement pendant un envoi.
 - Même principe pour le ✓ d'un brouillon (`data-histo-ok`). Rien à changer côté n8n ni Sheets.
 - Tests e2e « Enregistrement immédiat (envoi en arrière-plan) » : serveur lent (2,5 s), écriture en file avant envoi, refus sur place et après avoir quitté l'écran, panne puis rejeu sans doublon, refus après passage à un autre repas.
+
+## 68. Jour à jour dès l'enregistrement : totaux provisoires (08/11, appli v115)
+
+- `repasProvisoire(payload)` (appelé par `enregistrer()` et le ✓ d'un brouillon), pour un repas d'aujourd'hui seulement : ajoute la ligne en tête de `S.data.journal` et ses valeurs aux totaux `S.data.aujourdhui` et `parRepas` (`SOMMES_JOUR` : kcal, prot, lip, gluc, fibres, sucres, sodium, satures, sucres_ajoutes ; `repas` + 1). Réenregistrement du même `id` (Modifier) : l'ancienne version est d'abord retirée, rien n'est compté deux fois.
+- Simples sommes, donc mêmes chiffres que le serveur. Les indicateurs calculés côté serveur (qualité, purines, alcool, écart) ne changent qu'au rechargement qui suit l'envoi (`rejouerPending` → `rafraichir`), qui remplace tout le provisoire. Rien n'est écrit dans le cache `S.cache`.
+- Refus du serveur : `annulerProvisoire()` recharge les données du serveur (le provisoire disparaît).
+- Tests e2e dans « Enregistrement immédiat » : totaux, repas et journal mis à jour sans attendre, total affiché sur Jour, pas de double compte en réenregistrant, chiffres du serveur à la place du provisoire.

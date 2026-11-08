@@ -1281,9 +1281,18 @@ console.log('Enregistrement immédiat (envoi en arrière-plan)');
   ok(Date.now() - t0 < 1000 && /kcal enregistrées en/.test(await texte('.resu .bien')) && await page.locator('#e-modif').count() === 1,
     'confirmation et « Modifier ce repas » tout de suite, sans attendre le serveur (qui met 2,5 s)');
   ok(await file() === 1, 'le repas est écrit dans la file avant l envoi (renvoyé à la prochaine ouverture si l appli est fermée)');
-  await page.waitForTimeout(3500);
-  ok(await file() === 0 && nData() > d0 && appels.filter(a => a.action === 'enregistrer').length === n0 + 1,
-    'réponse du serveur : file vidée, chiffres du jour rechargés, un seul envoi');
+  const pv = await page.evaluate(() => { const p = S.file[0].payload, a = S.data.aujourdhui, m = a.parRepas[repasCle(p.repas)] || {};
+    return { k: p.kcal, id: p.id, tot: a.kcal, m: m.kcal, n: a.repas, ligne: S.data.journal.filter(l => l.id === p.id).length }; });
+  ok(pv.k > 0 && pv.tot === 900 + pv.k && pv.m >= pv.k && pv.n === 3 && pv.ligne === 1, 'Jour : repas ajouté tout de suite aux totaux du jour, au repas et au journal (provisoire)');
+  await page.click('nav button[data-vue="jour"]');
+  ok((await texte('.vue.on')).replace(/\s/g, '').includes(String(900 + pv.k) + 'kcalmangées'), 'Jour : le nouveau total s affiche sans attendre le serveur');
+  await page.evaluate(() => { const A = S.ajout; A.enregistre = { id: A.resultat.id }; }); // même repas réenregistré (Modifier) avant la réponse
+  await page.click('nav button[data-vue="ajout"]'); await page.click('#e-modif'); await page.click('#e-auj');
+  ok(await page.evaluate(() => S.data.aujourdhui.kcal) === 900 + pv.k && await page.evaluate(id => S.data.journal.filter(l => l.id === id).length, pv.id) === 1,
+    'Jour : réenregistrer le même repas ne le compte pas deux fois');
+  await page.waitForTimeout(6500); // les deux envois passent l'un après l'autre (2,5 s chacun)
+  ok(await file() === 0 && nData() > d0 && appels.filter(a => a.action === 'enregistrer').length >= n0 + 1 && await page.evaluate(() => S.data.aujourdhui.kcal) === 900,
+    'réponse du serveur : file vidée, chiffres du serveur à la place du provisoire');
   enrDelai = 0; enrRefus = 'Session expirée.';
   await page.click('#e-modif'); await page.click('#e-auj'); await page.waitForTimeout(800);
   ok(/Non enregistré : Session expirée/.test(await texte('.resu .alerte')) && await page.locator('#e-auj').count() === 1 && await file() === 0,
