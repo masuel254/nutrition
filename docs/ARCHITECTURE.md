@@ -927,3 +927,13 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Écran du panier (`overlayScan`, classe `sc-photo`) : la photo en fond (`SC.apercu`, URL objet libérée par `arreterScan`), bouton vert « 📷 Produit suivant » (`#scan-photo`), « Annuler » et « Terminer » comme avant.
 - `visibilitychange` : pendant la prise de vue (`scanPhotoActif`, 3 min au plus) rien n'est fermé ni rechargé ; le scan n'est plus fermé quand on quitte l'appli, et la mise à jour automatique attend sa fermeture.
 - Tests e2e « Scan par photo » : vraie photo d'un EAN-13 lue par la vraie bibliothèque (`@zxing/browser` 0.2.1 en devDependency, servie à la place du CDN), photo illisible, sortie de l'appli, `getUserMedia` jamais appelé, abandon.
+
+## 67. Enregistrement d'un repas immédiat, envoi en arrière-plan (08/11, appli v114)
+
+- Avant : `enregistrer()` attendait `appel('enregistrer')` puis `rafraichir()` (`data`) avant d'afficher la confirmation, soit deux allers-retours n8n + Sheets (2 à 3 s ressentis).
+- Maintenant : la confirmation (« N kcal enregistrées en … », « Modifier ce repas ») s'affiche au toucher. Le payload est d'abord écrit dans la file (`empilerPending`, localStorage), puis `rejouerPending()` l'envoie et recharge les chiffres. Appli fermée avant l'envoi : la file est rejouée à la prochaine ouverture. Même `id` à chaque envoi : le serveur met à jour la ligne, pas de doublon ; un envoi plus ancien du même repas encore en file est remplacé.
+- Les chiffres du jour restent ceux du serveur (pas de recalcul local, iso Telegram) : ils suivent 1 à 3 s après.
+- Suivi par entrée de file (`suivi`, en mémoire, ignoré par JSON ; `suivreItem`) : `attente` (réseau, 429, 5xx) → « Repas gardé, il sera enregistré dès que possible » ; `ko` (refus applicatif) → message rouge « Non enregistré : … » et bouton Enregistrer de retour ; si un autre repas a pris sa place, il revient en brouillon ; hors d'Ajouter, une fenêtre prévient (« Voir »).
+- `rejouerPending` retire les entrées par identité (plus de `shift`), pour supporter un ré-enregistrement pendant un envoi.
+- Même principe pour le ✓ d'un brouillon (`data-histo-ok`). Rien à changer côté n8n ni Sheets.
+- Tests e2e « Enregistrement immédiat (envoi en arrière-plan) » : serveur lent (2,5 s), écriture en file avant envoi, refus sur place et après avoir quitté l'écran, panne puis rejeu sans doublon, refus après passage à un autre repas.

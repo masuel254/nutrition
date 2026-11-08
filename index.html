@@ -1081,8 +1081,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=113; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='07/11/2026 15h04';
+const APP_NUM=114; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='08/11/2026 19h44';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -1211,11 +1211,16 @@ function platVersRepas(p,ia){
    couteux a reperdre). Chaque entree : {payload:{...}, quand:ts}. */
 function lirePending(){try{const a=JSON.parse(localStorage.getItem(S.pending));return Array.isArray(a)?a:[];}catch(e){return [];}}
 function ecrirePending(){try{localStorage.setItem(S.pending,JSON.stringify(S.file||[]));}catch(e){}}
-function empilerPending(payload){
+// suivi (facultatif, en mémoire seulement : JSON l'ignore) : appelé avec 'ok', 'attente' (réseau) ou 'ko' (refus).
+function empilerPending(payload,suivi){
   S.file=S.file||[];
-  S.file.push({payload:payload,quand:Date.now()});
+  const it={payload:payload,quand:Date.now()};
+  if(suivi)it.suivi=suivi;
+  S.file.push(it);
   ecrirePending();
+  return it;
 }
+function suivreItem(it,etat,msg){if(it&&typeof it.suivi==='function'){const f=it.suivi;if(etat!=='attente')delete it.suivi;try{f(etat,msg);}catch(e){}}}
 let rejeuEnCours=false;
 async function rejouerPending(silencieux){
   if(rejeuEnCours)return;
@@ -1227,14 +1232,16 @@ async function rejouerPending(silencieux){
   try{
     while(S.file.length){
       const item=S.file[0];
+      // retrait par identité : un ré-enregistrement du même repas peut avoir retiré l'entrée pendant l'envoi
+      const retirer=()=>{S.file=S.file.filter(x=>x!==item);change=true;ecrirePending();};
       try{
         await appel(item.payload);
-        S.file.shift();change=true;ecrirePending();
+        retirer();suivreItem(item,'ok');
       }catch(e){
         // erreur reseau : on s'arrete, on retentera plus tard.
         // erreur applicative : le repas ne passera jamais, on le retire pour ne pas bloquer la file.
-        if(e&&e.reseau)break;
-        S.file.shift();change=true;ecrirePending();
+        if(e&&e.reseau){suivreItem(item,'attente');break;}
+        retirer();suivreItem(item,'ko',(e&&e.message)||'Refusé par le serveur.');
       }
     }
   }finally{
@@ -6283,21 +6290,23 @@ function brancher(){
   document.querySelectorAll('[data-histo-ok]').forEach(b=>b.addEventListener('click',async()=>{
     const A=S.ajout,i=Number(b.dataset.histoOk),it=(A.histo||[])[i];
     if(!it||!it.resultat||!it.resultat.ligne)return;
-    b.disabled=true;b.textContent='\u2026';
     const r=it.resultat,l=r.ligne,q=it.quand?new Date(it.quand):new Date();
     const date=isoLocal(q)>auj()?auj():isoLocal(q);
     const id=r.id||(r.id=nouvelId());
     const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(r),evaluation:r.evaluation||null,ia:r.ia||''});
-    const retirer=()=>{A.histo=(A.histo||[]).filter(x=>x!==it);ecrireRepasCache();};
-    try{
-      const w=await appel(payload);retirer();
-      A.msgHisto=nb((w&&w.kcal)||l.kcal)+' kcal enregistrées en '+((w&&w.repas)||l.repas)+' le '+jjmm((w&&w.date)||date)+'.';A.msgHistoKo=false;
-      try{await rafraichir();}catch(e){}
-    }catch(e){
-      if(e&&e.reseau){empilerPending(payload);retirer();A.msgHisto='Brouillon gardé, il sera enregistré dès que possible.';A.msgHistoKo=false;}
-      else{A.msgHisto=e.message;A.msgHistoKo=true;}
-    }
-    rendre();
+    // confirmé tout de suite, envoyé par la file (comme enregistrer) ; refusé : le brouillon revient
+    S.file=(S.file||[]).filter(x=>!(x&&x.payload&&x.payload.id===id));
+    A.histo=(A.histo||[]).filter(x=>x!==it);
+    A.msgHisto=nb(l.kcal)+' kcal enregistrées en '+l.repas+' le '+jjmm(date)+'.';A.msgHistoKo=false;
+    ecrireRepasCache();rendre();
+    empilerPending(payload,(etat,msg)=>{
+      if(etat==='ok')return;
+      if(etat==='attente'){A.msgHisto='Brouillon gardé, il sera enregistré dès que possible.';A.msgHistoKo=false;}
+      else{A.histo=[it].concat(A.histo||[]).slice(0,MAX_HISTO);A.msgHisto='Non enregistré : '+msg;A.msgHistoKo=true;}
+      ecrireRepasCache();if(S.vue==='ajout')rendreSiLibre();
+    });
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){A.msgHisto='Brouillon gardé, il sera enregistré dès que possible.';ecrireRepasCache();rendre();return;}
+    rejouerPending();
   }));
   document.querySelectorAll('[data-histo-enr]').forEach(b=>{
     b.addEventListener('click',()=>{
@@ -6361,46 +6370,50 @@ function brancher(){
     rendre();
   });
 
+  // Enregistrement immédiat à l'écran : la confirmation s'affiche au toucher, l'envoi part par la file
+  // (écrite avant l'envoi : rejouée à la prochaine ouverture si l'appli est fermée entre-temps). Même
+  // identifiant de repas à chaque envoi : le serveur met à jour la ligne, jamais de doublon. Les chiffres
+  // du jour viennent du serveur (rafraichir après l'envoi), pour rester identiques à Telegram.
   async function enregistrer(date){
-    const A=S.ajout,l=A.resultat&&A.resultat.ligne;
-    if(!l)return;
-    portRetenir(A.resultat);
-    A.confirm='envoi';rendre();
-    // si ce repas provient d'une Modification (ancienne ligne connue), on retire
-    // d'abord l'ancienne pour la remplacer, sans créer de doublon.
+    const A=S.ajout,res=A.resultat,l=res&&res.ligne;
+    if(!l||A.confirm==='envoi')return;
+    portRetenir(res);
     const ancien=A.enregistre;
-    // identifiant du repas : celui de la ligne modifiée, sinon un nouveau gardé sur le résultat
-    // (un second appui ou un rejeu réutilise le même : la ligne est mise à jour, pas dupliquée).
-    const id=(ancien&&ancien.id)||A.resultat.id||(A.resultat.id=nouvelId());
+    const id=(ancien&&ancien.id)||res.id||(res.id=nouvelId());
     if(ancien&&ancien.detail&&!ancien.id){
+      // ancienne ligne sans identifiant (avant v60) : on la retire d'abord, en attendant (cas rare)
+      A.confirm='envoi';rendre();
       try{await appel({action:'suppr',date:ancien.date,repas:ancien.repas,detail:ancien.detail,kcal:ancien.kcal});}
       catch(e){/* si la suppression échoue on continue : on préviendra du doublon éventuel */}
     }
-    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(A.resultat),evaluation:A.resultat.evaluation||null,ia:A.resultat.ia||''});
-    try{
-      const r=await appel(payload);
-      // le repas est écrit : un échec de l'actualisation ne doit pas le faire passer pour non enregistré
-      let rafraichi=true;
-      try{await rafraichir();}catch(e){rafraichi=false;}
-      A.confirm='fait';
-      A.message=nb(r.kcal)+' kcal enregistrées en '+r.repas+' le '+jjmm(r.date)+'.'+
-        (rafraichi?'':' Les chiffres du jour se mettront à jour au prochain retour dans l’appli.');
-      // on garde de quoi supprimer cette ligne si l'utilisateur la Modifie ensuite
-      A.enregistre={id:r.id||id,date:(r.date||date),repas:l.repas,detail:l.detail,kcal:l.kcal};
-      ecrireRepasCache();
-    }catch(e){
-      if(e&&e.reseau){
-        // reseau coupe OU rate limit (429) : on ne perd pas le repas, file pour rejeu.
-        empilerPending(payload);
-        A.confirm='fait';
-        A.message='Repas gardé, il sera enregistré dès que possible.';
-        A.enregistre=null; // pas encore réellement dans le journal
-        ecrireRepasCache();
-      }else{
-        A.confirm='ko';A.message=e.message;
+    const payload=Object.assign({action:'enregistrer',date:date},l,{id:id,aliments:alimentsAEnvoyer(res),evaluation:res.evaluation||null,ia:res.ia||''});
+    // un envoi plus ancien du même repas encore en file est remplacé par celui-ci
+    S.file=(S.file||[]).filter(x=>!(x&&x.payload&&x.payload.id===id));
+    A.confirm='fait';
+    A.message=nb(l.kcal)+' kcal enregistrées en '+l.repas+' le '+jjmm(date)+'.';
+    A.enregistre={id:id,date:date,repas:l.repas,detail:l.detail,kcal:l.kcal};
+    ecrireRepasCache();rendre();
+    const ici=()=>S.ajout.resultat===res&&S.ajout.confirm==='fait';
+    empilerPending(payload,(etat,msg)=>{
+      const A=S.ajout;
+      if(etat==='attente'){
+        if(ici()){A.message='Repas gardé, il sera enregistré dès que possible.';ecrireRepasCache();if(S.vue==='ajout')rendreSiLibre();}
+        return;
       }
-    }
-    rendre();
+      if(etat!=='ko')return;
+      if(ici()){A.confirm='ko';A.message='Non enregistré : '+msg;A.enregistre=ancien;}
+      else{
+        // un autre repas a pris sa place : celui-ci revient en brouillon
+        A.histo=[{repas:creneauDe(l.repas)||A.repas,desc:'',resultat:res,confirm:null,message:'',quand:Date.now()}].concat(A.histo||[]).slice(0,MAX_HISTO);
+        A.msgHisto='Repas de '+nb(l.kcal)+' kcal non enregistré : '+msg+' Il est dans les brouillons.';A.msgHistoKo=true;
+      }
+      ecrireRepasCache();rendreSiLibre();
+      // on n'est plus sur Ajouter : on prévient
+      if(S.vue!=='ajout'||S.reglages)modaleConfirm('Ton repas '+l.repas+' ('+nb(l.kcal)+' kcal) n’a pas été enregistré : '+msg,{ok:'Voir',annule:'Fermer'})
+        .then(v=>{if(v){S.vue='ajout';S.reglages=false;rendre();hautPage();}});
+    });
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){A.message='Repas gardé, il sera enregistré dès que possible.';ecrireRepasCache();rendre();return;}
+    rejouerPending();
   }
   document.querySelectorAll('#e-repas button').forEach(b=>{
     b.addEventListener('click',()=>{

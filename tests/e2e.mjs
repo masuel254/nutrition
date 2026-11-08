@@ -67,6 +67,7 @@ const PRODUITS = {
 };
 const COMPTES = [{ uid: 'u1', prenom: 'Test', statut: 'actif', role: 'administrateur', telegram: true, ia: true, niveau: 'oui', claude: { a: 5, c: 2, h: 6, s: 1 } },
   { uid: 'u2', prenom: 'Hugo', statut: 'actif', role: 'utilisateur', telegram: false, ia: false, niveau: 'non', claude: { a: 0, c: 0, h: 0, s: 0 } }];
+let enrDelai = 0, enrRefus = '', enr503 = false; // enregistrer : réponse lente, refus, panne serveur
 const appels = []; let reponseVide = 1, ia503 = true, secoursTest = false, menuKO = false, ancienFav = false, iaRep = null;
 await page.route('https://app.test/**', r => {
   const img = new URL(r.request().url()).pathname.match(/^\/(img\/(?:imc\/[fh]-\d+|ico\/[a-z]+)\.webp)$/); // vraies images du dépôt
@@ -79,7 +80,9 @@ await page.route('https://api.test/**', async r => {
   const q = JSON.parse(r.request().postData() || '{}'); appels.push(q);
   const json = (o, s = 200) => r.fulfill({ status: s, contentType: 'application/json', body: JSON.stringify(o) });
   if (q.action === 'journal') return json({ ok: true, journal: LIGNES.filter(l => l.date >= q.debut && l.date <= q.fin) });
-  if (q.action === 'enregistrer') { if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
+  if (q.action === 'enregistrer') { if (enrDelai) await new Promise(f => setTimeout(f, enrDelai));
+    if (enr503) return json({ ok: false }, 503); if (enrRefus) return json({ ok: false, erreur: enrRefus });
+    if (reponseVide-- > 0) return r.fulfill({ status: 200, body: '' }); return json({ ok: true, enregistre: true, id: q.id, date: q.date, repas: q.repas, kcal: q.kcal }); }
   if (q.action === 'repas' && iaRep) return json(iaRep);
   if (q.action === 'repas' && secoursTest) return json({ ok: true, enregistre: false, repas: 'Soir', date: jour(0), secours: 'claude', ia: 'claude', echecs: 'Flash : 429 quota', incertitude: 'moyenne', note: '', aliments: [{ nom: 'Poulet', quantite: '200 g', kcal: 400, prot: 50, lip: 20, gluc: 0 }], total: { kcal: 400, prot: 50, lip: 20, gluc: 0 }, ligne: { repas: 'Soir', detail: 'Poulet (200 g)', kcal: 400, prot: 50, lip: 20, gluc: 0 } });
   if (q.action === 'repas' && ia503) return json({ ok: false, ia: true, erreur: "L'IA de Google est indisponible pour le moment." }, 503);
@@ -1261,6 +1264,48 @@ console.log('Note des repas');
   await page.click('.vue.on [data-cong="calories"]');
   ok(/sur 1 produit consommé/.test(await texte('.vue.on')) && !/repas consommés notés/.test(await texte('.vue.on')), 'Produits scannés : seules les lignes du scan comptent, plus les notes IA des repas');
   await page.click('nav button[data-vue="jour"]'); }
+
+console.log('Enregistrement immédiat (envoi en arrière-plan)');
+{ const file = () => page.evaluate(() => JSON.parse(localStorage.getItem(S.pending) || '[]').length);
+  const nData = () => appels.filter(a => a.action === 'data').length;
+  const refaire = async () => {
+    await page.click('nav button[data-vue="ajout"]');
+    if (await page.locator('#a-nouveau').count()) await page.click('#a-nouveau');
+    if (!(await page.locator('#rac-tr').count())) await page.click('nav button[data-vue="ajout"]');
+    await page.click('#rac-tr'); await page.click('[data-rf-aj="0"]');
+  };
+  await page.evaluate(() => { fermerModale(); S.reglages = false; rendre(); });
+  enrDelai = 2500; const d0 = nData(), n0 = appels.filter(a => a.action === 'enregistrer').length;
+  await refaire(); const t0 = Date.now();
+  await page.waitForSelector('.resu .bien', { timeout: 2000 });
+  ok(Date.now() - t0 < 1000 && /kcal enregistrées en/.test(await texte('.resu .bien')) && await page.locator('#e-modif').count() === 1,
+    'confirmation et « Modifier ce repas » tout de suite, sans attendre le serveur (qui met 2,5 s)');
+  ok(await file() === 1, 'le repas est écrit dans la file avant l envoi (renvoyé à la prochaine ouverture si l appli est fermée)');
+  await page.waitForTimeout(3500);
+  ok(await file() === 0 && nData() > d0 && appels.filter(a => a.action === 'enregistrer').length === n0 + 1,
+    'réponse du serveur : file vidée, chiffres du jour rechargés, un seul envoi');
+  enrDelai = 0; enrRefus = 'Session expirée.';
+  await page.click('#e-modif'); await page.click('#e-auj'); await page.waitForTimeout(800);
+  ok(/Non enregistré : Session expirée/.test(await texte('.resu .alerte')) && await page.locator('#e-auj').count() === 1 && await file() === 0,
+    'refus du serveur : message rouge et bouton Enregistrer de retour, rien ne reste en file');
+  enrDelai = 1200;
+  await page.click('#e-auj'); await page.click('nav button[data-vue="jour"]'); await page.waitForTimeout(1800);
+  ok(await page.locator('#modale-hote').count() === 1 && /n’a pas été enregistré : Session expirée/.test(await texte('#modale-hote')),
+    'refus arrivé après avoir quitté Ajouter : une fenêtre prévient');
+  await page.click('#modale-hote [data-mod="oui"]');
+  ok(await page.evaluate(() => S.vue === 'ajout' && S.ajout.confirm === 'ko') && await page.locator('#e-auj').count() === 1, 'refus : « Voir » ramène au repas, prêt à être réenregistré');
+  enrDelai = 0; enrRefus = ''; enr503 = true; const n1 = appels.filter(a => a.action === 'enregistrer').length;
+  await page.click('#e-auj'); await page.waitForTimeout(2600);
+  ok(/Repas gardé, il sera enregistré dès que possible/.test(await texte('.resu .bien')) && await file() === 1, 'serveur en panne : repas gardé en file');
+  enr503 = false; await page.evaluate(() => rejouerPending()); await page.waitForTimeout(800);
+  const ids = appels.filter(a => a.action === 'enregistrer').slice(n1).map(a => a.id);
+  ok(await file() === 0 && ids.length >= 2 && ids.every(i => i === ids[0]), 'serveur revenu : file rejouée avec le même identifiant (pas de doublon)');
+  await page.click('#e-modif'); enrDelai = 1500; await page.click('#e-auj'); await page.click('#a-nouveau').catch(() => {});
+  enrRefus = 'Feuille indisponible.'; await page.waitForTimeout(2000);
+  ok(/non enregistré : Feuille indisponible/.test(await texte('.histo')) && await page.evaluate(() => S.ajout.histo.length >= 1), 'refus après être passé à un autre repas : il revient en brouillon');
+  enrDelai = 0; enrRefus = '';
+  await page.evaluate(() => { S.ajout.histo = []; S.ajout.msgHisto = ''; ecrireRepasCache(); fermerModale(); rendre(); });
+}
 
 console.log('Affichage');
 const deborde = () => page.evaluate(() => { const x = document.getElementById('defile'); return x.scrollWidth - x.clientWidth; });
