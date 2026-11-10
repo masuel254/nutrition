@@ -944,3 +944,9 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Simples sommes, donc mêmes chiffres que le serveur. Les indicateurs calculés côté serveur (qualité, purines, alcool, écart) ne changent qu'au rechargement qui suit l'envoi (`rejouerPending` → `rafraichir`), qui remplace tout le provisoire. Rien n'est écrit dans le cache `S.cache`.
 - Refus du serveur : `annulerProvisoire()` recharge les données du serveur (le provisoire disparaît).
 - Tests e2e dans « Enregistrement immédiat » : totaux, repas et journal mis à jour sans attendre, total affiché sur Jour, pas de double compte en réenregistrant, chiffres du serveur à la place du provisoire.
+
+## 69. Plancher de la cible : 25 % sous le métabolisme au lieu de 10 % (10/11, appli v116, workflow à suivre)
+
+- `PLANCHER_MB` passe de 0,9 à 0,75 dans l'appli : `ciblePrevue()` (aperçu de Réglages › Objectif). Le texte « plus de N % sous ton métabolisme » se déduit de la constante.
+- Le plancher réel est calculé côté serveur (19 calculs, voir « Cible calorique » dans CLAUDE.md) : tant que le workflow n'est pas mis à 0,75 lui aussi, l'aperçu et la vraie cible divergent (appli et Telegram iso rompus). Ne pas publier l'appli seule.
+- Tests e2e : Réglages › Objectif (écart −600 : cible 1 680 sans plafonnement ; écart −1 000 : cible 1 425, plancher à 25 %).

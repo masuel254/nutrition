@@ -273,7 +273,10 @@ await page.click('.vue.on [data-cong="poids"]');
 
 console.log('Réglages');
 await page.click('#b-reglages'); await page.waitForTimeout(300);
-ok((await page.inputValue('#g-ecart')) === '-600' && /Besoins 2.280 kcal . 600 = 1.680, plus de 10 % sous ton métabolisme \(1.900\)/.test(await texte('#g-apercu')) && /cible 1.710 kcal/.test(await texte('#g-apercu')) && /écart réel de -570/.test(await texte('#g-apercu')) && /Attention, ta cible est sous ton métabolisme/.test(await texte('#g-apercu')), 'objectif sèche : plancher à 90 % du métabolisme expliqué, avertissement');
+ok((await page.inputValue('#g-ecart')) === '-600' && /Besoins 2.280 kcal . 600 = <?b?>?\s*cible 1.680 kcal|Besoins 2.280 kcal . 600 = cible 1.680 kcal/.test(await texte('#g-apercu')) && !/plus de 25 %/.test(await texte('#g-apercu')) && /Attention, ta cible est sous ton métabolisme/.test(await texte('#g-apercu')), 'objectif sèche : -600 reste sous le métabolisme mais au-dessus du plancher (cible 1 680), avertissement sans plafonnement');
+await page.fill('#g-ecart', '-1000'); await page.dispatchEvent('#g-ecart', 'input');
+ok(/Besoins 2.280 kcal . 1.000 = 1.280, plus de 25 % sous ton métabolisme \(1.900\)/.test(await texte('#g-apercu')) && /cible 1.425 kcal/.test(await texte('#g-apercu')) && /écart réel de -855/.test(await texte('#g-apercu')) && /Attention, ta cible est sous ton métabolisme/.test(await texte('#g-apercu')), 'objectif sèche : plancher à 75 % du métabolisme (25 % sous) expliqué, avertissement');
+await page.fill('#g-ecart', '-600'); await page.dispatchEvent('#g-ecart', 'input');
 ok(await page.evaluate(() => { const c = getComputedStyle(document.querySelector('#g-apercu .plancher')).color, j = getComputedStyle(document.documentElement).getPropertyValue('--jaune').trim(); const t = document.createElement('i'); t.style.color = j; document.body.appendChild(t); const cj = getComputedStyle(t).color; t.remove(); return c !== cj; }), 'avertissement du plancher : jaune assombri (lisible)');
 await page.click('[data-ob="prise"]');
 ok((await page.inputValue('#g-ecart')) === '+300', 'prise de masse : écart proposé +300');

@@ -1081,8 +1081,8 @@ button.ns-btn.on{outline:2px solid var(--ink);outline-offset:2px}
 <script>
 "use strict";
 let dernierAppel=0;
-const APP_NUM=115; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
-const APP_VERSION='08/11/2026 19h52';
+const APP_NUM=116; // numéro de version affiché (Réglages), posé par tools/bump_version.mjs
+const APP_VERSION='10/11/2026 07h45';
 const VERSION_KEY='suivi.version.installee';
 const S={cle:'suivi.config',cache:'suivi.dernier',chat:'suivi.chat',repas:'suivi.repas',foods:'suivi.foods',pending:'suivi.pending',
   cfg:null,data:null,vue:'jour',reglages:false,insp:null,inspCal:null,crb:{onglet:'poids',per:30},
@@ -4593,16 +4593,16 @@ function bornerEcart(o,e){const b=OBJ_DEF[o];if(typeof e!=='number'||isNaN(e))re
 function ciblePrevue(d,f,e){
   const r=(d&&d.reference)||{};
   const mb=Number(r.mb)||0;const td=mb?Math.round(mb*(f||r.facteur||1.2)):(Number(r.tdee)||0);
-  // plancher : la cible ne descend jamais plus de 10 % sous le métabolisme (même règle côté serveur)
+  // plancher : la cible ne descend jamais plus de 25 % sous le métabolisme (même règle côté serveur)
   const pl=Math.round(mb*PLANCHER_MB);
   return td?{td:td,mb:mb,pl:pl,brut:td+e,cible:Math.max(pl,td+e),plancher:mb>0&&td+e<pl,sousMB:mb>0&&Math.max(pl,td+e)<mb}:null;
 }
-const PLANCHER_MB=0.9;
+const PLANCHER_MB=0.75;
 const AVERT_MB='Attention, ta cible est sous ton métabolisme : à tenir quelques semaines seulement. Garde tes protéines hautes et ta musculation pour limiter la fonte musculaire, et parles-en à ton médecin.';
 function texteApercu(d,f,e){
   const p=ciblePrevue(d,f,e);
   if(!p)return 'Enregistre une pesée pour calculer ta cible.';
-  if(p.plancher)return '<span class="plancher">Besoins '+nb(p.td)+' kcal − '+nb(Math.abs(e))+' = '+nb(p.brut)+', plus de 10 % sous ton métabolisme ('+nb(p.mb)+'). La cible ne descend jamais sous '+nb(p.pl)+' : <b>cible '+nb(p.cible)+' kcal</b>, soit un écart réel de '+sgn(p.cible-p.td)+' kcal aujourd’hui. Au-delà de '+sgn(p.pl-p.td)+', l’écart ne change plus rien. '+AVERT_MB+'</span>';
+  if(p.plancher)return '<span class="plancher">Besoins '+nb(p.td)+' kcal − '+nb(Math.abs(e))+' = '+nb(p.brut)+', plus de '+Math.round((1-PLANCHER_MB)*100)+' % sous ton métabolisme ('+nb(p.mb)+'). La cible ne descend jamais sous '+nb(p.pl)+' : <b>cible '+nb(p.cible)+' kcal</b>, soit un écart réel de '+sgn(p.cible-p.td)+' kcal aujourd’hui. Au-delà de '+sgn(p.pl-p.td)+', l’écart ne change plus rien. '+AVERT_MB+'</span>';
   return 'Besoins '+nb(p.td)+' kcal '+(e<0?'−':'+')+' '+nb(Math.abs(e))+' = <b>cible '+nb(p.cible)+' kcal</b> aujourd’hui. Elle suit tes besoins à chaque pesée.'+(p.sousMB?' <span class="plancher">'+AVERT_MB+'</span>':'');
 }
 function lienInvite(code){
