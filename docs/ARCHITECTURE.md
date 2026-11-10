@@ -12,7 +12,7 @@ et le code font foi.
   Colonnes ajoutées depuis le socle : Users et Invitations `ia_payante` (vide/`non`, `haiku`, `oui`) ;
   Journal `ia` (modèle qui a fait l'analyse) ; Params `fibres_min`, `satures_max`, `sucres_max`, `sodium_max`
   (0 = automatique, case vide ignorée : on prend la dernière valeur écrite).
-- Cible calorique : max(round(MB × 0,9), besoins + écart), appli et serveur.
+- Cible calorique : max(round(MB × 0,75), besoins + écart), appli et serveur.
 - Chaîne IA (profil Défaut) : Gemini Flash → Flash-Lite → Groq → Claude Haiku → Gemma ; Sonnet via le profil Complexe ;
   disjoncteur Gemini ; 20 appels Claude par jour au plus, tous comptes confondus.
 
@@ -945,8 +945,10 @@ Voir la section « État » en tête de ce document et `docs/TESTS.md`.
 - Refus du serveur : `annulerProvisoire()` recharge les données du serveur (le provisoire disparaît).
 - Tests e2e dans « Enregistrement immédiat » : totaux, repas et journal mis à jour sans attendre, total affiché sur Jour, pas de double compte en réenregistrant, chiffres du serveur à la place du provisoire.
 
-## 69. Plancher de la cible : 25 % sous le métabolisme au lieu de 10 % (10/11, appli v116, workflow à suivre)
+## 69. Plancher de la cible : 25 % sous le métabolisme au lieu de 10 % (10/11, appli v116, workflow v68)
 
 - `PLANCHER_MB` passe de 0,9 à 0,75 dans l'appli : `ciblePrevue()` (aperçu de Réglages › Objectif). Le texte « plus de N % sous ton métabolisme » se déduit de la constante.
-- Le plancher réel est calculé côté serveur (19 calculs, voir « Cible calorique » dans CLAUDE.md) : tant que le workflow n'est pas mis à 0,75 lui aussi, l'aperçu et la vraie cible divergent (appli et Telegram iso rompus). Ne pas publier l'appli seule.
+- Workflow v68 (v67 archivé) : `Math.round(mb*0.9)` devient `Math.round(mb*0.75)` dans les 19 calculs (`cibleDyn` des 15 nœuds, Build Params API, Build Invite API, Tableau Coach API/TG) et dans `n8n/lib_calculs_n8n.js` ; commentaire « au plus 25 % sous le métabolisme ». `OBJECTIF_PAS*0.9` et la tolérance « à 10 % près » de la stabilisation n'ont rien à voir et restent.
+- Publier l'appli et réimporter le workflow ensemble : sinon l'aperçu des Réglages et la vraie cible divergent (appli et Telegram iso rompus).
+- Test n8n `t_plancher.js` : MB 1 900, besoins 2 280, écart −1 000 → cible 1 425 ; profil MB 2 093 : −1 000 appliqué en entier (1 721), −1 500 refusé (sèche bornée à −1 000).
 - Tests e2e : Réglages › Objectif (écart −600 : cible 1 680 sans plafonnement ; écart −1 000 : cible 1 425, plancher à 25 %).

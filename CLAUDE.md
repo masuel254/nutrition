@@ -84,7 +84,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
   Poids, Params, Invitations, Crises, Activite, Mesures, Analyses. Params est un journal daté (`date_effet`).
 - **Appli et Telegram iso** : mêmes calculs, mêmes chiffres. Le bloc de calcul commun est recopié à l'identique
   dans 15 nœuds Code ; référence : `n8n/lib_calculs_n8n.js`. Toute modification d'un calcul se fait partout.
-- **Cible calorique** : cible = max(round(MB × 0,9), besoins + écart). Appli : `PLANCHER_MB=0.9`, `ciblePrevue()`.
+- **Cible calorique** : cible = max(round(MB × 0,75), besoins + écart). Appli : `PLANCHER_MB=0.75`, `ciblePrevue()`.
   Serveur : 19 calculs (`cibleDyn` × 15, Build Params API, Build Invite API, Tableau Coach API/TG).
 - **Répartition par repas** : colonne `repartition` de Params, `matin/midi/en-cas/soir` en %, pilote les tableaux
   « Par repas » de l'appli et de Telegram.
@@ -108,7 +108,7 @@ Commandes Claude Code du projet : `/livrer` (contrôles + versions + récapitula
 ## État au 21/10/2026
 
 - Appli v115, dernière entrée détaillée : `docs/ARCHITECTURE.md` sections 36 à 68.
-- Workflow v67 (449 nœuds, menu du Coach : purines, rubrique et type par plat), tests n8n au vert.
+- Workflow v68 (449 nœuds, plancher de la cible à 75 % du métabolisme), tests n8n au vert.
 - Historique détaillé des versions : `docs/ARCHITECTURE.md` (sections 12 à 25 et tableaux « État » en tête).
 
 ## Hors sujet
